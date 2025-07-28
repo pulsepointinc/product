@@ -1,0 +1,454 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mermaid Diagram Exporter</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px;
+            background: white;
+        }
+        #diagram { 
+            border: 1px solid #ccc; 
+            padding: 20px; 
+            margin: 20px 0;
+            background: white;
+            min-height: 200px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed; 
+        }
+        #mermaidCode {
+            width: 100%;
+            height: 200px;
+            font-family: monospace;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .loading { background: #cce5ff; border: 1px solid #0066cc; }
+        .error { background: #ffe6e6; border: 1px solid #cc0000; }
+        .success { background: #e6ffe6; border: 1px solid #00cc00; }
+    </style>
+</head>
+<body>
+    <h1>Mermaid Diagram Exporter</h1>
+    
+    <div id="status" class="status loading">Loading Mermaid library...</div>
+    
+    <textarea id="mermaidCode" placeholder="Paste your Mermaid diagram code here...">
+flowchart TD
+    Start([Impression Request<br/>MpcBidRequest]) --> Throttle{Throttle Check<br/>obtainPermission?}
+    
+    Throttle -->|❌ Throttled| ThrottlePassback[🚫 THROTTLED PASSBACK<br/>- Log throttled event<br/>- Return WinnerMpcPassback<br/>- Set throttled=true]
+    
+    Throttle -->|✅ Allowed| GetMPCs[Get Active MPCs<br/>mpcRepository.getActiveMpcs]
+    
+    GetMPCs --> FilterMPCs[Apply Composite MPC Filters<br/>CompositeMpcFilter.filter]
+    
+    FilterMPCs --> FilterDetails{MPC Filtering<br/>Factors}
+    FilterDetails --> |Filters Applied| FilterList[
+        🔍 FILTERING FACTORS:<br/>
+        • Publisher Restrictions<br/>
+        • Impression Source Rules<br/>
+        • Geographic Targeting<br/>
+        • Expression-based Rules<br/>
+        • RTB Block Filters<br/>
+        • MPC Throttle Limits<br/>
+        • Brokering Tag Filters<br/>
+        • Creative Preview Filters
+    ]
+    
+    FilterList --> CheckFiltered{Any MPCs<br/>Pass Filters?}
+    CheckFiltered -->|❌ No MPCs| NoMPCPassback[🚫 NO MPC PASSBACK<br/>- No eligible partners<br/>- Return passback]
+    
+    CheckFiltered -->|✅ MPCs Available| InitFloors[Initialize Floor Prices<br/>tfRequestService.initializeFloorPrices]
+    
+    InitFloors --> FloorFactors[
+        💰 FLOOR PRICE FACTORS:<br/>
+        • Publisher Ask Price<br/>
+        • Performance-based Pricing<br/>
+        • SSP Bid Floor<br/>
+        • Header Bidder Floors<br/>
+        • Deal-specific Floors<br/>
+        • Historical Performance
+    ]
+    
+    FloorFactors --> CollectBids[Collect Bids from MPCs<br/>mpcBidCollectionService.collectBids]
+    
+    CollectBids --> BidCollection[
+        📡 BID COLLECTION:<br/>
+        • Parallel requests to MPCs<br/>
+        • Timeout management<br/>
+        • Response aggregation<br/>
+        • Failure handling<br/>
+        • RTB log collection
+    ]
+    
+    BidCollection --> CheckBids{Any Valid<br/>Bids Received?}
+    CheckBids -->|❌ No Bids| NoBidsPassback[🚫 NO BIDS PASSBACK<br/>- All MPCs failed/timeout<br/>- Return passback with reason]
+    
+    CheckBids -->|✅ Bids Available| WinnerSelection[Winner Selection Engine<br/>EDWinnerSelectionEngine.pickWinner]
+    
+    WinnerSelection --> AuctionTiers{Auction Tier Selection}
+    
+    AuctionTiers --> Tier1[
+        🥇 TIER 1: PREFERRED DEALS<br/>
+        • Highest Priority<br/>
+        • Guaranteed delivery contracts<br/>
+        • Premium buyer agreements<br/>
+        • Deal ID validation<br/>
+        • Margin verification
+    ]
+    
+    AuctionTiers --> Tier2[
+        🥈 TIER 2: PREMIUM MARKETPLACE<br/>
+        • Premium inventory<br/>
+        • Enhanced targeting<br/>
+        • Higher margin requirements<br/>
+        • Advanced bid strategies
+    ]
+    
+    AuctionTiers --> Tier3[
+        🥉 TIER 3: OPEN AUCTIONS<br/>
+        • Standard programmatic<br/>
+        • Multiple auction types<br/>
+        • Fallback mechanism
+    ]
+    
+    Tier1 --> CheckPreferred{Preferred Deal<br/>Bids Available?}
+    CheckPreferred -->|✅ Yes| PreferredAuction[Preferred Deal Auction<br/>- Validate deal terms<br/>- Check margins<br/>- Guarantee delivery]
+    CheckPreferred -->|❌ No| Tier2
+    
+    Tier2 --> CheckPremium{Premium Marketplace<br/>Criteria Met?}
+    CheckPremium -->|✅ Yes| PremiumAuction[Premium Marketplace Auction<br/>- Enhanced targeting<br/>- Premium margins<br/>- Advanced strategies]
+    CheckPremium -->|❌ No| Tier3
+    
+    Tier3 --> AuctionTypes{Select Auction Type}
+    
+    AuctionTypes --> TwoPhase[
+        🔄 TWO-PHASE AUCTION<br/>
+        For: BidType.EXTERNAL_TWO_PHASE<br/>
+        • Calculate external bid price<br/>
+        • Apply margins & ceiling<br/>
+        • Floor price validation
+    ]
+    
+    AuctionTypes --> TopMPC[
+        🎯 TOP MPC AUCTION<br/>
+        For: Standard RTB bids<br/>
+        • MPC is top bidder<br/>
+        • Apply MPC margins<br/>
+        • Upstream bid calculation
+    ]
+    
+    AuctionTypes --> RulesBased[
+        🧠 RULES-BASED AUCTION<br/>
+        For: Complex optimization<br/>
+        • ML/rules engine<br/>
+        • Historical performance<br/>
+        • Contextual signals
+    ]
+    
+    PreferredAuction --> MarginCheck
+    PremiumAuction --> MarginCheck
+    TwoPhase --> MarginCheck
+    TopMPC --> MarginCheck
+    RulesBased --> MarginCheck
+    
+    MarginCheck{Margin & Floor<br/>Validation}
+    
+    MarginCheck --> MarginFactors[
+        📊 MARGIN CALCULATION FACTORS:<br/>
+        • Buyer fee structure<br/>
+        • Publisher revenue share<br/>
+        • Performance history<br/>
+        • Deal-specific margins<br/>
+        • Market conditions<br/>
+        • Auction cost basis
+    ]
+    
+    MarginFactors --> FloorCheck{Final Bid ≥<br/>Floor Price?}
+    
+    FloorCheck -->|❌ Below Floor| BelowFloorPassback[🚫 BELOW FLOOR PASSBACK<br/>- Bid doesn't meet minimum<br/>- Margin requirements failed<br/>- Return passback]
+    
+    FloorCheck -->|✅ Above Floor| DealValidation{Deal Constraints<br/>Satisfied?}
+    
+    DealValidation -->|❌ Failed| DealFailPassback[🚫 DEAL VALIDATION FAILED<br/>- Deal terms not met<br/>- Contract violations<br/>- Return passback]
+    
+    DealValidation -->|✅ Passed| CreativeValidation{Creative &<br/>Technical Validation}
+    
+    CreativeValidation -->|❌ Failed| TechnicalPassback[🚫 TECHNICAL FAILURE<br/>- Creative issues<br/>- Technical validation failed<br/>- Return passback]
+    
+    CreativeValidation -->|✅ Passed| Winner[🎉 WINNING IMPRESSION<br/>WinnerMpcStandard]
+    
+    Winner --> MacroReplace[Macro Replacement<br/>edMacroReplacer.process]
+    
+    MacroReplace --> MacroDetails[
+        🔧 MACRO PROCESSING:<br/>
+        • Price placeholders<br/>
+        • Targeting information<br/>
+        • Tracking pixels<br/>
+        • Security encoding<br/>
+        • URL parameters
+    ]
+    
+    MacroDetails --> FinalResponse[📤 SERVE PAID IMPRESSION<br/>ExchangeResponse with:<br/>• Final bid price<br/>• Creative content<br/>• Billing details<br/>• Tracking information]
+    
+    Winner --> Logging[Wide Log Event<br/>wideLogManager.logEvent]
+    ThrottlePassback --> Logging
+    NoMPCPassback --> Logging
+    NoBidsPassback --> Logging
+    BelowFloorPassback --> Logging
+    DealFailPassback --> Logging
+    TechnicalPassback --> Logging
+    
+    Logging --> LogDetails[
+        📝 LOGGING & ANALYTICS:<br/>
+        • Auction decisions<br/>
+        • Performance metrics<br/>
+        • Revenue tracking<br/>
+        • Bid analysis<br/>
+        • Error reporting
+    ]
+    
+    FinalResponse --> End([Response Delivered])
+    LogDetails --> End
+    
+    %% Styling
+    classDef successClass fill:#d4edda,stroke:#155724,stroke-width:2px
+    classDef failureClass fill:#f8d7da,stroke:#721c24,stroke-width:2px
+    classDef processClass fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef decisionClass fill:#fff3cd,stroke:#856404,stroke-width:2px
+    classDef factorClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    
+    class FinalResponse,Winner successClass
+    class ThrottlePassback,NoMPCPassback,NoBidsPassback,BelowFloorPassback,DealFailPassback,TechnicalPassback failureClass
+    class GetMPCs,FilterMPCs,InitFloors,CollectBids,WinnerSelection,MacroReplace processClass
+    class Throttle,CheckFiltered,CheckBids,FloorCheck,DealValidation,CreativeValidation decisionClass
+    class FilterList,FloorFactors,BidCollection,MarginFactors,MacroDetails,LogDetails factorClass
+    </textarea>
+    
+    <button id="renderBtn" onclick="renderDiagram()" disabled>🎨 Render Diagram</button>
+    <button id="svgBtn" onclick="downloadSVG()" disabled>⬇️ Download SVG</button>
+    <button id="pngBtn" onclick="downloadPNG()" disabled>⬇️ Download PNG</button>
+    
+    <div id="diagram"></div>
+
+    <!-- Multiple CDN fallbacks -->
+    <script>
+        let mermaidLoaded = false;
+        let currentMermaid = null;
+
+        function updateStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+
+        function enableButtons() {
+            document.getElementById('renderBtn').disabled = false;
+            document.getElementById('svgBtn').disabled = false;
+            document.getElementById('pngBtn').disabled = false;
+        }
+
+        function loadMermaid() {
+            // Try multiple CDN sources
+            const cdns = [
+                'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js',
+                'https://unpkg.com/mermaid@10/dist/mermaid.min.js',
+                'https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js'
+            ];
+
+            function tryNextCDN(index = 0) {
+                if (index >= cdns.length) {
+                    updateStatus('❌ Failed to load Mermaid from all CDNs. Please check your internet connection.', 'error');
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = cdns[index];
+                
+                script.onload = function() {
+                    if (typeof mermaid !== 'undefined') {
+                        currentMermaid = mermaid;
+                        mermaidLoaded = true;
+                        
+                        // Initialize mermaid
+                        currentMermaid.initialize({ 
+                            startOnLoad: false,
+                            theme: 'default',
+                            securityLevel: 'loose',
+                            themeVariables: {
+                                primaryColor: '#ff6b6b',
+                                primaryTextColor: '#fff',
+                                primaryBorderColor: '#ff4757',
+                                lineColor: '#3742fa',
+                                sectionBkgColor: '#7bed9f',
+                                altSectionBkgColor: '#70a1ff',
+                                gridColor: '#2f3542',
+                                secondaryColor: '#2ed573',
+                                tertiaryColor: '#eccc68'
+                            }
+                        });
+                        
+                        updateStatus('✅ Mermaid loaded successfully! You can now render and download diagrams.', 'success');
+                        enableButtons();
+                        
+                        // Auto-render
+                        setTimeout(renderDiagram, 500);
+                    } else {
+                        tryNextCDN(index + 1);
+                    }
+                };
+                
+                script.onerror = function() {
+                    updateStatus(`⚠️ CDN ${index + 1} failed, trying next...`, 'loading');
+                    tryNextCDN(index + 1);
+                };
+                
+                document.head.appendChild(script);
+            }
+
+            tryNextCDN();
+        }
+
+        function renderDiagram() {
+            if (!mermaidLoaded || !currentMermaid) {
+                updateStatus('❌ Mermaid not loaded yet. Please wait or refresh the page.', 'error');
+                return;
+            }
+
+            const code = document.getElementById('mermaidCode').value.trim();
+            const diagramDiv = document.getElementById('diagram');
+            
+            if (!code) {
+                updateStatus('❌ Please enter some Mermaid code first.', 'error');
+                return;
+            }
+            
+            try {
+                updateStatus('🎨 Rendering diagram...', 'loading');
+                diagramDiv.innerHTML = '<div style="text-align: center; padding: 20px;">Rendering...</div>';
+                
+                // Generate unique ID
+                const diagramId = 'diagram-' + Date.now();
+                
+                currentMermaid.render(diagramId, code).then(function(result) {
+                    diagramDiv.innerHTML = result.svg;
+                    updateStatus('✅ Diagram rendered successfully!', 'success');
+                }).catch(function(error) {
+                    console.error('Mermaid render error:', error);
+                    diagramDiv.innerHTML = '<p style="color: red; padding: 20px;">Error rendering diagram: ' + error.message + '</p>';
+                    updateStatus('❌ Error rendering diagram: ' + error.message, 'error');
+                });
+                
+            } catch (error) {
+                console.error('Render error:', error);
+                diagramDiv.innerHTML = '<p style="color: red; padding: 20px;">Error rendering diagram: ' + error.message + '</p>';
+                updateStatus('❌ Error rendering diagram: ' + error.message, 'error');
+            }
+        }
+
+        function downloadSVG() {
+            const svgElement = document.querySelector('#diagram svg');
+            if (!svgElement) {
+                alert('Please render the diagram first!');
+                return;
+            }
+            
+            // Clone and clean up the SVG
+            const svgClone = svgElement.cloneNode(true);
+            svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = URL.createObjectURL(svgBlob);
+            downloadLink.download = 'impression-serving-flow.svg';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            updateStatus('⬇️ SVG downloaded successfully!', 'success');
+        }
+
+        function downloadPNG() {
+            const svgElement = document.querySelector('#diagram svg');
+            if (!svgElement) {
+                alert('Please render the diagram first!');
+                return;
+            }
+            
+            updateStatus('📷 Converting to PNG...', 'loading');
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            // Get SVG dimensions
+            const svgRect = svgElement.getBoundingClientRect();
+            const svgData = new XMLSerializer().serializeToString(svgElement);
+            
+            // Create blob URL
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(svgBlob);
+            
+            img.onload = function() {
+                // Set high resolution
+                const scale = 2;
+                canvas.width = img.naturalWidth * scale || svgRect.width * scale;
+                canvas.height = img.naturalHeight * scale || svgRect.height * scale;
+                
+                ctx.scale(scale, scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                
+                canvas.toBlob(function(blob) {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(blob);
+                    downloadLink.download = 'impression-serving-flow.png';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    
+                    updateStatus('⬇️ PNG downloaded successfully!', 'success');
+                }, 'image/png');
+                
+                URL.revokeObjectURL(url);
+            };
+            
+            img.onerror = function() {
+                updateStatus('❌ Error converting to PNG. Try SVG download instead.', 'error');
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        // Start loading when page loads
+        window.onload = function() {
+            loadMermaid();
+        };
+    </script>
+</body>
+</html>

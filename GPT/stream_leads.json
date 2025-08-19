@@ -1,0 +1,46 @@
+{
+  "meta": {
+    "source": "https://ppinc.atlassian.net/wiki/spaces/pt/pages/2829746210/2025+Stream+Leads+and+Roadmap+by+Stream",
+    "last_updated": "2025-08-19",
+    "note": "NEVER guess at stream leads - always reference this official source"
+  },
+  "streams": {
+    "Analytics": {
+      "lead": "Kaustav Basu",
+      "products": ["HCP365", "Studio", "Workspace types"],
+      "description": "Analytics stream containing HCP365 and the Studio platform with workspace types",
+      "responsibilities": [
+        "Studio audience strategy platform",
+        "HCP365 analytics and reporting", 
+        "Workspace architecture and permissions",
+        "Cross-platform audience activation"
+      ]
+    },
+    "Omnichannel_Audiences": {
+      "lead": "TBD - check official source",
+      "note": "This may be a subset of Analytics stream or separate - verify with official page",
+      "products": ["Audience targeting", "Platform integrations"],
+      "description": "Focused on audience targeting and segmentation across platforms"
+    },
+    "Adaptive_Optimization": {
+      "lead": "TBD - check official source", 
+      "products": ["AO Factors", "Optimization packages", "Bid optimization"],
+      "description": "Campaign optimization using factors and packages"
+    },
+    "Platform": {
+      "lead": "TBD - check official source",
+      "products": ["Core platform", "Infrastructure", "APIs"],
+      "description": "Platform infrastructure and core services"
+    },
+    "Campaign_Management": {
+      "lead": "TBD - check official source",
+      "products": ["Life", "Campaign tools", "Media planning"],
+      "description": "Campaign setup and media activation"
+    }
+  },
+  "verification_required": [
+    "Complete stream lead list needs verification from official source",
+    "Stream boundaries and product assignments need confirmation",
+    "Some leads marked as TBD pending official source check"
+  ]
+}

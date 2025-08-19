@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "source": "https://ppinc.atlassian.net/wiki/spaces/PD/pages/2092105755/Pulsepoint+Acronyms+Terms",
+    "last_updated": "2025-08-19",
+    "purpose": "Official acronym definitions to prevent confusion"
+  },
+  "acronyms": {
+    "AO": {
+      "full_name": "Adaptive Optimization",
+      "definition": "Campaign bid optimization system using factors and packages for performance targeting",
+      "domain": "Ad Serving & Optimization",
+      "keywords": ["factors", "packages", "bid optimization", "campaign optimization", "pricing logic", "performance targeting"],
+      "search_terms": ["Adaptive Optimization", "AO Factors", "optimization packages", "campaign factors", "bid optimization"],
+      "not_confused_with": ["Omnichannel", "Audience targeting", "OA", "Omnichannel Audiences"],
+      "example_tickets": ["ET-20229", "ET-20221", "ET-20220"],
+      "documentation": ["AO Factors", "optimization packages", "factor performance"]
+    },
+    "OA": {
+      "full_name": "Omnichannel Audiences", 
+      "definition": "Audience targeting and segmentation system across multiple advertising platforms",
+      "domain": "Audience & Targeting",
+      "keywords": ["omnichannel", "audience segments", "cross-channel targeting", "platform activation", "audience management"],
+      "search_terms": ["Omnichannel Audiences", "audience segments", "LinkedIn", "Microsoft Ads", "Google Ads", "audience management"],
+      "not_confused_with": ["Adaptive Optimization", "AO", "factors", "packages", "bid optimization"],
+      "example_tickets": ["ET-21073", "ET-21072"],
+      "documentation": ["Omnichannel Audiences", "audience management", "platform integration"]
+    },
+    "PRTS": {
+      "full_name": "Pre-Ranking Targeting System",
+      "definition": "Scoring and ranking engine that evaluates and ranks ad candidates before the bidding stage",
+      "domain": "Ad Serving",
+      "keywords": ["pre-ranking", "scoring", "estimation", "model evaluation", "candidate ranking"],
+      "search_terms": ["PRTS", "PrtsEngine", "ranking", "scoring", "estimation"],
+      "code_files": ["PrtsEstimationStats.java", "PrtsModelDao", "prts_mpc.sql"],
+      "repositories": ["Ad Serving Platform", "Data Science Projects", "Visators"]
+    },
+    "RTB": {
+      "full_name": "Real-Time Bidding",
+      "definition": "Auction-based system for buying and selling digital advertising inventory in real-time",
+      "domain": "Ad Serving",
+      "keywords": ["auction", "bid request", "bid response", "exchange", "real-time"],
+      "search_terms": ["RTB", "real-time bidding", "auction", "bid request", "exchange"]
+    },
+    "SSP": {
+      "full_name": "Supply-Side Platform",
+      "definition": "Publisher-side platform for managing and optimizing ad inventory",
+      "domain": "Supply & Inventory"
+    },
+    "DSP": {
+      "full_name": "Demand-Side Platform",
+      "definition": "Advertiser-side platform for campaign management and media buying",
+      "domain": "Campaign Management"
+    },
+    "MPC": {
+      "full_name": "Multi-Party Computation",
+      "definition": "Core bidding logic and auction processing system",
+      "domain": "Ad Serving",
+      "code_files": ["MpcBidCall", "MpcBidRequest", "MPCResponse"]
+    },
+    "ED": {
+      "full_name": "Exchange Decider",
+      "definition": "Final auction decision-making component",
+      "domain": "Ad Serving",
+      "code_files": ["EdBidCall", "EDBidResponse"]
+    }
+  }
+}

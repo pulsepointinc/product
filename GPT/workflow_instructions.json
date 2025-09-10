@@ -57,7 +57,7 @@
   },
   "mermaid_integration": {
     "when_to_use": "Create interactive diagrams for technical process flows, flowcharts, timelines, and organizational charts",
-    "base_url": "https://pulsepointinc.github.io/product/mermaid/?diagram=",
+    "base_url": "https://rawcdn.githack.com/pulsepointinc/product/refs/heads/main/mermaid/index.html?diagram=",
     "supported_types": {
       "flowchart": "Technical process flows (bid decisioning, ad serving logic)",
       "sequence": "API interactions and system communications",

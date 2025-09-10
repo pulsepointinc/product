@@ -1,454 +1,789 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Mermaid Diagram Exporter</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Display - ProductGPT Integration</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            padding: 20px;
-            background: white;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        #diagram { 
-            border: 1px solid #ccc; 
-            padding: 20px; 
-            margin: 20px 0;
-            background: white;
-            min-height: 200px;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
         }
-        button {
-            background: #007bff;
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 5px;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        button:hover { background: #0056b3; }
-        button:disabled { 
-            background: #ccc; 
-            cursor: not-allowed; 
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
         }
-        #mermaidCode {
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .controls h2 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        textarea {
             width: 100%;
-            height: 200px;
-            font-family: monospace;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            padding: 10px;
+            height: 150px;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.2s ease;
         }
-        .status {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
-        .loading { background: #cce5ff; border: 1px solid #0066cc; }
-        .error { background: #ffe6e6; border: 1px solid #cc0000; }
-        .success { background: #e6ffe6; border: 1px solid #00cc00; }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-export {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #047857;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .display-area {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .display-area h2 {
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .code-display {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .diagram-display {
+            text-align: center;
+            padding: 2rem;
+            background: #fefefe;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-links {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-top: 1rem;
+        }
+
+        .example-links h3 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .example-links a {
+            display: inline-block;
+            margin: 0.25rem 0.5rem 0.25rem 0;
+            padding: 0.5rem 1rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .example-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                padding: 0.75rem 1rem;
+                text-align: left;
+                border-bottom: 1px solid #e2e8f0;
+                border-right: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Mermaid Diagram Exporter</h1>
-    
-    <div id="status" class="status loading">Loading Mermaid library...</div>
-    
-    <textarea id="mermaidCode" placeholder="Paste your Mermaid diagram code here...">
-flowchart TD
-    Start([Impression Request<br/>MpcBidRequest]) --> Throttle{Throttle Check<br/>obtainPermission?}
-    
-    Throttle -->|❌ Throttled| ThrottlePassback[🚫 THROTTLED PASSBACK<br/>- Log throttled event<br/>- Return WinnerMpcPassback<br/>- Set throttled=true]
-    
-    Throttle -->|✅ Allowed| GetMPCs[Get Active MPCs<br/>mpcRepository.getActiveMpcs]
-    
-    GetMPCs --> FilterMPCs[Apply Composite MPC Filters<br/>CompositeMpcFilter.filter]
-    
-    FilterMPCs --> FilterDetails{MPC Filtering<br/>Factors}
-    FilterDetails --> |Filters Applied| FilterList[
-        🔍 FILTERING FACTORS:<br/>
-        • Publisher Restrictions<br/>
-        • Impression Source Rules<br/>
-        • Geographic Targeting<br/>
-        • Expression-based Rules<br/>
-        • RTB Block Filters<br/>
-        • MPC Throttle Limits<br/>
-        • Brokering Tag Filters<br/>
-        • Creative Preview Filters
-    ]
-    
-    FilterList --> CheckFiltered{Any MPCs<br/>Pass Filters?}
-    CheckFiltered -->|❌ No MPCs| NoMPCPassback[🚫 NO MPC PASSBACK<br/>- No eligible partners<br/>- Return passback]
-    
-    CheckFiltered -->|✅ MPCs Available| InitFloors[Initialize Floor Prices<br/>tfRequestService.initializeFloorPrices]
-    
-    InitFloors --> FloorFactors[
-        💰 FLOOR PRICE FACTORS:<br/>
-        • Publisher Ask Price<br/>
-        • Performance-based Pricing<br/>
-        • SSP Bid Floor<br/>
-        • Header Bidder Floors<br/>
-        • Deal-specific Floors<br/>
-        • Historical Performance
-    ]
-    
-    FloorFactors --> CollectBids[Collect Bids from MPCs<br/>mpcBidCollectionService.collectBids]
-    
-    CollectBids --> BidCollection[
-        📡 BID COLLECTION:<br/>
-        • Parallel requests to MPCs<br/>
-        • Timeout management<br/>
-        • Response aggregation<br/>
-        • Failure handling<br/>
-        • RTB log collection
-    ]
-    
-    BidCollection --> CheckBids{Any Valid<br/>Bids Received?}
-    CheckBids -->|❌ No Bids| NoBidsPassback[🚫 NO BIDS PASSBACK<br/>- All MPCs failed/timeout<br/>- Return passback with reason]
-    
-    CheckBids -->|✅ Bids Available| WinnerSelection[Winner Selection Engine<br/>EDWinnerSelectionEngine.pickWinner]
-    
-    WinnerSelection --> AuctionTiers{Auction Tier Selection}
-    
-    AuctionTiers --> Tier1[
-        🥇 TIER 1: PREFERRED DEALS<br/>
-        • Highest Priority<br/>
-        • Guaranteed delivery contracts<br/>
-        • Premium buyer agreements<br/>
-        • Deal ID validation<br/>
-        • Margin verification
-    ]
-    
-    AuctionTiers --> Tier2[
-        🥈 TIER 2: PREMIUM MARKETPLACE<br/>
-        • Premium inventory<br/>
-        • Enhanced targeting<br/>
-        • Higher margin requirements<br/>
-        • Advanced bid strategies
-    ]
-    
-    AuctionTiers --> Tier3[
-        🥉 TIER 3: OPEN AUCTIONS<br/>
-        • Standard programmatic<br/>
-        • Multiple auction types<br/>
-        • Fallback mechanism
-    ]
-    
-    Tier1 --> CheckPreferred{Preferred Deal<br/>Bids Available?}
-    CheckPreferred -->|✅ Yes| PreferredAuction[Preferred Deal Auction<br/>- Validate deal terms<br/>- Check margins<br/>- Guarantee delivery]
-    CheckPreferred -->|❌ No| Tier2
-    
-    Tier2 --> CheckPremium{Premium Marketplace<br/>Criteria Met?}
-    CheckPremium -->|✅ Yes| PremiumAuction[Premium Marketplace Auction<br/>- Enhanced targeting<br/>- Premium margins<br/>- Advanced strategies]
-    CheckPremium -->|❌ No| Tier3
-    
-    Tier3 --> AuctionTypes{Select Auction Type}
-    
-    AuctionTypes --> TwoPhase[
-        🔄 TWO-PHASE AUCTION<br/>
-        For: BidType.EXTERNAL_TWO_PHASE<br/>
-        • Calculate external bid price<br/>
-        • Apply margins & ceiling<br/>
-        • Floor price validation
-    ]
-    
-    AuctionTypes --> TopMPC[
-        🎯 TOP MPC AUCTION<br/>
-        For: Standard RTB bids<br/>
-        • MPC is top bidder<br/>
-        • Apply MPC margins<br/>
-        • Upstream bid calculation
-    ]
-    
-    AuctionTypes --> RulesBased[
-        🧠 RULES-BASED AUCTION<br/>
-        For: Complex optimization<br/>
-        • ML/rules engine<br/>
-        • Historical performance<br/>
-        • Contextual signals
-    ]
-    
-    PreferredAuction --> MarginCheck
-    PremiumAuction --> MarginCheck
-    TwoPhase --> MarginCheck
-    TopMPC --> MarginCheck
-    RulesBased --> MarginCheck
-    
-    MarginCheck{Margin & Floor<br/>Validation}
-    
-    MarginCheck --> MarginFactors[
-        📊 MARGIN CALCULATION FACTORS:<br/>
-        • Buyer fee structure<br/>
-        • Publisher revenue share<br/>
-        • Performance history<br/>
-        • Deal-specific margins<br/>
-        • Market conditions<br/>
-        • Auction cost basis
-    ]
-    
-    MarginFactors --> FloorCheck{Final Bid ≥<br/>Floor Price?}
-    
-    FloorCheck -->|❌ Below Floor| BelowFloorPassback[🚫 BELOW FLOOR PASSBACK<br/>- Bid doesn't meet minimum<br/>- Margin requirements failed<br/>- Return passback]
-    
-    FloorCheck -->|✅ Above Floor| DealValidation{Deal Constraints<br/>Satisfied?}
-    
-    DealValidation -->|❌ Failed| DealFailPassback[🚫 DEAL VALIDATION FAILED<br/>- Deal terms not met<br/>- Contract violations<br/>- Return passback]
-    
-    DealValidation -->|✅ Passed| CreativeValidation{Creative &<br/>Technical Validation}
-    
-    CreativeValidation -->|❌ Failed| TechnicalPassback[🚫 TECHNICAL FAILURE<br/>- Creative issues<br/>- Technical validation failed<br/>- Return passback]
-    
-    CreativeValidation -->|✅ Passed| Winner[🎉 WINNING IMPRESSION<br/>WinnerMpcStandard]
-    
-    Winner --> MacroReplace[Macro Replacement<br/>edMacroReplacer.process]
-    
-    MacroReplace --> MacroDetails[
-        🔧 MACRO PROCESSING:<br/>
-        • Price placeholders<br/>
-        • Targeting information<br/>
-        • Tracking pixels<br/>
-        • Security encoding<br/>
-        • URL parameters
-    ]
-    
-    MacroDetails --> FinalResponse[📤 SERVE PAID IMPRESSION<br/>ExchangeResponse with:<br/>• Final bid price<br/>• Creative content<br/>• Billing details<br/>• Tracking information]
-    
-    Winner --> Logging[Wide Log Event<br/>wideLogManager.logEvent]
-    ThrottlePassback --> Logging
-    NoMPCPassback --> Logging
-    NoBidsPassback --> Logging
-    BelowFloorPassback --> Logging
-    DealFailPassback --> Logging
-    TechnicalPassback --> Logging
-    
-    Logging --> LogDetails[
-        📝 LOGGING & ANALYTICS:<br/>
-        • Auction decisions<br/>
-        • Performance metrics<br/>
-        • Revenue tracking<br/>
-        • Bid analysis<br/>
-        • Error reporting
-    ]
-    
-    FinalResponse --> End([Response Delivered])
-    LogDetails --> End
-    
-    %% Styling
-    classDef successClass fill:#d4edda,stroke:#155724,stroke-width:2px
-    classDef failureClass fill:#f8d7da,stroke:#721c24,stroke-width:2px
-    classDef processClass fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-    classDef decisionClass fill:#fff3cd,stroke:#856404,stroke-width:2px
-    classDef factorClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    
-    class FinalResponse,Winner successClass
-    class ThrottlePassback,NoMPCPassback,NoBidsPassback,BelowFloorPassback,DealFailPassback,TechnicalPassback failureClass
-    class GetMPCs,FilterMPCs,InitFloors,CollectBids,WinnerSelection,MacroReplace processClass
-    class Throttle,CheckFiltered,CheckBids,FloorCheck,DealValidation,CreativeValidation decisionClass
-    class FilterList,FloorFactors,BidCollection,MarginFactors,MacroDetails,LogDetails factorClass
-    </textarea>
-    
-    <button id="renderBtn" onclick="renderDiagram()" disabled>🎨 Render Diagram</button>
-    <button id="svgBtn" onclick="downloadSVG()" disabled>⬇️ Download SVG</button>
-    <button id="pngBtn" onclick="downloadPNG()" disabled>⬇️ Download PNG</button>
-    
-    <div id="diagram"></div>
+    <div class="header">
+        <h1>Mermaid Display</h1>
+        <p>Interactive Mermaid diagrams for ProductGPT integration</p>
+    </div>
 
-    <!-- Multiple CDN fallbacks -->
+    <div class="container">
+        <div class="controls">
+            <h2>Mermaid Diagram Input</h2>
+            <div class="input-group">
+                <label for="mermaidInput">Enter your Mermaid markup:</label>
+                <textarea id="mermaidInput" placeholder="flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E"></textarea>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="renderDiagram()">Render Diagram</button>
+                <button class="btn-secondary" onclick="clearDiagram()">Clear</button>
+                <button class="btn-export" onclick="exportPNG()">Export PNG</button>
+                <button class="btn-export" onclick="exportCSV()">Export CSV</button>
+                <button class="btn-export" onclick="exportExcel()">Export Excel</button>
+            </div>
+            
+            <div class="example-links">
+                <h3>Example Diagrams:</h3>
+                <a href="#" onclick="loadExample('flowchart')">Flowchart</a>
+                <a href="#" onclick="loadExample('sequence')">Sequence Diagram</a>
+                <a href="#" onclick="loadExample('gantt')">Gantt Chart</a>
+                <a href="#" onclick="loadExample('pie')">Pie Chart</a>
+                <a href="#" onclick="loadExample('class')">Class Diagram</a>
+                <a href="#" onclick="loadExample('table')">Table</a>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <h2>Output</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('diagram')">Rendered Diagram</button>
+                <button class="tab" onclick="switchTab('code')">Mermaid Code</button>
+            </div>
+            
+            <div id="diagram-tab" class="tab-content active">
+                <div class="diagram-display" id="diagramContainer">
+                    <div class="loading">No diagram loaded. Enter Mermaid markup above and click "Render Diagram"</div>
+                </div>
+            </div>
+            
+            <div id="code-tab" class="tab-content">
+                <div class="code-display" id="codeDisplay">No code to display</div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let mermaidLoaded = false;
-        let currentMermaid = null;
-
-        function updateStatus(message, type = 'loading') {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type}`;
-        }
-
-        function enableButtons() {
-            document.getElementById('renderBtn').disabled = false;
-            document.getElementById('svgBtn').disabled = false;
-            document.getElementById('pngBtn').disabled = false;
-        }
-
-        function loadMermaid() {
-            // Try multiple CDN sources
-            const cdns = [
-                'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js',
-                'https://unpkg.com/mermaid@10/dist/mermaid.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js'
-            ];
-
-            function tryNextCDN(index = 0) {
-                if (index >= cdns.length) {
-                    updateStatus('❌ Failed to load Mermaid from all CDNs. Please check your internet connection.', 'error');
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = cdns[index];
-                
-                script.onload = function() {
-                    if (typeof mermaid !== 'undefined') {
-                        currentMermaid = mermaid;
-                        mermaidLoaded = true;
-                        
-                        // Initialize mermaid
-                        currentMermaid.initialize({ 
-                            startOnLoad: false,
-                            theme: 'default',
-                            securityLevel: 'loose',
-                            themeVariables: {
-                                primaryColor: '#ff6b6b',
-                                primaryTextColor: '#fff',
-                                primaryBorderColor: '#ff4757',
-                                lineColor: '#3742fa',
-                                sectionBkgColor: '#7bed9f',
-                                altSectionBkgColor: '#70a1ff',
-                                gridColor: '#2f3542',
-                                secondaryColor: '#2ed573',
-                                tertiaryColor: '#eccc68'
-                            }
-                        });
-                        
-                        updateStatus('✅ Mermaid loaded successfully! You can now render and download diagrams.', 'success');
-                        enableButtons();
-                        
-                        // Auto-render
-                        setTimeout(renderDiagram, 500);
-                    } else {
-                        tryNextCDN(index + 1);
-                    }
-                };
-                
-                script.onerror = function() {
-                    updateStatus(`⚠️ CDN ${index + 1} failed, trying next...`, 'loading');
-                    tryNextCDN(index + 1);
-                };
-                
-                document.head.appendChild(script);
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'inherit',
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis'
             }
+        });
 
-            tryNextCDN();
+        let currentDiagramData = null;
+        let diagramCounter = 0;
+
+        // URL parameter handling
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Load diagram from URL parameter on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const diagramParam = getUrlParameter('diagram');
+            if (diagramParam) {
+                try {
+                    const decodedDiagram = decodeURIComponent(diagramParam);
+                    document.getElementById('mermaidInput').value = decodedDiagram;
+                    renderDiagram();
+                } catch (error) {
+                    showError('Invalid URL parameter format');
+                }
+            }
+        });
+
+        // Example diagrams
+        const examples = {
+            flowchart: `flowchart TD
+    A[Start] --> B{Decision Point}
+    B -->|Yes| C[Process A]
+    B -->|No| D[Process B]
+    C --> E[Merge Results]
+    D --> E
+    E --> F[End]`,
+
+            sequence: `sequenceDiagram
+    participant A as User
+    participant B as System
+    participant C as Database
+    
+    A->>B: Request Data
+    B->>C: Query Database
+    C-->>B: Return Results
+    B-->>A: Display Data`,
+
+            gantt: `gantt
+    title Project Timeline
+    dateFormat  YYYY-MM-DD
+    section Planning
+    Requirements    :done,    des1, 2024-01-01,2024-01-15
+    Design          :done,    des2, 2024-01-10,2024-01-25
+    section Development
+    Backend         :active,  dev1, 2024-01-20,2024-02-15
+    Frontend        :         dev2, 2024-02-01,2024-02-28
+    Testing         :         test, 2024-02-20,2024-03-10`,
+
+            pie: `pie title Project Budget Allocation
+    "Development" : 45
+    "Design" : 20
+    "Marketing" : 15
+    "Operations" : 12
+    "Contingency" : 8`,
+
+            class: `classDiagram
+    class User {
+        +String name
+        +String email
+        +login()
+        +logout()
+    }
+    class Product {
+        +String title
+        +Float price
+        +addToCart()
+    }
+    class Order {
+        +Date created
+        +Float total
+        +process()
+    }
+    User ||--o{ Order : places
+    Order ||--o{ Product : contains`,
+
+            table: `---
+title: Sales Data Q1 2024
+---
+%%{init: {"themeCSS": ".actor {stroke: #333;fill: #fff;}"}}%%
+graph TD
+    subgraph "Sales Table"
+        A["|Month|Sales|Target|Variance|
+        |Jan|$45K|$40K|+$5K|
+        |Feb|$52K|$45K|+$7K|
+        |Mar|$38K|$42K|-$4K|
+        |Total|$135K|$127K|+$8K|"]
+    end`
+        };
+
+        function loadExample(type) {
+            document.getElementById('mermaidInput').value = examples[type];
+            renderDiagram();
         }
 
         function renderDiagram() {
-            if (!mermaidLoaded || !currentMermaid) {
-                updateStatus('❌ Mermaid not loaded yet. Please wait or refresh the page.', 'error');
+            const input = document.getElementById('mermaidInput').value.trim();
+            const container = document.getElementById('diagramContainer');
+            const codeDisplay = document.getElementById('codeDisplay');
+
+            if (!input) {
+                showError('Please enter Mermaid markup');
                 return;
             }
 
-            const code = document.getElementById('mermaidCode').value.trim();
-            const diagramDiv = document.getElementById('diagram');
+            // Show loading
+            container.innerHTML = '<div class="loading">Rendering diagram...</div>';
             
-            if (!code) {
-                updateStatus('❌ Please enter some Mermaid code first.', 'error');
-                return;
-            }
-            
+            // Update code display
+            codeDisplay.textContent = input;
+
             try {
-                updateStatus('🎨 Rendering diagram...', 'loading');
-                diagramDiv.innerHTML = '<div style="text-align: center; padding: 20px;">Rendering...</div>';
+                // Generate unique ID for this diagram
+                const diagramId = `mermaid-diagram-${++diagramCounter}`;
                 
-                // Generate unique ID
-                const diagramId = 'diagram-' + Date.now();
-                
-                currentMermaid.render(diagramId, code).then(function(result) {
-                    diagramDiv.innerHTML = result.svg;
-                    updateStatus('✅ Diagram rendered successfully!', 'success');
-                }).catch(function(error) {
-                    console.error('Mermaid render error:', error);
-                    diagramDiv.innerHTML = '<p style="color: red; padding: 20px;">Error rendering diagram: ' + error.message + '</p>';
-                    updateStatus('❌ Error rendering diagram: ' + error.message, 'error');
-                });
-                
-            } catch (error) {
-                console.error('Render error:', error);
-                diagramDiv.innerHTML = '<p style="color: red; padding: 20px;">Error rendering diagram: ' + error.message + '</p>';
-                updateStatus('❌ Error rendering diagram: ' + error.message, 'error');
-            }
-        }
+                // Clear any existing error messages
+                clearMessages();
 
-        function downloadSVG() {
-            const svgElement = document.querySelector('#diagram svg');
-            if (!svgElement) {
-                alert('Please render the diagram first!');
-                return;
-            }
-            
-            // Clone and clean up the SVG
-            const svgClone = svgElement.cloneNode(true);
-            svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-            
-            const svgData = new XMLSerializer().serializeToString(svgClone);
-            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-            
-            const downloadLink = document.createElement('a');
-            downloadLink.href = URL.createObjectURL(svgBlob);
-            downloadLink.download = 'impression-serving-flow.svg';
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            
-            updateStatus('⬇️ SVG downloaded successfully!', 'success');
-        }
-
-        function downloadPNG() {
-            const svgElement = document.querySelector('#diagram svg');
-            if (!svgElement) {
-                alert('Please render the diagram first!');
-                return;
-            }
-            
-            updateStatus('📷 Converting to PNG...', 'loading');
-            
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            // Get SVG dimensions
-            const svgRect = svgElement.getBoundingClientRect();
-            const svgData = new XMLSerializer().serializeToString(svgElement);
-            
-            // Create blob URL
-            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-            const url = URL.createObjectURL(svgBlob);
-            
-            img.onload = function() {
-                // Set high resolution
-                const scale = 2;
-                canvas.width = img.naturalWidth * scale || svgRect.width * scale;
-                canvas.height = img.naturalHeight * scale || svgRect.height * scale;
-                
-                ctx.scale(scale, scale);
-                ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
-                
-                canvas.toBlob(function(blob) {
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = URL.createObjectURL(blob);
-                    downloadLink.download = 'impression-serving-flow.png';
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
+                // Validate and render the Mermaid diagram
+                mermaid.render(diagramId, input).then(result => {
+                    container.innerHTML = result.svg;
+                    currentDiagramData = {
+                        svg: result.svg,
+                        code: input,
+                        id: diagramId
+                    };
+                    showSuccess('Diagram rendered successfully');
                     
-                    updateStatus('⬇️ PNG downloaded successfully!', 'success');
-                }, 'image/png');
-                
-                URL.revokeObjectURL(url);
-            };
-            
-            img.onerror = function() {
-                updateStatus('❌ Error converting to PNG. Try SVG download instead.', 'error');
-                URL.revokeObjectURL(url);
-            };
-            
-            img.src = url;
+                    // Update URL with current diagram
+                    const encodedDiagram = encodeURIComponent(input);
+                    const newUrl = `${window.location.pathname}?diagram=${encodedDiagram}`;
+                    window.history.replaceState(null, '', newUrl);
+                    
+                }).catch(error => {
+                    container.innerHTML = '<div class="loading">Failed to render diagram</div>';
+                    showError(`Mermaid parsing error: ${error.message}`);
+                    currentDiagramData = null;
+                });
+
+            } catch (error) {
+                container.innerHTML = '<div class="loading">Failed to render diagram</div>';
+                showError(`Error: ${error.message}`);
+                currentDiagramData = null;
+            }
         }
 
-        // Start loading when page loads
-        window.onload = function() {
-            loadMermaid();
-        };
+        function clearDiagram() {
+            document.getElementById('mermaidInput').value = '';
+            document.getElementById('diagramContainer').innerHTML = '<div class="loading">No diagram loaded. Enter Mermaid markup above and click "Render Diagram"</div>';
+            document.getElementById('codeDisplay').textContent = 'No code to display';
+            currentDiagramData = null;
+            clearMessages();
+            
+            // Clear URL parameters
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        async function exportPNG() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                const diagramElement = document.querySelector('#diagramContainer svg');
+                if (!diagramElement) {
+                    showError('No diagram to export');
+                    return;
+                }
+
+                // Create a canvas and convert SVG to PNG
+                const canvas = await html2canvas(diagramElement, {
+                    backgroundColor: 'white',
+                    scale: 2, // Higher resolution
+                    logging: false
+                });
+
+                // Download the PNG
+                const link = document.createElement('a');
+                link.download = `mermaid-diagram-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                showSuccess('PNG exported successfully');
+            } catch (error) {
+                showError(`Export failed: ${error.message}`);
+            }
+        }
+
+        function exportCSV() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                // Extract data based on diagram type
+                const data = extractDataForExport(currentDiagramData.code);
+                if (!data.length) {
+                    showError('No tabular data found in this diagram type');
+                    return;
+                }
+
+                // Convert to CSV
+                const csv = convertToCSV(data);
+                downloadFile(csv, `mermaid-data-${Date.now()}.csv`, 'text/csv');
+                showSuccess('CSV exported successfully');
+            } catch (error) {
+                showError(`CSV export failed: ${error.message}`);
+            }
+        }
+
+        function exportExcel() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                // Extract data based on diagram type
+                const data = extractDataForExport(currentDiagramData.code);
+                if (!data.length) {
+                    showError('No tabular data found in this diagram type');
+                    return;
+                }
+
+                // Create workbook and worksheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Mermaid Data');
+
+                // Download Excel file
+                XLSX.writeFile(wb, `mermaid-data-${Date.now()}.xlsx`);
+                showSuccess('Excel file exported successfully');
+            } catch (error) {
+                showError(`Excel export failed: ${error.message}`);
+            }
+        }
+
+        function extractDataForExport(code) {
+            const data = [];
+            
+            // Extract data based on diagram type
+            if (code.includes('pie ')) {
+                // Parse pie chart data
+                const lines = code.split('\n');
+                lines.forEach(line => {
+                    const match = line.match(/"([^"]+)"\s*:\s*(\d+)/);
+                    if (match) {
+                        data.push({
+                            Category: match[1],
+                            Value: parseInt(match[2])
+                        });
+                    }
+                });
+            } else if (code.includes('gantt')) {
+                // Parse Gantt chart data
+                const lines = code.split('\n');
+                let currentSection = '';
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith('section ')) {
+                        currentSection = line.replace('section ', '');
+                    } else {
+                        const match = line.match(/([^:]+):\s*([^,]+),?\s*([^,]*),?\s*([^,]*),?\s*([^,]*)/);
+                        if (match && match[1] && !line.includes('title') && !line.includes('dateFormat')) {
+                            data.push({
+                                Section: currentSection,
+                                Task: match[1].trim(),
+                                Status: match[2] ? match[2].trim() : '',
+                                ID: match[3] ? match[3].trim() : '',
+                                StartDate: match[4] ? match[4].trim() : '',
+                                EndDate: match[5] ? match[5].trim() : ''
+                            });
+                        }
+                    }
+                });
+            } else if (code.includes('|') && code.includes('---')) {
+                // Parse table data (markdown tables in comments or descriptions)
+                const lines = code.split('\n');
+                let headers = [];
+                lines.forEach(line => {
+                    if (line.includes('|') && !line.includes('---')) {
+                        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+                        if (cells.length > 0 && !headers.length) {
+                            headers = cells;
+                        } else if (cells.length > 0 && headers.length) {
+                            const row = {};
+                            cells.forEach((cell, index) => {
+                                if (headers[index]) {
+                                    row[headers[index]] = cell;
+                                }
+                            });
+                            data.push(row);
+                        }
+                    }
+                });
+            }
+
+            // If no specific data found, create a basic structure
+            if (data.length === 0) {
+                data.push({
+                    DiagramType: getDiagramType(code),
+                    Code: code,
+                    ExportDate: new Date().toISOString()
+                });
+            }
+
+            return data;
+        }
+
+        function getDiagramType(code) {
+            if (code.includes('flowchart') || code.includes('graph')) return 'Flowchart';
+            if (code.includes('sequenceDiagram')) return 'Sequence Diagram';
+            if (code.includes('gantt')) return 'Gantt Chart';
+            if (code.includes('pie ')) return 'Pie Chart';
+            if (code.includes('classDiagram')) return 'Class Diagram';
+            return 'Unknown';
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [
+                headers.join(','),
+                ...data.map(row => 
+                    headers.map(header => {
+                        const value = row[header] || '';
+                        // Escape quotes and wrap in quotes if contains comma
+                        return value.toString().includes(',') ? `"${value.toString().replace(/"/g, '""')}"` : value;
+                    }).join(',')
+                )
+            ];
+            return csvRows.join('\n');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function showError(message) {
+            clearMessages();
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.display-area').insertBefore(errorDiv, document.querySelector('.tabs'));
+        }
+
+        function showSuccess(message) {
+            clearMessages();
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.querySelector('.display-area').insertBefore(successDiv, document.querySelector('.tabs'));
+            
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 3000);
+        }
+
+        function clearMessages() {
+            const messages = document.querySelectorAll('.error, .success');
+            messages.forEach(msg => {
+                if (msg.parentNode) {
+                    msg.parentNode.removeChild(msg);
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        renderDiagram();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        exportPNG();
+                        break;
+                }
+            }
+        });
     </script>
 </body>
 </html>

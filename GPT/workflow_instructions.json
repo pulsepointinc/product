@@ -1,7 +1,7 @@
 {
   "meta": {
     "purpose": "GPT behavior instructions and search workflow definitions",
-    "last_updated": "2025-08-19"
+    "last_updated": "2025-09-09"
   },
   "mandatory_checks": {
     "step_0": {
@@ -54,5 +54,32 @@
     "source_attribution": "Always cite exact URLs from official_sources.json",
     "definition_clarity": "Use exact definitions from Git training files",
     "no_speculation": "Do not guess or make assumptions about undefined terms"
+  },
+  "mermaid_integration": {
+    "when_to_use": "Create interactive diagrams for technical process flows, flowcharts, timelines, and organizational charts",
+    "base_url": "https://pulsepointinc.github.io/product/mermaid/?diagram=",
+    "supported_types": {
+      "flowchart": "Technical process flows (bid decisioning, ad serving logic)",
+      "sequence": "API interactions and system communications",
+      "gantt": "Project timelines and roadmap schedules",
+      "pie": "Budget allocations and capacity breakdowns", 
+      "classDiagram": "Software architecture and system design"
+    },
+    "usage_instructions": {
+      "step_1": "Generate appropriate Mermaid markup based on the query type",
+      "step_2": "URL-encode the Mermaid markup using encodeURIComponent()",
+      "step_3": "Append encoded markup to base_url to create interactive link",
+      "step_4": "Present link as: 'View Interactive Diagram: [generated-url]'"
+    },
+    "technical_queries": {
+      "process_flows": "When asked about 'process flow', 'decisioning logic', 'architecture', create flowchart diagrams",
+      "system_design": "For system architecture questions, use classDiagram or flowchart",
+      "api_interactions": "For API workflows, use sequence diagrams",
+      "roadmaps": "For timeline questions, use gantt charts"
+    },
+    "examples": {
+      "ad_serving_flow": "flowchart TD\\n    A[Bid Request] --> B{Filter Rules}\\n    B -->|Pass| C[Winner Selection]\\n    B -->|Fail| D[No Bid]\\n    C --> E[Serve Ad]",
+      "ao_roadmap": "gantt\\n    title AO Development Roadmap\\n    Phase 1 :done, p1, 2025-01-01, 2025-03-31\\n    Phase 2 :active, p2, 2025-04-01, 2025-06-30"
+    }
   }
 }

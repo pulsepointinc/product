@@ -340,6 +340,7 @@
                 <a href="#" onclick="loadExample('gantt')">Gantt Chart</a>
                 <a href="#" onclick="loadExample('pie')">Pie Chart</a>
                 <a href="#" onclick="loadExample('class')">Class Diagram</a>
+                <a href="#" onclick="loadExample('complex')">Complex Methods</a>
                 <a href="#" onclick="loadExample('table')">Table</a>
             </div>
         </div>
@@ -405,19 +406,20 @@
     A[Start] --> B{Decision Point}
     B -->|Yes| C[Process A]
     B -->|No| D[Process B]
-    C --> E[Merge Results]
+    C --> E[validateInput()]
     D --> E
-    E --> F[End]`,
+    E --> F[calculateTotal()]
+    F --> G[End]`,
 
             sequence: `sequenceDiagram
     participant A as User
     participant B as System
     participant C as Database
     
-    A->>B: Request Data
-    B->>C: Query Database
-    C-->>B: Return Results
-    B-->>A: Display Data`,
+    A->>B: login(username, password)
+    B->>C: validateCredentials()
+    C-->>B: authenticationResult()
+    B-->>A: displayUserDashboard()`,
 
             gantt: `gantt
     title Project Timeline
@@ -443,19 +445,56 @@
         +String email
         +login()
         +logout()
+        +authenticate(username, password)
+        +updateProfile(data)
+        +validateEmail()
     }
     class Product {
         +String title
         +Float price
         +addToCart()
+        +calculateDiscount(percentage)
+        +isAvailable()
     }
     class Order {
         +Date created
         +Float total
         +process()
+        +addItem(product, quantity)
+        +calculateTotal()
     }
     User ||--o{ Order : places
     Order ||--o{ Product : contains`,
+
+            complex: `classDiagram
+    class MpcBidRequest {
+        +String requestId
+        +Map<String, Object> parameters
+        +processRequest()
+        +validateInput(data)
+        +executeFilter(filterType, criteria)
+        +generateResponse(results)
+        +handleException(exception)
+    }
+    class EDWinnerSelectionEngine {
+        +List<Bid> bids
+        +selectWinner()
+        +evaluateBids(criteria)
+        +calculateScore(bid, weights)
+        +applyBusinessRules()
+        +rankCandidates(candidates)
+    }
+    class CompositeMpcFilter {
+        +List<Filter> filters
+        +apply(request)
+        +addFilter(filter)
+        +removeFilter(filterId)
+        +validateFilters()
+        +combineResults(results)
+    }
+    MpcBidRequest --> EDWinnerSelectionEngine : uses
+    MpcBidRequest --> CompositeMpcFilter : applies
+    EDWinnerSelectionEngine --> CompositeMpcFilter : configures`,
 
             table: `---
 title: Sales Data Q1 2024
@@ -476,6 +515,73 @@ graph TD
             renderDiagram();
         }
 
+        // Preprocessor to fix common Mermaid syntax issues
+        function preprocessMermaidSyntax(input) {
+            let processed = input;
+            
+            // Fix method names with parentheses in class diagrams
+            if (processed.includes('classDiagram')) {
+                // Replace method signatures that might cause parsing issues
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\(\)/g, (match, visibility, methodName) => {
+                    // Keep visibility modifier and method name but handle parentheses properly
+                    const vis = visibility || '';
+                    return `${vis}${methodName}()`;
+                });
+                
+                // Handle method parameters more carefully
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\(([^)]*)\)/g, (match, visibility, methodName, params) => {
+                    const vis = visibility || '';
+                    // Clean up parameters, remove problematic characters
+                    const cleanParams = params.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+                    return cleanParams ? `${vis}${methodName}(${cleanParams})` : `${vis}${methodName}()`;
+                });
+                
+                // Fix property declarations with types
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([a-zA-Z_][a-zA-Z0-9_<>\[\]]*)/g, (match, visibility, propName, propType) => {
+                    const vis = visibility || '';
+                    // Clean up type declarations
+                    const cleanType = propType.replace(/[{}]/g, '').trim();
+                    return `${vis}${propName} : ${cleanType}`;
+                });
+            }
+            
+            // Fix flowchart syntax issues
+            if (processed.includes('flowchart') || processed.includes('graph')) {
+                // Handle method calls in node labels that might have parentheses
+                processed = processed.replace(/([A-Z0-9]+)\[([^\]]*\([^)]*\)[^\]]*)\]/g, (match, nodeId, label) => {
+                    // Escape parentheses in labels by replacing with HTML entities or quotes
+                    const escapedLabel = label.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
+                    return `${nodeId}["${escapedLabel}"]`;
+                });
+                
+                // Fix edge labels with parentheses
+                processed = processed.replace(/-->\s*\|([^|]*\([^)]*\)[^|]*)\|\s*/g, (match, label) => {
+                    const escapedLabel = label.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
+                    return `-->|"${escapedLabel}"| `;
+                });
+            }
+            
+            // Fix sequence diagram method calls
+            if (processed.includes('sequenceDiagram')) {
+                // Handle method names in sequence diagram arrows
+                processed = processed.replace(/(-->>|->>\+|-->>-|\+->>\+|->>\+|-->>|\+-->>|\+->>|->)([^:]*:[^:\n]*\([^)]*\)[^:\n]*)/g, (match, arrow, message) => {
+                    // Keep the arrow and handle the message part
+                    const cleanMessage = message.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
+                    return `${arrow}${cleanMessage}`;
+                });
+            }
+            
+            // General cleanup
+            // Remove any problematic characters that might interfere with parsing
+            processed = processed.replace(/[""]/g, '"'); // Normalize quotes
+            processed = processed.replace(/['']/g, "'"); // Normalize single quotes
+            
+            // Fix common indentation issues
+            processed = processed.split('\n').map(line => line.trimRight()).join('\n');
+            
+            return processed;
+        }
+
         function renderDiagram() {
             const input = document.getElementById('mermaidInput').value.trim();
             const container = document.getElementById('diagramContainer');
@@ -489,7 +595,10 @@ graph TD
             // Show loading
             container.innerHTML = '<div class="loading">Rendering diagram...</div>';
             
-            // Update code display
+            // Preprocess the input to fix common syntax issues
+            const processedInput = preprocessMermaidSyntax(input);
+            
+            // Update code display with original input
             codeDisplay.textContent = input;
 
             try {
@@ -499,12 +608,13 @@ graph TD
                 // Clear any existing error messages
                 clearMessages();
 
-                // Validate and render the Mermaid diagram
-                mermaid.render(diagramId, input).then(result => {
+                // Validate and render the Mermaid diagram with processed input
+                mermaid.render(diagramId, processedInput).then(result => {
                     container.innerHTML = result.svg;
                     currentDiagramData = {
                         svg: result.svg,
-                        code: input,
+                        code: input, // Store original input
+                        processedCode: processedInput, // Store processed version
                         id: diagramId
                     };
                     showSuccess('Diagram rendered successfully');

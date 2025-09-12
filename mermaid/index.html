@@ -547,17 +547,16 @@ graph TD
             
             // Fix flowchart syntax issues
             if (processed.includes('flowchart') || processed.includes('graph')) {
-                // Handle method calls in node labels that might have parentheses
-                processed = processed.replace(/([A-Z0-9]+)\[([^\]]*\([^)]*\)[^\]]*)\]/g, (match, nodeId, label) => {
-                    // Escape parentheses in labels by replacing with HTML entities or quotes
-                    const escapedLabel = label.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
-                    return `${nodeId}["${escapedLabel}"]`;
+                // Handle method calls in node labels (both simple method() and class.method() patterns)
+                // Only process if not already quoted
+                processed = processed.replace(/([A-Z0-9]+)\[([^\]"]*\([^)]*\)[^\]"]*)\]/g, (match, nodeId, label) => {
+                    // Use quotes to wrap labels containing parentheses
+                    return `${nodeId}["${label}"]`;
                 });
                 
                 // Fix edge labels with parentheses
-                processed = processed.replace(/-->\s*\|([^|]*\([^)]*\)[^|]*)\|\s*/g, (match, label) => {
-                    const escapedLabel = label.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
-                    return `-->|"${escapedLabel}"| `;
+                processed = processed.replace(/-->\s*\|([^|"]*\([^)]*\)[^|"]*)\|\s*/g, (match, label) => {
+                    return `-->|"${label}"| `;
                 });
             }
             

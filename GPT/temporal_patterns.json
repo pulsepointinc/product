@@ -1,0 +1,68 @@
+{
+  "description": "Temporal parsing patterns for robust date/sprint recognition in ProductGPT queries",
+  "version": "2.0",
+  "current_patterns": [
+    "current sprint",
+    "this sprint",
+    "current month",
+    "this month"
+  ],
+  "previous_patterns": [
+    "last sprint",
+    "previous sprint",
+    "last month",
+    "previous month"
+  ],
+  "ytd_patterns": [
+    "all sprints",
+    "all months",
+    "ytd",
+    "year to date",
+    "this year",
+    "aggregate",
+    "total across"
+  ],
+  "supported_date_formats": [
+    "MM/YYYY (e.g., 5/2025, 05/2025)",
+    "YYYY/MM (e.g., 2025/5)",
+    "MM-YYYY (e.g., 5-2025)",
+    "YYYY-MM (e.g., 2025-05)",
+    "Month Year (e.g., March 2025, May this year)"
+  ],
+  "month_names": [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december"
+  ],
+  "month_abbreviations": [
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "oct",
+    "nov",
+    "dec"
+  ],
+  "examples": {
+    "march sprint": "Resolves to March 2025",
+    "5/2025": "Resolves to May 2025",
+    "all sprints ytd": "Returns all data for current year",
+    "last month": "Returns previous month's data",
+    "may this year": "Resolves to May 2025"
+  },
+  "last_updated": "2025-09-16T23:29:24.326185+00:00"
+}

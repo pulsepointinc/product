@@ -1,7 +1,7 @@
 {
   "meta": {
     "purpose": "Official product definitions to prevent misunderstanding",
-    "last_updated": "2025-08-19",
+    "last_updated": "2025-09-16T23:50:35.881493+00:00",
     "note": "Studio is NOT just Omnichannel - it's broader than OA"
   },
   "products": {
@@ -13,7 +13,7 @@
       "broader_than": "Omnichannel Audiences - Studio supports multiple use cases beyond just OA",
       "capabilities": [
         "Audience strategy creation and management",
-        "Workspace organization and permissions", 
+        "Workspace organization and permissions",
         "Multi-platform activation and publishing",
         "HCP targeting and segmentation",
         "Clinical and contextual filtering",
@@ -22,12 +22,18 @@
         "Live and static list publishing"
       ],
       "platforms_supported": [
-        "Meta", "LinkedIn", "Twitter", "Reddit", "Microsoft Ads", "The Trade Desk", "DV360"
+        "Meta",
+        "LinkedIn",
+        "Twitter",
+        "Reddit",
+        "Microsoft Ads",
+        "The Trade Desk",
+        "DV360"
       ],
       "not_limited_to": "Omnichannel use cases - Studio serves multiple audience types",
       "key_features": {
         "workspaces": "Logical containers that organize data access, permissions, and activations",
-        "segments": "Rules-based audience definitions using NPI lists or HCP attributes", 
+        "segments": "Rules-based audience definitions using NPI lists or HCP attributes",
         "activations": "Connections to external platforms where audiences are delivered",
         "live_lists": "Dynamically updated audiences based on engagement filters",
         "static_lists": "Fixed audience snapshots"
@@ -36,10 +42,15 @@
     "Workspace": {
       "definition": "Logical containers within Studio that organize and scope access to audience data and activations",
       "purpose": "Provide data isolation, user access control, and platform-specific integrations",
-      "scope_by": ["advertiser", "brand", "campaign", "agency"],
+      "scope_by": [
+        "advertiser",
+        "brand",
+        "campaign",
+        "agency"
+      ],
       "controls": [
         "User access and edit permissions",
-        "Data visibility and filtering options", 
+        "Data visibility and filtering options",
         "Platform integration settings",
         "Activation permissions and routing"
       ],
@@ -59,17 +70,30 @@
       "definition": "Healthcare professional engagement and analytics platform",
       "purpose": "Track and analyze HCP interactions across touchpoints",
       "stream": "Analytics",
-      "capabilities": ["HCP engagement tracking", "Clinical analytics", "Performance reporting"]
+      "capabilities": [
+        "HCP engagement tracking",
+        "Clinical analytics",
+        "Performance reporting"
+      ]
     },
     "Life": {
       "definition": "Media activation and campaign management platform",
       "purpose": "Campaign setup, media buying, and optimization",
-      "capabilities": ["Campaign management", "Media planning", "Budget allocation", "Performance optimization"]
+      "capabilities": [
+        "Campaign management",
+        "Media planning",
+        "Budget allocation",
+        "Performance optimization"
+      ]
     },
     "Signal": {
-      "definition": "Data collection and audience intelligence platform", 
+      "definition": "Data collection and audience intelligence platform",
       "purpose": "Capture and process audience signals for targeting",
-      "capabilities": ["Data collection", "Audience insights", "Behavioral tracking"]
+      "capabilities": [
+        "Data collection",
+        "Audience insights",
+        "Behavioral tracking"
+      ]
     },
     "Adaptive_Optimization": {
       "definition": "AI-powered campaign optimization platform that automatically adjusts bidding, targeting, and creative strategies",
@@ -79,7 +103,7 @@
       "launch_status": "Active Development",
       "capabilities": [
         "Automated bid optimization",
-        "Dynamic audience adjustment", 
+        "Dynamic audience adjustment",
         "Creative performance optimization",
         "Budget allocation optimization",
         "Real-time performance monitoring",
@@ -91,7 +115,7 @@
         "Campaign performance metrics (CTR, CPC, CVR)",
         "Audience engagement patterns",
         "Creative performance scores",
-        "Budget utilization efficiency", 
+        "Budget utilization efficiency",
         "Seasonal and temporal patterns",
         "Competitive landscape analysis",
         "Publisher inventory quality",
@@ -100,15 +124,27 @@
       "roadmap_phases": {
         "phase_1": {
           "timeline": "Q3-Q4 2025",
-          "features": ["Basic bid optimization algorithms", "Performance monitoring dashboard", "Simple A/B testing framework"]
+          "features": [
+            "Basic bid optimization algorithms",
+            "Performance monitoring dashboard",
+            "Simple A/B testing framework"
+          ]
         },
         "phase_2": {
-          "timeline": "Q1-Q2 2026", 
-          "features": ["Advanced ML models for audience optimization", "Creative performance prediction", "Multi-campaign coordination"]
+          "timeline": "Q1-Q2 2026",
+          "features": [
+            "Advanced ML models for audience optimization",
+            "Creative performance prediction",
+            "Multi-campaign coordination"
+          ]
         },
         "phase_3": {
           "timeline": "Q3-Q4 2026",
-          "features": ["Cross-platform optimization", "Predictive budget allocation", "Advanced reporting and insights"]
+          "features": [
+            "Cross-platform optimization",
+            "Predictive budget allocation",
+            "Advanced reporting and insights"
+          ]
         }
       }
     }

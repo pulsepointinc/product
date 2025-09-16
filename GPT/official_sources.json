@@ -1,48 +1,22 @@
 {
-  "meta": {
-    "purpose": "Canonical URLs for official documentation - NEVER make up confluence pages",
-    "last_updated": "2025-08-19",
-    "critical_rule": "If URL not listed here, do not make up or guess at confluence pages"
-  },
-  "official_pages": {
-    "stream_leads": {
-      "title": "2025 Stream Leads and Roadmap by Stream",
-      "url": "https://ppinc.atlassian.net/wiki/spaces/pt/pages/2829746210/2025+Stream+Leads+and+Roadmap+by+Stream",
-      "purpose": "Official stream lead assignments and responsibilities",
-      "access": "Use this URL ONLY - do not make up similar pages"
-    },
-    "acronyms_terms": {
-      "title": "PulsePoint Acronyms Terms", 
-      "url": "https://ppinc.atlassian.net/wiki/spaces/PD/pages/2092105755/Pulsepoint+Acronyms+Terms",
-      "purpose": "Official acronym definitions and explanations",
-      "access": "Use this URL ONLY - do not make up definitions"
-    }
-  },
-  "search_strategies": {
-    "when_page_not_found": [
-      "Say 'Information not available in official sources'",
-      "Do NOT make up confluence page URLs", 
-      "Do NOT guess at page locations",
-      "Refer user to check with PulsePoint contacts"
-    ],
-    "confluence_search": {
-      "ao_queries": "Search 'Adaptive Optimization factors packages roadmap'",
-      "oa_queries": "Search 'Omnichannel Audiences roadmap strategy'",
-      "studio_queries": "Search 'Studio audience strategy platform'",
-      "generic_queries": "Search provided term directly"
-    }
-  },
-  "violation_examples": {
-    "wrong": [
-      "Based on internal roadmap document...",
-      "According to stream planning materials...", 
-      "From the 2025 Roadmap by Stream Owner document...",
-      "https://confluence.pulsepoint.com/... (made up URL)"
-    ],
-    "correct": [
-      "According to https://ppinc.atlassian.net/wiki/spaces/pt/pages/2829746210/2025+Stream+Leads+and+Roadmap+by+Stream",
-      "Information not available in official sources",
-      "Please check with your PulsePoint contacts for current information"
+  "knowledge_layer": {
+    "endpoint": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v4-intelligent",
+    "version": "4.0-INTELLIGENT-ROUTING",
+    "features": [
+      "Intelligent query intent detection",
+      "Natural language filter extraction",
+      "Automatic SQL aggregation routing",
+      "Product team default filtering",
+      "Single API call architecture",
+      "Mermaid diagram generation",
+      "Robust temporal/date parsing"
     ]
-  }
+  },
+  "jira_api": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/jira-api-v4-dual-mode",
+  "git_api": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/pulsepoint-git-api-v2",
+  "confluence_api": "https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app",
+  "document360_api": "https://pulsepoint-document360-api-v1-420423430685.us-east4.run.app",
+  "last_updated": "2025-09-16T23:38:00Z",
+  "deployment_status": "production",
+  "test_write_access": true
 }

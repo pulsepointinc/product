@@ -1144,6 +1144,29 @@ graph TD
                 }
             }
         });
+
+        // Initialize hash detection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, checking for hash in URL');
+
+            // Load stored hashes from localStorage
+            loadStoredHashes();
+
+            // Check if there's a hash in the URL
+            const hash = getHashFromUrl();
+            console.log('Hash found in URL:', hash);
+
+            if (hash) {
+                // Try to load diagram from hash
+                loadDiagramFromHash(hash);
+            }
+        });
+
+        // Helper function to get hash from URL
+        function getHashFromUrl() {
+            const hash = window.location.hash;
+            return hash ? hash.substring(1) : null; // Remove the # symbol
+        }
     </script>
 </body>
 </html>

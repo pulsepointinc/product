@@ -343,6 +343,12 @@
                 <a href="#" onclick="loadExample('complex')">Complex Methods</a>
                 <a href="#" onclick="loadExample('table')">Table</a>
             </div>
+
+            <div class="example-links" style="margin-top: 1rem;">
+                <h3>Hash Management:</h3>
+                <button class="btn-secondary" onclick="showStoredHashes()">View Stored Diagrams</button>
+                <button class="btn-secondary" onclick="clearStoredHashes()">Clear Storage</button>
+            </div>
         </div>
 
         <div class="display-area">
@@ -380,14 +386,95 @@
         let currentDiagramData = null;
         let diagramCounter = 0;
 
-        // URL parameter handling
+        // Hash storage for diagram content
+        const diagramHashStorage = new Map();
+
+        // Generate hash from content
+        async function generateHash(content) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(content);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex.substring(0, 8); // Use first 8 characters for short hash
+        }
+
+        // Store diagram with hash
+        async function storeDiagramWithHash(content) {
+            const hash = await generateHash(content);
+            diagramHashStorage.set(hash, content);
+            // Also store in localStorage for persistence
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                stored[hash] = content;
+                localStorage.setItem('mermaidHashStorage', JSON.stringify(stored));
+            } catch (e) {
+                console.warn('Could not store in localStorage:', e);
+            }
+            return hash;
+        }
+
+        // Retrieve diagram by hash
+        function getDiagramByHash(hash) {
+            // First check memory
+            if (diagramHashStorage.has(hash)) {
+                return diagramHashStorage.get(hash);
+            }
+            // Then check localStorage
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                if (stored[hash]) {
+                    diagramHashStorage.set(hash, stored[hash]); // Cache in memory
+                    return stored[hash];
+                }
+            } catch (e) {
+                console.warn('Could not read from localStorage:', e);
+            }
+            return null;
+        }
+
+        // Load stored hashes from localStorage on startup
+        function loadStoredHashes() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                Object.entries(stored).forEach(([hash, content]) => {
+                    diagramHashStorage.set(hash, content);
+                });
+            } catch (e) {
+                console.warn('Could not load stored hashes:', e);
+            }
+        }
+
+        // URL parameter handling (backward compatibility)
         function getUrlParameter(name) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(name);
         }
 
-        // Load diagram from URL parameter on page load
+        // Get hash from URL fragment
+        function getHashFromUrl() {
+            return window.location.hash.substring(1); // Remove # symbol
+        }
+
+        // Load diagram from URL parameter or hash on page load
         window.addEventListener('DOMContentLoaded', function() {
+            // Load stored hashes first
+            loadStoredHashes();
+
+            // Check for hash-based URL first (new method)
+            const hashParam = getHashFromUrl();
+            if (hashParam) {
+                const diagramContent = getDiagramByHash(hashParam);
+                if (diagramContent) {
+                    document.getElementById('mermaidInput').value = diagramContent;
+                    renderDiagram();
+                    return;
+                } else {
+                    showError(`Diagram with hash '${hashParam}' not found. The hash may be invalid or the diagram was not stored.`);
+                }
+            }
+
+            // Fall back to old query parameter method (backward compatibility)
             const diagramParam = getUrlParameter('diagram');
             if (diagramParam) {
                 try {
@@ -617,11 +704,21 @@ graph TD
                         id: diagramId
                     };
                     showSuccess('Diagram rendered successfully');
-                    
-                    // Update URL with current diagram
-                    const encodedDiagram = encodeURIComponent(input);
-                    const newUrl = `${window.location.pathname}?diagram=${encodedDiagram}`;
-                    window.history.replaceState(null, '', newUrl);
+
+                    // Generate hash and update URL with hash-based format
+                    storeDiagramWithHash(input).then(hash => {
+                        const newUrl = `${window.location.pathname}#${hash}`;
+                        window.history.replaceState(null, '', newUrl);
+
+                        // Show the hash-based URL for easy sharing
+                        showHashUrl(hash);
+                    }).catch(error => {
+                        console.warn('Could not generate hash:', error);
+                        // Fall back to old method if hash generation fails
+                        const encodedDiagram = encodeURIComponent(input);
+                        const newUrl = `${window.location.pathname}?diagram=${encodedDiagram}`;
+                        window.history.replaceState(null, '', newUrl);
+                    });
                     
                 }).catch(error => {
                     container.innerHTML = '<div class="loading">Failed to render diagram</div>';
@@ -643,7 +740,7 @@ graph TD
             currentDiagramData = null;
             clearMessages();
             
-            // Clear URL parameters
+            // Clear URL parameters and hash
             window.history.replaceState(null, '', window.location.pathname);
         }
 
@@ -860,13 +957,36 @@ graph TD
             successDiv.className = 'success';
             successDiv.textContent = message;
             document.querySelector('.display-area').insertBefore(successDiv, document.querySelector('.tabs'));
-            
+
             // Auto-hide success message after 3 seconds
             setTimeout(() => {
                 if (successDiv.parentNode) {
                     successDiv.parentNode.removeChild(successDiv);
                 }
             }, 3000);
+        }
+
+        function showHashUrl(hash) {
+            const currentUrl = window.location.href;
+            const hashUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+
+            // Create a temporary element to show the shareable URL
+            const urlDiv = document.createElement('div');
+            urlDiv.className = 'success';
+            urlDiv.innerHTML = `
+                <strong>Shareable URL:</strong><br>
+                <code style="word-break: break-all; font-size: 12px; background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">${hashUrl}</code>
+                <button onclick="navigator.clipboard.writeText('${hashUrl}').then(() => this.textContent = 'Copied!').catch(() => this.textContent = 'Copy failed')"
+                        style="margin-left: 10px; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.3); border: none; border-radius: 3px; cursor: pointer;">Copy</button>
+            `;
+            document.querySelector('.display-area').insertBefore(urlDiv, document.querySelector('.tabs'));
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (urlDiv.parentNode) {
+                    urlDiv.parentNode.removeChild(urlDiv);
+                }
+            }, 10000);
         }
 
         function clearMessages() {
@@ -877,6 +997,74 @@ graph TD
                 }
             });
         }
+
+        // Hash management functions
+        function showStoredHashes() {
+            const hashes = Array.from(diagramHashStorage.keys());
+            if (hashes.length === 0) {
+                showError('No diagrams stored yet. Render a diagram to create a hash.');
+                return;
+            }
+
+            const hashList = hashes.map(hash => {
+                const content = diagramHashStorage.get(hash);
+                const preview = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+                const url = `${window.location.origin}${window.location.pathname}#${hash}`;
+                return `<div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                    <strong>Hash:</strong> ${hash}<br>
+                    <strong>Preview:</strong> ${preview}<br>
+                    <strong>URL:</strong> <code style="font-size: 11px; word-break: break-all;">${url}</code>
+                    <button onclick="loadDiagramFromHash('${hash}')" style="margin-left: 10px; padding: 2px 8px; font-size: 11px;">Load</button>
+                </div>`;
+            }).join('');
+
+            const message = `<strong>Stored Diagrams (${hashes.length}):</strong><br>${hashList}`;
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.innerHTML = message;
+            successDiv.style.maxHeight = '300px';
+            successDiv.style.overflowY = 'auto';
+            document.querySelector('.display-area').insertBefore(successDiv, document.querySelector('.tabs'));
+
+            // Auto-hide after 15 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 15000);
+        }
+
+        function clearStoredHashes() {
+            if (confirm('Are you sure you want to clear all stored diagrams? This cannot be undone.')) {
+                diagramHashStorage.clear();
+                localStorage.removeItem('mermaidHashStorage');
+                showSuccess('All stored diagrams cleared.');
+            }
+        }
+
+        function loadDiagramFromHash(hash) {
+            const content = getDiagramByHash(hash);
+            if (content) {
+                document.getElementById('mermaidInput').value = content;
+                renderDiagram();
+                window.location.hash = hash;
+                clearMessages();
+            } else {
+                showError(`Diagram with hash '${hash}' not found.`);
+            }
+        }
+
+        // Handle hash changes in URL (when user manually changes hash or uses back/forward)
+        window.addEventListener('hashchange', function() {
+            const hash = getHashFromUrl();
+            if (hash) {
+                const content = getDiagramByHash(hash);
+                if (content && content !== document.getElementById('mermaidInput').value) {
+                    document.getElementById('mermaidInput').value = content;
+                    renderDiagram();
+                }
+            }
+        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {

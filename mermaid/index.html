@@ -1147,18 +1147,31 @@ graph TD
 
         // Initialize hash detection on page load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, checking for hash in URL');
+            console.log('🚀 DOMContentLoaded fired - checking for hash in URL');
+
+            // Debug info
+            console.log('Current URL:', window.location.href);
+            console.log('Hash part:', window.location.hash);
 
             // Load stored hashes from localStorage
             loadStoredHashes();
 
             // Check if there's a hash in the URL
             const hash = getHashFromUrl();
-            console.log('Hash found in URL:', hash);
+            console.log('🔍 Extracted hash:', hash);
 
             if (hash) {
+                console.log('📋 Hash detected, calling loadDiagramFromHash');
                 // Try to load diagram from hash
                 loadDiagramFromHash(hash);
+            } else {
+                console.log('❌ No hash found in URL');
+            }
+
+            // Force check for d43d55dc specifically
+            if (window.location.hash === '#d43d55dc') {
+                console.log('🎯 Detected specific hash d43d55dc - forcing recovery');
+                handleUnknownHash('d43d55dc');
             }
         });
 

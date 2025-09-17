@@ -1050,7 +1050,70 @@ graph TD
                 window.location.hash = hash;
                 clearMessages();
             } else {
-                showError(`Diagram with hash '${hash}' not found.`);
+                // Smart fallback for unknown hashes like d43d55dc
+                handleUnknownHash(hash);
+            }
+        }
+
+        // Handle unknown hashes with intelligent recovery
+        function handleUnknownHash(hash) {
+            console.log(`Attempting to recover diagram for unknown hash: ${hash}`);
+
+            // Show helpful message instead of error
+            showInfo(`Hash '${hash}' not found locally. Attempting recovery...`);
+
+            // Try to recover by prompting user to paste content
+            const message = `
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h3>📋 Diagram Recovery</h3>
+                    <p>The diagram for hash <code>${hash}</code> is not stored locally.</p>
+                    <p><strong>If you have the diagram code:</strong></p>
+                    <ol>
+                        <li>Paste it in the text area above</li>
+                        <li>Click "Render" to display it</li>
+                        <li>The diagram will be automatically saved for future use</li>
+                    </ol>
+                    <p><em>This hash will be preserved in your browser for next time.</em></p>
+                </div>
+            `;
+
+            // Clear any existing error messages and show recovery help
+            document.getElementById('messages').innerHTML = message;
+
+            // Focus on the text area for easy pasting
+            document.getElementById('mermaidInput').focus();
+
+            // Add event listener to auto-save when user pastes and renders
+            const input = document.getElementById('mermaidInput');
+            const originalValue = input.value;
+
+            // Monitor for content changes
+            const checkForContent = setInterval(() => {
+                if (input.value && input.value !== originalValue && input.value.trim().length > 10) {
+                    // User has pasted content, automatically store it with the hash
+                    console.log(`Auto-storing content for hash ${hash}`);
+                    storeDiagramWithSpecificHash(input.value, hash);
+                    clearInterval(checkForContent);
+                    showSuccess(`Diagram automatically saved with hash ${hash}`);
+                }
+            }, 1000);
+
+            // Clear monitor after 30 seconds
+            setTimeout(() => clearInterval(checkForContent), 30000);
+        }
+
+        // Store diagram with a specific hash (for recovery)
+        async function storeDiagramWithSpecificHash(content, hash) {
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                stored[hash] = content;
+                localStorage.setItem('mermaidHashStorage', JSON.stringify(stored));
+                diagramHashStorage.set(hash, content);
+                console.log(`Successfully stored diagram with specific hash: ${hash}`);
+                return hash;
+            } catch (e) {
+                console.warn('Could not store diagram with specific hash:', e);
+                return null;
             }
         }
 

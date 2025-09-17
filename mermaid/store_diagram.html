@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Store Diagram for Hash d43d55dc</title>
+</head>
+<body>
+    <h1>Storing Diagram</h1>
+    <script>
+        // Bryan's exact diagram content
+        const diagramContent = `flowchart TD
+    classDef block fill:#ffcccc,stroke:#cc0000
+
+    %% User Interaction & Initial Request
+    A[User Lands on Site] --> B[Ad Tag/SDK Fires]
+    B --> C{Ad Request received by Ad-Serving Platform}
+
+    subgraph Ad-Serving Platform (ad-serving)
+        C --> D{1. Validate Request Syntax & Params?}
+        D -- No --> BL1[BLOCK: Invalid Request]:::block
+        D -- Yes --> E{2. Publisher Domain Blocklisted?}
+        E -- Yes --> BL2[BLOCK: Blocklisted Domain]:::block
+        E -- No --> F{3. Privacy Compliance (GDPR/CCPA)?}
+        F -- Violation --> BL3[BLOCK: Privacy Violation]:::block
+        F -- Compliant --> G{4. Valid Device/User Agent?}
+        G -- Invalid --> BL4[BLOCK: Invalid Device]:::block
+        G -- Valid --> H{5. Pre-Bid Fraud Detection?}
+        H -- Fraud --> BL5[BLOCK: Fraud Detected]:::block
+        H -- Clean --> I[6. Formulate OpenRTB Bid Request]
+        I --> J[7. Dispatch to DSPs (incl. PulsePoint DSP)]
+    end
+
+    subgraph PulsePoint DSP (pulsepoint-dsp)
+        J --> K{8. Receive Bid Request}
+        K --> L{9. Audience Match?}
+        L -- No --> BL6[BLOCK: Audience Mismatch]:::block
+        L -- Yes --> M{10. Campaign Budget & Pacing OK? (via Marketing Ads)}
+        M -- Exhausted --> BL7[BLOCK: Budget Exhausted]:::block
+        M -- OK --> N{11. Deal Contract Eligible?}
+        N -- Ineligible --> BL8[BLOCK: Deal Ineligible]:::block
+        N -- Eligible --> O{12. Creative Suitability for Context? (via Marketing Ads)}
+        O -- Invalid --> BL9[BLOCK: Invalid Creative]:::block
+        O -- Valid --> P[13. Generate Bid Response]
+    end
+
+    subgraph Ad-Serving Platform Auction (ad-serving)
+        P --> Q{14. Receive DSP Bid}
+        J -- parallel --> R[15. Collect Bids from all DSPs]
+        R --> S{16. Auction Timeout?}
+        S -- Yes --> BL10[BLOCK: Auction Timeout]:::block
+        S -- No --> T{17. Above Floor Price?}
+        T -- No --> BL11[BLOCK: Floor Price Fail]:::block
+        T -- Yes --> U{18. Post-Bid Fraud Check}
+        U -- Fraud --> BL12[BLOCK: Fraud Detected]:::block
+        U -- Clean --> V[19. Select Winning Bid]
+        V --> W{20. Winner Selected?}
+        W -- No --> BL13[BLOCK: No Winner]:::block
+        W -- Yes --> X[21. Prepare Creative]
+        X --> Y[22. Serve Creative to Browser]
+    end
+
+    %% Creative Delivery & Impression Tracking
+    Y --> Z{23. Creative Render Successful?}
+    Z -- No --> BL14[BLOCK: Creative Failure]:::block
+    Z -- Yes --> AA[24. Impression Beacon Fires]
+    AA --> AB{25. Beacon Successful?}
+    AB -- No --> BL15[BLOCK: Impression Failure]:::block
+    AB -- Yes --> BB[26. Log Impression]
+    BB --> CC[27. Update Budget/Pacing (Marketing Ads)]
+    CC --> DD[28. Generate Billing Event]
+    DD --> EE[29. Paid Impression Recorded]
+
+    %% End Nodes
+    BL1 --> END[Process Ends]
+    BL2 --> END
+    BL3 --> END
+    BL4 --> END
+    BL5 --> END
+    BL6 --> END
+    BL7 --> END
+    BL8 --> END
+    BL9 --> END
+    BL10 --> END
+    BL11 --> END
+    BL12 --> END
+    BL13 --> END
+    BL14 --> END
+    BL15 --> END
+    EE --> FINAL[Process Complete]`;
+
+        // Store in localStorage with hash d43d55dc
+        const hash = 'd43d55dc';
+        try {
+            const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+            stored[hash] = diagramContent;
+            localStorage.setItem('mermaidHashStorage', JSON.stringify(stored));
+            console.log('Successfully stored diagram with hash:', hash);
+            document.body.innerHTML += '<p style="color: green;">✅ Diagram stored successfully with hash: ' + hash + '</p>';
+            document.body.innerHTML += '<p><a href="index.html#' + hash + '">Test the link: index.html#' + hash + '</a></p>';
+        } catch (e) {
+            console.error('Failed to store:', e);
+            document.body.innerHTML += '<p style="color: red;">❌ Failed to store diagram: ' + e.message + '</p>';
+        }
+    </script>
+</body>
+</html>

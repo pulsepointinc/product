@@ -1,8 +1,105 @@
 {
-  "stream_leads": [],
-  "meta": {
-    "purpose": "Current stream leads and responsibilities",
-    "last_updated": "2025-09-25T16:04:03.427689+00:00",
-    "note": "To be populated with current organizational structure"
+
+[
+  {
+    "stream_lead": "Nick Plaskassovitis",
+    "stream": "AI Foundation",
+    "definition": "Knowledge Chatbot, Analytics Chatbot"
+  },
+  {
+    "stream_lead": "Kaustav Basu",
+    "stream": "Analytics-Platform-and-Workspaces",
+    "definition": "Studio, Workspace Types, Signal A.K.A. HCP365"
+  },
+  {
+    "stream_lead": "Ash Cipriani",
+    "stream": "Audience Management",
+    "definition": "Everything that can be found in the Segment Management platform."
+  },
+  {
+    "stream_lead": "Josh Stewart",
+    "stream": "Campaign Management",
+    "definition": "All things Campaign Setup/Mgmt: Camp. setup, bulk edit, tactic debugger, etc"
+  },
+  {
+    "stream_lead": "Kenan Akin",
+    "stream": "Creatives",
+    "definition": "All things Creatives: Uploads, Scheduling, Bulk Editing, Creative Library, etc"
+  },
+  {
+    "stream_lead": "Jessica Wang",
+    "stream": "Deal Platform",
+    "definition": "All Things Deals/PMP: Deals Marketplace, PMP Mgmt/Targeting, deal debugger, Groups, etc"
+  },
+  {
+    "stream_lead": "Nik Bhardwaj",
+    "stream": "Forecasting",
+    "definition": "Section within Campaign Management, Forecast API"
+  },
+  {
+    "stream_lead": "Roman Kuzmych",
+    "stream": "Identity & Targeting",
+    "definition": "Identity Vendors (Liveramp, ID5, UID2.0...) and everything you see here"
+  },
+  {
+    "stream_lead": "Donovan Ly",
+    "stream": "List Management",
+    "definition": "Evering thing in and the NPI List API"
+  },
+  {
+    "stream_lead": "Nik Bhardwaj",
+    "stream": "Media Effectiveness",
+    "definition": "Clinical and Media Insights reporting"
+  },
+  {
+    "stream_lead": "Donovan Ly",
+    "stream": "Omnichannel",
+    "definition": "The process of populating Search, Social, EHR platforms with PP audiences."
+  },
+  {
+    "stream_lead": "Roman Kuzmych",
+    "stream": "Optimization",
+    "definition": "Includes items such as AO, CPA, CPC, and Sequential messaging"
+  },
+  {
+    "stream_lead": "Donovan Ly",
+    "stream": "Personalization",
+    "definition": "Site Optimization and DCO via the personalization API a.k.a. Genome"
+  },
+  {
+    "stream_lead": "Nik Bhardwaj",
+    "stream": "Planning",
+    "definition": "Fundamentally the Media Planner platform"
+  },
+  {
+    "stream_lead": "Kenan Akin",
+    "stream": "Platform Administration",
+    "definition": "Everything that can be found under the Administration menu in the platform"
+  },
+  {
+    "stream_lead": "",
+    "stream": "Platform Compliance",
+    "definition": "Management of functionality such as 2FA and data compliance, for example GDPR and CCPA."
+  },
+  {
+    "stream_lead": "Divya Suri",
+    "stream": "Reporting",
+    "definition": "Everything within the report builder platforms (Life and Signal)"
+  },
+  {
+    "stream_lead": "Jessica Wang",
+    "stream": "Supply",
+    "definition": "Supply Stream - All Things Supply: Supply quality/IVT mitigation, supply intelligence/optimization (i.e. supply-side signal ingestion, supply prioritization), supply targeting (Endemic toggle, Curated Markets)"
+  },
+  {
+    "stream_lead": "Kaustav Basu",
+    "stream": "Tag Management",
+    "definition": "The consolidation of collection tags with Smart, conversion, and retargeting pixels under one platform"
+  },
+  {
+    "stream_lead": "Roman Kuzmych",
+    "stream": "Third Party Data & Partnerships",
+    "definition": "Examples include, IVT detection (Human, DV), demographics (Acxiom), onboarders and vendors."
   }
+] 
 }

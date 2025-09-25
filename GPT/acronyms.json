@@ -2,7 +2,7 @@
   "meta": {
     "purpose": "Official acronym definitions from Confluence: Pulsepoint Acronyms/Terms",
     "source": "https://ppinc.atlassian.net/wiki/spaces/PD/pages/2092105755/Pulsepoint+Acronyms+Terms",
-    "last_updated": "2025-09-25T15:51:52.223825+00:00",
+    "last_updated": "2025-09-25T16:04:02.006057+00:00",
     "note": "Complete definitions from manual PDF download"
   },
   "uncategorized_acronyms": {
@@ -105,9 +105,18 @@
   "team_acronyms": {
     "AM": "Account Management",
     "PSM": "Platform success manager",
-    "PM": "Product Manager",
+    "PM": "Product Management",
     "TPM": "Technical Program Manager",
-    "TSM": "Technical Success Manager"
+    "TSM": "Technical Success Manager",
+    "FE": "Front End Portal Development",
+    "BE": "Back End Development",
+    "GTM": "Go to Market",
+    "BI or Stud": "Business Intelligence Development",
+    "DPD": "Data Product Development",
+    "Cluster": "Front End Cluster Development",
+    "DS": "Data Science",
+    "DA or RR": "Data Analytics",
+    "QA or UAT": "QA/UAT"
   },
   "platform_terms": {
     "Account": "An account consists of one or more advertisers",

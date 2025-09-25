@@ -1,0 +1,7 @@
+{
+  "[\"Workspace Type - HCP Explorer\"]": {
+    "name": "[\"Workspace Type - HCP Explorer\"]",
+    "source": "jira_definitions",
+    "field": "feature"
+  }
+}

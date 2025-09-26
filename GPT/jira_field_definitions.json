@@ -57,7 +57,7 @@
   "epic_status": {
     "field_name": "epic_status",
     "description": "Status of the parent epic",
-    "possible_values": "[\"Closed\",\"Dev Complete\",\"Done\",\"Draft\",\"In Code Review\",\"In Progress\",\"Needs Grooming\",\"ON DECK\",\"On Hold\",\"Open\",\"PLATFORM-INBOX\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Resolved\",\"To Do\",\"With QA\"]"
+    "possible_values": "[\"Closed\",\"Dev Complete\",\"Done\",\"Draft\",\"In Progress\",\"Needs Grooming\",\"ON DECK\",\"On Hold\",\"Open\",\"PLATFORM-INBOX\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Resolved\",\"To Do\",\"With QA\"]"
   },
   "feature": {
     "field_name": "feature",

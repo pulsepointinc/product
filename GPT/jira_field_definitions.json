@@ -132,7 +132,7 @@
   "release_date": {
     "field_name": "release_date",
     "description": "Actual or current release date",
-    "possible_values": "[\"April 2024\",\"April 2025\",\"August 2024\",\"August 2025\",\"December 2024\",\"December 2025\",\"February 2023\",\"February 2024\",\"February 2025\",\"February 2026\",\"January 2024\",\"January 2025\",\"January 2026\",\"July 2024\",\"July 2025\",\"June 2024\",\"June 2025\",\"March 2024\",\"March 2025\",\"May 2024\",\"May 2025\",\"November 2024\",\"November 2025\",\"October 2024\",\"October 2025\",\"September 2024\",\"September 2025\",\"v1.7 [Alpha\",\"v1.7.1 2025\",\"v1.8 [Beta]\",\"v1.9 2025\",\"v1.9.2 2025\",\"v2.0 2025\",\"v3 [HCP365\"]"
+    "possible_values": "[\"April 2024\",\"April 2025\",\"August 2024\",\"August 2025\",\"August 2026\",\"December 2024\",\"December 2025\",\"February 2023\",\"February 2024\",\"February 2025\",\"February 2026\",\"January 2024\",\"January 2025\",\"January 2026\",\"July 2024\",\"July 2025\",\"July 2026\",\"June 2024\",\"June 2025\",\"March 2024\",\"March 2025\",\"May 2024\",\"May 2025\",\"November 2024\",\"November 2025\",\"October 2024\",\"October 2025\",\"September 2024\",\"September 2025\",\"v1.7 [Alpha\",\"v1.7.1 2025\",\"v1.8 [Beta]\",\"v1.9 2025\",\"v1.9.2 2025\",\"v2.0 2025\",\"v3 [HCP365\"]"
   },
   "reporter_name": {
     "field_name": "reporter_name",

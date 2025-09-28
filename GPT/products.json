@@ -219,11 +219,6 @@
     "source": "jira_definitions",
     "field": "product_manager"
   },
-  "\"Casey Carden\"": {
-    "name": "\"Casey Carden\"",
-    "source": "jira_definitions",
-    "field": "product_manager"
-  },
   "\"Dani Dinstein\"": {
     "name": "\"Dani Dinstein\"",
     "source": "jira_definitions",
@@ -301,11 +296,6 @@
   },
   "\"Mike Leviste\"": {
     "name": "\"Mike Leviste\"",
-    "source": "jira_definitions",
-    "field": "product_manager"
-  },
-  "\"Nadine Hartanto\"": {
-    "name": "\"Nadine Hartanto\"",
     "source": "jira_definitions",
     "field": "product_manager"
   },

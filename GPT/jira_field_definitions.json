@@ -57,7 +57,7 @@
   "epic_status": {
     "field_name": "epic_status",
     "description": "Status of the parent epic",
-    "possible_values": "[\"Closed\",\"Dev Complete\",\"Done\",\"Draft\",\"In Progress\",\"Needs Grooming\",\"ON DECK\",\"On Hold\",\"Open\",\"PLATFORM-INBOX\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Resolved\",\"To Do\",\"With QA\"]"
+    "possible_values": "[\"Closed\",\"Dev Complete\",\"Done\",\"Draft\",\"In Progress\",\"Needs Grooming\",\"ON DECK\",\"On Hold\",\"Open\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Resolved\",\"To Do\",\"With QA\"]"
   },
   "feature": {
     "field_name": "feature",
@@ -82,12 +82,12 @@
   "issue_status": {
     "field_name": "issue_status",
     "description": "Current status of the issue",
-    "possible_values": "[\"Available Self-Serve\",\"Backlog\",\"COMMERCIAL-INBOX\",\"Closed\",\"Code Review\",\"DEV Prep\",\"Dev Complete\",\"Discovery\",\"Done\",\"Draft\",\"Duplicate\",\"In Code Review\",\"In Progress\",\"In Review\",\"Inbox\",\"Needs Grooming\",\"Needs More Detail\",\"ON DECK\",\"On Hold\",\"On Hold - Dev\",\"On Hold - Product\",\"Open\",\"PLATFORM-INBOX\",\"Prod Release\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Ready for Release\",\"Release\",\"Reopened\",\"Resolved\",\"Rework\",\"To Do\",\"Waiting for Feedback\",\"With Development\",\"With Product\",\"With QA\",\"Wont Do\",\"Work Complete\"]"
+    "possible_values": "[\"Available Self-Serve\",\"Backlog\",\"COMMERCIAL-INBOX\",\"Closed\",\"Code Review\",\"Dev Complete\",\"Discovery\",\"Done\",\"Draft\",\"Duplicate\",\"In Code Review\",\"In Progress\",\"In Review\",\"Inbox\",\"Needs Grooming\",\"Needs More Detail\",\"ON DECK\",\"On Hold\",\"On Hold - Dev\",\"On Hold - Product\",\"Open\",\"PLATFORM-INBOX\",\"Prod Release\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Ready for Release\",\"Release\",\"Reopened\",\"Resolved\",\"Rework\",\"To Do\",\"Waiting for Feedback\",\"With Product\",\"With QA\",\"Wont Do\",\"Work Complete\"]"
   },
   "issue_type_name": {
     "field_name": "issue_type_name",
     "description": "Type of issue",
-    "possible_values": "[\"Brainstorm\",\"Brainstorm Subtask\",\"Bug\",\"Epic\",\"Improvement\",\"Prod\",\"Product-Discuss\",\"R&D\",\"Report Request\",\"Story\",\"Sub-task\",\"Task\",\"Technical task\"]"
+    "possible_values": "[\"Brainstorm\",\"Bug\",\"Epic\",\"Improvement\",\"Prod\",\"Product-Discuss\",\"R&D\",\"Report Request\",\"Story\",\"Sub-task\",\"Task\",\"Technical task\"]"
   },
   "label": {
     "field_name": "label",
@@ -107,7 +107,7 @@
   "priority": {
     "field_name": "priority",
     "description": "Priority level of the issue (numeric scale)",
-    "possible_values": "[0,1,2,3,4,5,6,7,9]"
+    "possible_values": "[0,1,2,3,4,5,6,7]"
   },
   "product": {
     "field_name": "product",
@@ -117,7 +117,7 @@
   "product_manager": {
     "field_name": "product_manager",
     "description": "Name of the product manager",
-    "possible_values": "[\"Amanda Alterman\",\"Amoha Das\",\"Andrew Portener\",\"Asiah Cipriani\",\"Ben Dalgliesh\",\"Bryan Weinstein\",\"Carlos Garcia\",\"Casey Carden\",\"Dani Dinstein\",\"Daniel Holden\",\"Daniel Wohlfart\",\"Divya Suri\",\"Donovan Ly\",\"Elian Smith\",\"Ezra Suveyke\",\"Illia Borysenko\",\"Jessica Wang\",\"Jonathan Zile\",\"Josh Stewart\",\"Kaustav Basu\",\"Kenan Akin\",\"Marta Wojcik\",\"Maxim Kovalenko\",\"Mike Leviste\",\"Nadine Hartanto\",\"Naresh Lodha\",\"Nicholas Jonas\",\"Nick Plaskassovitis\",\"Nikhil Bhardwaj\",\"Pooja Gandhi\",\"Pranav Jadhav\",\"Prem Kumar Mullai Manavalan\",\"Quincy Uchegbu\",\"Rachel Gavazzi\",\"Roman Kuzmych\",\"Ronak Patel\",\"Sai Surekha Gandu\",\"Samantha Lee\",\"Sooji Kim\",\"Temi Lawal\"]"
+    "possible_values": "[\"Amanda Alterman\",\"Amoha Das\",\"Andrew Portener\",\"Asiah Cipriani\",\"Ben Dalgliesh\",\"Bryan Weinstein\",\"Carlos Garcia\",\"Dani Dinstein\",\"Daniel Holden\",\"Daniel Wohlfart\",\"Divya Suri\",\"Donovan Ly\",\"Elian Smith\",\"Ezra Suveyke\",\"Illia Borysenko\",\"Jessica Wang\",\"Jonathan Zile\",\"Josh Stewart\",\"Kaustav Basu\",\"Kenan Akin\",\"Marta Wojcik\",\"Maxim Kovalenko\",\"Mike Leviste\",\"Naresh Lodha\",\"Nicholas Jonas\",\"Nick Plaskassovitis\",\"Nikhil Bhardwaj\",\"Pooja Gandhi\",\"Pranav Jadhav\",\"Prem Kumar Mullai Manavalan\",\"Quincy Uchegbu\",\"Rachel Gavazzi\",\"Roman Kuzmych\",\"Ronak Patel\",\"Sai Surekha Gandu\",\"Samantha Lee\",\"Sooji Kim\",\"Temi Lawal\"]"
   },
   "project_key": {
     "field_name": "project_key",
@@ -127,7 +127,7 @@
   "project_manager_name": {
     "field_name": "project_manager_name",
     "description": "Name of the project manager",
-    "possible_values": "[\"Amoha Das\",\"Ashifa Islam\",\"Bryan Weinstein\",\"Giles Alderson\",\"Jan Pieru\u0144\",\"Jifei Lin\",\"Krishna Kalluri\",\"Nick Plaskassovitis\",\"Pooja Gandhi\",\"Quincy Uchegbu\",\"Ronak Patel\",\"Sooji Kim\",\"Temi Lawal\"]"
+    "possible_values": "[\"Amoha Das\",\"Ashifa Islam\",\"Giles Alderson\",\"Jan Pieru\u0144\",\"Jifei Lin\",\"Krishna Kalluri\",\"Nick Plaskassovitis\",\"Pooja Gandhi\",\"Quincy Uchegbu\",\"Ronak Patel\",\"Sooji Kim\",\"Temi Lawal\"]"
   },
   "release_date": {
     "field_name": "release_date",

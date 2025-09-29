@@ -1,6 +1,82 @@
 {
-  "test": "This is a test update for stream_leads.json",
-  "timestamp": "2025-09-28T20:07:11.959024",
-  "filename": "stream_leads.json",
-  "version": "debug-test-all"
+  "AI Foundation": {
+    "stream": "AI Foundation",
+    "lead": "Nick Plaskassovitis"
+  },
+  "Analytics-Platform-and-Workspaces": {
+    "stream": "Analytics-Platform-and-Workspaces",
+    "lead": "Kaustav Basu"
+  },
+  "Audience Management": {
+    "stream": "Audience Management",
+    "lead": "Ash Cipriani"
+  },
+  "Campaign Management": {
+    "stream": "Campaign Management",
+    "lead": "Josh Stewart"
+  },
+  "Creatives": {
+    "stream": "Creatives",
+    "lead": "Kenan Akin"
+  },
+  "Deal Platform": {
+    "stream": "Deal Platform",
+    "lead": "Jessica Wang"
+  },
+  "Forecasting": {
+    "stream": "Forecasting",
+    "lead": "Nik Bhardwaj"
+  },
+  "Identity & Targeting": {
+    "stream": "Identity & Targeting",
+    "lead": "Roman Kuzmych"
+  },
+  "List Management": {
+    "stream": "List Management",
+    "lead": "Donovan Ly"
+  },
+  "Media Effectiveness": {
+    "stream": "Media Effectiveness",
+    "lead": "Nik Bhardwaj"
+  },
+  "Omnichannel": {
+    "stream": "Omnichannel",
+    "lead": "Donovan Ly"
+  },
+  "Optimization": {
+    "stream": "Optimization",
+    "lead": "Roman Kuzmych"
+  },
+  "Personalization": {
+    "stream": "Personalization",
+    "lead": "Donovan Ly"
+  },
+  "Planning": {
+    "stream": "Planning",
+    "lead": "Nik Bhardwaj"
+  },
+  "Platform Administration": {
+    "stream": "Platform Administration",
+    "lead": "Kenan Akin"
+  },
+  "Platform Compliance": {
+    "stream": "Platform Compliance",
+    "lead": ""
+  },
+  "Reporting": {
+    "stream": "Reporting",
+    "lead": "Divya Suri"
+  },
+  "Supply": {
+    "stream": "Supply",
+    "lead": "Jessica Wang"
+  },
+  "Tag Management": {
+    "stream": "Tag Management",
+    "lead": "Kaustav Basu"
+  },
+  "Third Party Data & Partnerships": {
+    "stream": "Third Party Data & Partnerships",
+    "lead": "Roman Kuzmych"
+  }
 }

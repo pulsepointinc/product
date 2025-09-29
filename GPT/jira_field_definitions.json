@@ -1,6 +1,187 @@
 {
-  "test": "This is a test update for jira_field_definitions.json",
-  "timestamp": "2025-09-28T20:07:12.529419",
-  "filename": "jira_field_definitions.json",
-  "version": "debug-test-all"
+  "Team_Driving_Work": {
+    "field_name": "Team_Driving_Work",
+    "description": "Team category driving the work",
+    "possible_values": "[\"Engineering\",\"Product\",\"UX\"]"
+  },
+  "child_ticket_count": {
+    "field_name": "child_ticket_count",
+    "description": "Number of child tickets",
+    "possible_values": null
+  },
+  "current_assignee_name": {
+    "field_name": "current_assignee_name",
+    "description": "Name of the current assignee",
+    "possible_values": null
+  },
+  "days_in_progress_to_closed": {
+    "field_name": "days_in_progress_to_closed",
+    "description": "Days from in-progress to closed status",
+    "possible_values": null
+  },
+  "days_sprint_start_to_in_progress": {
+    "field_name": "days_sprint_start_to_in_progress",
+    "description": "Days from sprint start to in-progress status",
+    "possible_values": null
+  },
+  "description": {
+    "field_name": "description",
+    "description": "Detailed description of the issue",
+    "possible_values": null
+  },
+  "development_queue": {
+    "field_name": "development_queue",
+    "description": "Development status indicator",
+    "possible_values": "[\"In Development\",\"Not In Development\"]"
+  },
+  "epic_issue_id": {
+    "field_name": "epic_issue_id",
+    "description": "ID of the parent epic issue",
+    "possible_values": null
+  },
+  "epic_issue_key": {
+    "field_name": "epic_issue_key",
+    "description": "Key of the parent epic issue",
+    "possible_values": null
+  },
+  "epic_project_key": {
+    "field_name": "epic_project_key",
+    "description": "Project key of the parent epic",
+    "possible_values": "[\"BI\",\"DPD\",\"ET\",\"GTM\",\"IBIQ\",\"PROD\",\"RR\",\"STUD\"]"
+  },
+  "epic_snapshot": {
+    "field_name": "epic_snapshot",
+    "description": "Snapshot or summary of the epic",
+    "possible_values": null
+  },
+  "epic_status": {
+    "field_name": "epic_status",
+    "description": "Status of the parent epic",
+    "possible_values": "[\"Closed\",\"Dev Complete\",\"Done\",\"Draft\",\"In Progress\",\"Needs Grooming\",\"ON DECK\",\"On Hold\",\"Open\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Resolved\",\"To Do\",\"With QA\"]"
+  },
+  "feature": {
+    "field_name": "feature",
+    "description": "Feature associated with the issue",
+    "possible_values": "[\"Workspace Type - HCP Explorer\"]"
+  },
+  "fix_version": {
+    "field_name": "fix_version",
+    "description": "Version or release the issue is fixed in",
+    "possible_values": null
+  },
+  "issue_id": {
+    "field_name": "issue_id",
+    "description": "Unique identifier for each issue/ticket",
+    "possible_values": null
+  },
+  "issue_key": {
+    "field_name": "issue_key",
+    "description": "Alphanumeric key for the issue (format: [PROJECT_KEY]-[NUMBER])",
+    "possible_values": null
+  },
+  "issue_status": {
+    "field_name": "issue_status",
+    "description": "Current status of the issue",
+    "possible_values": "[\"Available Self-Serve\",\"Backlog\",\"COMMERCIAL-INBOX\",\"Closed\",\"Code Review\",\"Dev Complete\",\"Discovery\",\"Done\",\"Draft\",\"Duplicate\",\"In Code Review\",\"In Progress\",\"In Review\",\"Inbox\",\"Needs Grooming\",\"Needs More Detail\",\"ON DECK\",\"On Hold\",\"On Hold - Dev\",\"On Hold - Product\",\"Open\",\"PLATFORM-INBOX\",\"Prod Release\",\"Product Requirements\",\"QA\",\"Ready for Dev\",\"Ready for Release\",\"Release\",\"Reopened\",\"Resolved\",\"Rework\",\"To Do\",\"Waiting for Feedback\",\"With Product\",\"With QA\",\"Wont Do\",\"Work Complete\"]"
+  },
+  "issue_type_name": {
+    "field_name": "issue_type_name",
+    "description": "Type of issue",
+    "possible_values": "[\"Brainstorm\",\"Bug\",\"Epic\",\"Improvement\",\"Prod\",\"Product-Discuss\",\"R&D\",\"Report Request\",\"Story\",\"Sub-task\",\"Task\",\"Technical task\"]"
+  },
+  "label": {
+    "field_name": "label",
+    "description": "Issue label/tag for categorization",
+    "possible_values": null
+  },
+  "number_of_sprint_slips": {
+    "field_name": "number_of_sprint_slips",
+    "description": "Number of times the issue slipped from a sprint",
+    "possible_values": null
+  },
+  "original_release_date": {
+    "field_name": "original_release_date",
+    "description": "Originally planned release date",
+    "possible_values": "[\"2024-April 2024\",\"2024-June 2024\",\"2024-June 2026\",\"2024-March 2024\",\"2024-March 2026\",\"2025 2025\",\"2026 2025\",\"2026 2026\",\"April 2024\",\"April 2025\",\"August 2024\",\"August 2025\",\"December 2024\",\"December 2025\",\"February 2024\",\"February 2025\",\"January 2025\",\"January 2026\",\"July 2024\",\"July 2025\",\"June 2024\",\"June 2025\",\"March 2024\",\"March 2025\",\"May 2024\",\"May 2025\",\"November 2024\",\"November 2025\",\"October 2024\",\"October 2025\",\"September 2024\",\"September 2025\",\"September 2026\",\"v1.7 [Alpha\",\"v1.7.1 2025\",\"v1.8 [Beta]\",\"v1.9 2025\",\"v1.9.2 2025\",\"v2.0 2025\",\"v3 [HCP365\"]"
+  },
+  "priority": {
+    "field_name": "priority",
+    "description": "Priority level of the issue (numeric scale)",
+    "possible_values": "[0,1,2,3,4,5,6,7]"
+  },
+  "product": {
+    "field_name": "product",
+    "description": "Product name associated with the issue",
+    "possible_values": "[\"API\",\"Adaptive Optimization\",\"Authentication\",\"Bidder Optimization\",\"Campaign Debugger\",\"Campaign Management Platform\",\"Chatbot\",\"Clinical Insights\",\"Contextual Targeting\",\"Cost Optimization\",\"Creative Management\",\"Curated Markets\",\"Customer Support\",\"Data Integrations\",\"Deal Debugger\",\"Deal Platform\",\"Direct Match\",\"Fees Admin\",\"Genome Data Platform\",\"List Management\",\"Lookalike\",\"Media Planner\",\"Moments\",\"Omnichannel Partner\",\"Omnichannel Platform\",\"PRTS\",\"Publisher Platform\",\"Pulsepoint Platform\",\"Report Builder\",\"Segment Management\",\"Sequential Messaging\",\"Site Personalization\",\"Studio Platform\",\"Studio Workspaces\",\"Tag Manager\",\"Undefined\",\"User Management\"]"
+  },
+  "product_manager": {
+    "field_name": "product_manager",
+    "description": "Name of the product manager",
+    "possible_values": "[\"Amanda Alterman\",\"Amoha Das\",\"Andrew Portener\",\"Asiah Cipriani\",\"Ben Dalgliesh\",\"Bryan Weinstein\",\"Carlos Garcia\",\"Dani Dinstein\",\"Daniel Holden\",\"Daniel Wohlfart\",\"Divya Suri\",\"Donovan Ly\",\"Elian Smith\",\"Ezra Suveyke\",\"Illia Borysenko\",\"Jessica Wang\",\"Jonathan Zile\",\"Josh Stewart\",\"Kaustav Basu\",\"Kenan Akin\",\"Marta Wojcik\",\"Maxim Kovalenko\",\"Mike Leviste\",\"Naresh Lodha\",\"Nicholas Jonas\",\"Nick Plaskassovitis\",\"Nikhil Bhardwaj\",\"Pooja Gandhi\",\"Pranav Jadhav\",\"Prem Kumar Mullai Manavalan\",\"Quincy Uchegbu\",\"Rachel Gavazzi\",\"Roman Kuzmych\",\"Ronak Patel\",\"Sai Surekha Gandu\",\"Samantha Lee\",\"Sooji Kim\",\"Temi Lawal\"]"
+  },
+  "project_key": {
+    "field_name": "project_key",
+    "description": "Project identifier the issue belongs to",
+    "possible_values": "[\"BI\",\"BRAIN\",\"DPD\",\"ET\",\"GTM\",\"IBIQ\",\"PROD\",\"QA\",\"RR\",\"STUD\"]"
+  },
+  "project_manager_name": {
+    "field_name": "project_manager_name",
+    "description": "Name of the project manager",
+    "possible_values": "[\"Amoha Das\",\"Ashifa Islam\",\"Giles Alderson\",\"Jan Pieru\u0144\",\"Jifei Lin\",\"Krishna Kalluri\",\"Nick Plaskassovitis\",\"Pooja Gandhi\",\"Quincy Uchegbu\",\"Ronak Patel\",\"Sooji Kim\",\"Temi Lawal\"]"
+  },
+  "release_date": {
+    "field_name": "release_date",
+    "description": "Actual or current release date",
+    "possible_values": "[\"2024-April 2024\",\"2024-June 2024\",\"2024-June 2026\",\"2024-March 2024\",\"2024-March 2026\",\"2025 2025\",\"2026 2025\",\"2026 2026\",\"April 2024\",\"April 2025\",\"August 2024\",\"August 2025\",\"August 2026\",\"December 2024\",\"December 2025\",\"February 2023\",\"February 2024\",\"February 2025\",\"February 2026\",\"January 2024\",\"January 2025\",\"January 2026\",\"July 2024\",\"July 2025\",\"July 2026\",\"June 2024\",\"June 2025\",\"March 2024\",\"March 2025\",\"May 2024\",\"May 2025\",\"November 2024\",\"November 2025\",\"October 2024\",\"October 2025\",\"September 2024\",\"September 2025\",\"September 2026\",\"v1.7 [Alpha\",\"v1.7.1 2025\",\"v1.8 [Beta]\",\"v1.9 2025\",\"v1.9.2 2025\",\"v2.0 2025\",\"v3 [HCP365\"]"
+  },
+  "reporter_name": {
+    "field_name": "reporter_name",
+    "description": "Name of the person who reported/created the issue",
+    "possible_values": null
+  },
+  "sprint": {
+    "field_name": "sprint",
+    "description": "Sprint name or identifier",
+    "possible_values": null
+  },
+  "sprint_date": {
+    "field_name": "sprint_date",
+    "description": "Sprint date or period",
+    "possible_values": null
+  },
+  "status_notes": {
+    "field_name": "status_notes",
+    "description": "Notes about the current status",
+    "possible_values": null
+  },
+  "story_points": {
+    "field_name": "story_points",
+    "description": "Estimated story points for the issue",
+    "possible_values": null
+  },
+  "stream": {
+    "field_name": "stream",
+    "description": "Work stream or category",
+    "possible_values": "[\"AI Foundation\",\"Analytics\",\"Audience Management\",\"Campaign Management\",\"Creatives\",\"Deal Platform\",\"Forecasting\",\"Identity & Targeting\",\"List Management\",\"Media Effectiveness\",\"Omnichannel\",\"Optimization\",\"Personalization\",\"Planning\",\"Platform Administration\",\"Platform Compliance\",\"Reporting\",\"Supply\",\"Tag Management\",\"Tech Enablement\",\"Third Party Data Operations & Partnerships\"]"
+  },
+  "summary": {
+    "field_name": "summary",
+    "description": "Brief summary of the issue",
+    "possible_values": null
+  },
+  "target_date_quarter": {
+    "field_name": "target_date_quarter",
+    "description": "Target quarter for completion",
+    "possible_values": "[\"Q1 2025\",\"Q1 2026\",\"Q2 2025\",\"Q3 2024\",\"Q3 2025\",\"Q4 2024\",\"Q4 2025\"]"
+  },
+  "team": {
+    "field_name": "team",
+    "description": "Specific team assigned",
+    "possible_values": "[\"Back End Development\",\"Business Intelligence Development\",\"Data Analytics\",\"Data Product Development\",\"Data Science\",\"Front End Cluster Development\",\"Front End Portal Development\",\"Go to Market\",\"Product Management\",\"QA/UAT\"]"
+  },
+  "total_days_elapsed": {
+    "field_name": "total_days_elapsed",
+    "description": "Total days elapsed for the issue",
+    "possible_values": null
+  }
 }

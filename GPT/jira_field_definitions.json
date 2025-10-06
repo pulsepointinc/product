@@ -3,7 +3,7 @@
     "field_name": "test_field",
     "description": "Test field from v2.6",
     "possible_values": "v2.6 test values",
-    "last_updated": "2025-10-05T10:00:03.945647"
+    "last_updated": "2025-10-06T10:00:03.208571"
   },
   "version": "v2.6"
 }

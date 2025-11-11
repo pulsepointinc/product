@@ -181,10 +181,11 @@ async def ask_question(
     knowledge_layer_request = payload.model_dump(exclude_none=True)
     try:
         # Forward to Knowledge Layer v5 (public endpoint, no authentication required)
+        # Increased timeout to 120 seconds for complex queries
         response = requests.post(
             f"{KNOWLEDGE_LAYER_URL}/ask",
             json=knowledge_layer_request,
-            timeout=60
+            timeout=120
         )
         
         if response.status_code != 200:

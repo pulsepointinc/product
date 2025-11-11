@@ -60,6 +60,10 @@ export default function Home() {
       console.log('Calling API:', endpoint);
       console.log('Request payload:', { question, session_id: sessionId });
       
+      // Create AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 seconds
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers,
@@ -71,8 +75,11 @@ export default function Home() {
             content: m.content
           })),
           max_results: 50
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -93,12 +100,20 @@ export default function Home() {
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error:', error);
+      let errorContent = 'Sorry, I encountered an error. Please try again.';
+      
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        errorContent = 'The request took too long to process. This might be due to a complex query. Please try rephrasing your question or breaking it into smaller parts.';
+      } else if (error.message?.includes('504') || error.message?.includes('timeout')) {
+        errorContent = 'The server took too long to respond. Please try again with a simpler question.';
+      }
+      
       const errorMessage: Message = {
         id: `msg_${Date.now() + 1}`,
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: errorContent,
         timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);

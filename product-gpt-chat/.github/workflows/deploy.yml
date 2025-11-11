@@ -56,17 +56,12 @@ jobs:
       - name: Deploy Frontend to Cloud Run (with build-time env vars)
         run: |
           cd frontend
-          # Cloud Run will build with --source, so we need build-time env vars
-          # These are passed via --set-build-env-vars
-          gcloud run deploy product-gpt-chat \
-            --source . \
+          # Use Cloud Build with cloudbuild.yaml to properly pass build-time env vars
+          IMAGE_TAG=$(date +%s)
+          gcloud builds submit \
+            --config cloudbuild.yaml \
             --region ${{ env.REGION }} \
             --project ${{ env.PROJECT_ID }} \
-            --allow-unauthenticated \
-            --memory 1Gi \
-            --cpu 1 \
-            --timeout 60s \
-            --max-instances 10 \
-            --set-env-vars "NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,NEXT_PUBLIC_ENABLE_SSO=true,NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=pulsepoint-bitstrapped-ai.firebaseapp.com,NEXT_PUBLIC_FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=pulsepoint-bitstrapped-ai.firebasestorage.app,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=505719121244,NEXT_PUBLIC_FIREBASE_APP_ID=1:505719121244:web:85409d7987746786740d99" \
-            --set-build-env-vars "NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,NEXT_PUBLIC_ENABLE_SSO=true,NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=pulsepoint-bitstrapped-ai.firebaseapp.com,NEXT_PUBLIC_FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=pulsepoint-bitstrapped-ai.firebasestorage.app,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=505719121244,NEXT_PUBLIC_FIREBASE_APP_ID=1:505719121244:web:85409d7987746786740d99"
+            --substitutions=_NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,_NEXT_PUBLIC_ENABLE_SSO=true,_NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs,_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=pulsepoint-bitstrapped-ai.firebaseapp.com,_NEXT_PUBLIC_FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai,_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=pulsepoint-bitstrapped-ai.firebasestorage.app,_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=505719121244,_NEXT_PUBLIC_FIREBASE_APP_ID=1:505719121244:web:85409d7987746786740d99,_IMAGE_TAG=$IMAGE_TAG \
+            .
 

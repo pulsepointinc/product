@@ -1,5 +1,8 @@
 'use client';
 
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -24,7 +27,22 @@ export default function ChatMessage({ message }: ChatMessageProps) {
             : 'bg-white text-gray-800 shadow-sm border'
         }`}
       >
-        <div className="whitespace-pre-wrap">{message.content}</div>
+        {isUser ? (
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        ) : (
+          <div className="markdown-content">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                a: ({ node, ...props }) => (
+                  <a {...props} target="_blank" rel="noopener noreferrer" />
+                ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )}
         
         {message.sources && message.sources.length > 0 && (
           <div className="mt-3 pt-3 border-t border-gray-200">
@@ -45,4 +63,3 @@ export default function ChatMessage({ message }: ChatMessageProps) {
     </div>
   );
 }
-

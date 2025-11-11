@@ -41,19 +41,18 @@ KNOWLEDGE_LAYER_URL = os.getenv(
     "https://knowledge-layer-v5-420423430685.us-east4.run.app"
 )
 
-# Google OAuth configuration (optional - can be enabled later)
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+# Firebase configuration for SSO
+FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "pulsepoint-bitstrapped-ai")
 ALLOWED_DOMAINS = ["pulsepoint.com"]  # Only allow corporate emails
 ENABLE_SSO = os.getenv("ENABLE_SSO", "false").lower() == "true"  # SSO disabled by default
 
 
-async def verify_google_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
-    Verify Google OAuth token for platform access (not API access)
+    Verify Firebase ID token for platform access (not API access)
     
     If SSO is disabled (ENABLE_SSO=false), returns a mock user.
-    If SSO is enabled, verifies the token with Google.
+    If SSO is enabled, verifies the Firebase ID token.
     
     The Knowledge Layer v5 API and other backend APIs are public and don't require user auth.
     """
@@ -66,20 +65,28 @@ async def verify_google_token(credentials: HTTPAuthorizationCredentials = Depend
             "user_id": "anonymous"
         }
     
-    # SSO is enabled - verify token
+    # SSO is enabled - verify Firebase ID token
     token = credentials.credentials
     
     try:
-        # Verify token with Google Identity Platform
+        # Verify Firebase ID token
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
         
-        # Verify the OAuth2 token
+        # Firebase ID tokens are verified using verify_oauth2_token
+        # The audience should be the Firebase project ID
+        # Firebase tokens are issued by: https://securetoken.google.com/{project-id}
         idinfo = id_token.verify_oauth2_token(
             token, 
             google_requests.Request(),
-            GOOGLE_CLIENT_ID
+            audience=FIREBASE_PROJECT_ID
         )
+        
+        # Verify the issuer is Firebase
+        issuer = idinfo.get('iss', '')
+        expected_issuer = f'https://securetoken.google.com/{FIREBASE_PROJECT_ID}'
+        if issuer != expected_issuer:
+            raise ValueError(f"Invalid token issuer: {issuer}")
         
         # Extract and validate email domain
         email = idinfo.get('email', '')
@@ -101,13 +108,13 @@ async def verify_google_token(credentials: HTTPAuthorizationCredentials = Depend
         }
     except ValueError as e:
         # Invalid token
-        logger.error(f"Token verification failed: {e}")
+        logger.error(f"Firebase token verification failed: {e}")
         raise HTTPException(
             status_code=401,
             detail="Invalid or expired authentication token"
         )
     except Exception as e:
-        logger.error(f"Unexpected error during token verification: {e}")
+        logger.error(f"Unexpected error during Firebase token verification: {e}")
         raise HTTPException(
             status_code=500,
             detail="Authentication service error"
@@ -118,7 +125,7 @@ async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] 
     """Return authenticated user if SSO enabled, else None"""
     if not ENABLE_SSO or not credentials:
         return None
-    return await verify_google_token(credentials)
+    return await verify_firebase_token(credentials)
 
 
 @app.get("/")

@@ -37,28 +37,13 @@ jobs:
             --cpu 1 \
             --timeout 300s \
             --max-instances 10 \
-            --set-env-vars "KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=false"
+            --set-env-vars "KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=true,FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai"
 
   deploy-frontend:
     runs-on: ubuntu-latest
     needs: deploy-backend
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: |
-          cd frontend
-          npm ci
-      
-      - name: Build Frontend
-        run: |
-          cd frontend
-          npm run build
       
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
@@ -68,9 +53,11 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
       
-      - name: Deploy Frontend to Cloud Run
+      - name: Deploy Frontend to Cloud Run (with build-time env vars)
         run: |
           cd frontend
+          # Cloud Run will build with --source, so we need build-time env vars
+          # These are passed via --set-build-env-vars
           gcloud run deploy product-gpt-chat \
             --source . \
             --region ${{ env.REGION }} \
@@ -80,5 +67,6 @@ jobs:
             --cpu 1 \
             --timeout 60s \
             --max-instances 10 \
-            --set-env-vars "NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,NEXT_PUBLIC_ENABLE_SSO=false"
+            --set-env-vars "NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,NEXT_PUBLIC_ENABLE_SSO=true,NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=pulsepoint-bitstrapped-ai.firebaseapp.com,NEXT_PUBLIC_FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=pulsepoint-bitstrapped-ai.firebasestorage.app,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=505719121244,NEXT_PUBLIC_FIREBASE_APP_ID=1:505719121244:web:85409d7987746786740d99" \
+            --set-build-env-vars "NEXT_PUBLIC_API_URL=https://product-gpt-chat-api-420423430685.us-east4.run.app,NEXT_PUBLIC_ENABLE_SSO=true,NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs,NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=pulsepoint-bitstrapped-ai.firebaseapp.com,NEXT_PUBLIC_FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai,NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=pulsepoint-bitstrapped-ai.firebasestorage.app,NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=505719121244,NEXT_PUBLIC_FIREBASE_APP_ID=1:505719121244:web:85409d7987746786740d99"
 

@@ -22,9 +22,14 @@ location = "us-east4"
 # Initialize OpenAI with proper error handling
 try:
     import openai
-    openai.api_key = "REMOVED_SECRET"
-    OPENAI_AVAILABLE = True
-    print("✅ OpenAI initialized successfully with GPT-4o-mini")
+    # Get API key from environment variable (set in Cloud Run)
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    if not openai.api_key:
+        print("⚠️ OPENAI_API_KEY environment variable not set")
+        OPENAI_AVAILABLE = False
+    else:
+        OPENAI_AVAILABLE = True
+        print("✅ OpenAI initialized successfully with GPT-4o-mini")
 except ImportError as e:
     print(f"⚠️ OpenAI not available: {e}")
     OPENAI_AVAILABLE = False

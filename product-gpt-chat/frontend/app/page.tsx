@@ -51,7 +51,11 @@ export default function Home() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const response = await fetch('/api/chat/ask', {
+      // Use full API URL if provided, otherwise use relative path
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const endpoint = apiUrl ? `${apiUrl}/api/chat/ask` : '/api/chat/ask';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers,
         body: JSON.stringify({

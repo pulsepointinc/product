@@ -16,7 +16,9 @@ COPY . .
 
 # Set environment variables for build
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_ENABLE_SSO
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_ENABLE_SSO=$NEXT_PUBLIC_ENABLE_SSO
 
 RUN npm run build
 
@@ -40,5 +42,6 @@ EXPOSE 8080
 ENV PORT 8080
 ENV HOSTNAME "0.0.0.0"
 
+# Use the standalone server
 CMD ["node", "server.js"]
 

@@ -51,9 +51,14 @@ export default function Home() {
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      // Use full API URL if provided, otherwise use relative path
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const endpoint = apiUrl ? `${apiUrl}/api/chat/ask` : '/api/chat/ask';
+      // Use backend API URL - check both runtime env and fallback to hardcoded
+      const apiUrl = (typeof window !== 'undefined' && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL) 
+        || process.env.NEXT_PUBLIC_API_URL 
+        || 'https://product-gpt-chat-api-420423430685.us-east4.run.app';
+      const endpoint = `${apiUrl}/api/chat/ask`;
+      
+      console.log('Calling API:', endpoint);
+      console.log('Request payload:', { question, session_id: sessionId });
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -70,10 +75,13 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('API Response:', data);
       const synthesisResponse = data.synthesis_response || data;
 
       // Add assistant message

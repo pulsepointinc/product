@@ -4,5 +4,5 @@ flask-cors==4.*
 requests==2.*
 openai==1.*
 python-dateutil==2.*
-gunicorn==21.*
+gunicorn==21.2.0
 

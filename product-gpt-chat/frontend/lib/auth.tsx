@@ -1,27 +1,54 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'firebase/auth';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
 
-// Firebase configuration (will be set via environment variables)
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  // Add other config as needed
+// Firebase imports - only if SSO is enabled
+let GoogleAuthProvider: any;
+let signInWithPopup: any;
+let firebaseSignOut: any;
+let onAuthStateChanged: any;
+let initializeApp: any;
+let getApps: any;
+let getAuth: any;
+
+// Lazy load Firebase only if needed
+const loadFirebase = async () => {
+  if (typeof window !== 'undefined') {
+    const firebase = await import('firebase/auth');
+    const firebaseApp = await import('firebase/app');
+    GoogleAuthProvider = firebase.GoogleAuthProvider;
+    signInWithPopup = firebase.signInWithPopup;
+    firebaseSignOut = firebase.signOut;
+    onAuthStateChanged = firebase.onAuthStateChanged;
+    initializeApp = firebaseApp.initializeApp;
+    getApps = firebaseApp.getApps;
+    getAuth = firebase.getAuth;
+  }
 };
 
-// Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const auth = getAuth(app);
+// Firebase will be initialized only if SSO is enabled
+let app: any = null;
+let auth: any = null;
+let googleProvider: any = null;
 
-// Google Auth Provider
-const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-  hd: 'pulsepoint.com' // Restrict to PulsePoint domain
-});
+const initFirebase = () => {
+  if (typeof window === 'undefined') return;
+  
+  const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  };
+
+  if (firebaseConfig.apiKey && firebaseConfig.authDomain) {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({
+      hd: 'pulsepoint.com'
+    });
+  }
+};
 
 interface AuthContextType {
   user: any;
@@ -36,17 +63,34 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    if (!SSO_ENABLED) {
       setLoading(false);
-    });
+      return;
+    }
 
-    return () => unsubscribe();
-  }, []);
+    // Load Firebase if SSO is enabled
+    loadFirebase().then(() => {
+      initFirebase();
+      if (auth) {
+        const unsubscribe = onAuthStateChanged(auth, (user: any) => {
+          setUser(user);
+          setLoading(false);
+        });
+        return () => unsubscribe();
+      } else {
+        setLoading(false);
+      }
+    });
+  }, [SSO_ENABLED]);
 
   const signIn = async () => {
+    if (!SSO_ENABLED || !auth || !googleProvider) {
+      console.warn('SSO is not enabled');
+      return;
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error: any) {
@@ -56,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!SSO_ENABLED || !auth) {
+      return;
+    }
     try {
       await firebaseSignOut(auth);
     } catch (error: any) {

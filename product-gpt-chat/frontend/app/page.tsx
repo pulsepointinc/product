@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import ChatMessage from '@/components/ChatMessage';
-import ChatInput from '@/components/ChatInput';
-import { useGoogleAuth } from '@/lib/auth';
+import ChatMessage from '../components/ChatMessage';
+import ChatInput from '../components/ChatInput';
+import { useGoogleAuth } from '../lib/auth';
 
 interface Message {
   id: string;

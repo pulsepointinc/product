@@ -18,6 +18,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const { user, isAuthenticated, signIn, signOut } = useGoogleAuth();
+  const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
 
   useEffect(() => {
     // Generate session ID on mount
@@ -25,7 +26,9 @@ export default function Home() {
   }, []);
 
   const handleSend = async (question: string) => {
-    if (!question.trim() || !isAuthenticated) return;
+    if (!question.trim()) return;
+    // Only require authentication if SSO is enabled
+    if (SSO_ENABLED && !isAuthenticated) return;
 
     // Add user message
     const userMessage: Message = {
@@ -38,15 +41,19 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // Get auth token
-      const token = await user?.getIdToken();
+      // Get auth token (only if SSO enabled)
+      const token = SSO_ENABLED ? await user?.getIdToken() : null;
+      
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
       
       const response = await fetch('/api/chat/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({
           question,
           session_id: sessionId,
@@ -88,7 +95,8 @@ export default function Home() {
     }
   };
 
-  if (!isAuthenticated) {
+  // Only show login screen if SSO is enabled
+  if (SSO_ENABLED && !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -112,15 +120,17 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Product GPT Chat</h1>
           <div className="flex items-center gap-4">
-            {user && (
+            {SSO_ENABLED && user && (
               <span className="text-sm text-gray-600">{user.email}</span>
             )}
-            <button
-              onClick={signOut}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              Sign out
-            </button>
+            {SSO_ENABLED && (
+              <button
+                onClick={signOut}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>

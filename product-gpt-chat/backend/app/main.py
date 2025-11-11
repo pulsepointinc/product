@@ -40,25 +40,32 @@ KNOWLEDGE_LAYER_URL = os.getenv(
     "https://knowledge-layer-v5-420423430685.us-east4.run.app"
 )
 
-# Google OAuth configuration
+# Google OAuth configuration (optional - can be enabled later)
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 ALLOWED_DOMAINS = ["pulsepoint.com"]  # Only allow corporate emails
+ENABLE_SSO = os.getenv("ENABLE_SSO", "false").lower() == "true"  # SSO disabled by default
 
 
 async def verify_google_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Verify Google OAuth token for platform access (not API access)
     
-    This verifies that the user is authenticated via Google SSO to access the chat platform.
-    The Knowledge Layer v5 API and other backend APIs are public and don't require user auth.
+    If SSO is disabled (ENABLE_SSO=false), returns a mock user.
+    If SSO is enabled, verifies the token with Google.
     
-    Steps:
-    1. Verify the token with Google
-    2. Extract user email
-    3. Check if email domain is in ALLOWED_DOMAINS (pulsepoint.com)
-    4. Return user info for session tracking
+    The Knowledge Layer v5 API and other backend APIs are public and don't require user auth.
     """
+    # If SSO is disabled, return mock user
+    if not ENABLE_SSO:
+        return {
+            "email": "user@example.com",
+            "name": "User",
+            "picture": "",
+            "user_id": "anonymous"
+        }
+    
+    # SSO is enabled - verify token
     token = credentials.credentials
     
     try:
@@ -129,7 +136,7 @@ async def health():
 @app.post("/api/chat/ask")
 async def ask_question(
     request: dict,
-    user: dict = Depends(verify_google_token)
+    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
 ):
     """
     Forward question to Knowledge Layer v5 API
@@ -146,7 +153,9 @@ async def ask_question(
     if not question:
         raise HTTPException(status_code=400, detail="Question is required")
     
-    logger.info(f"Question from {user['email']}: {question}")
+    # Get user info (or use anonymous if SSO disabled)
+    user_info = user if user else {"email": "anonymous@example.com", "name": "Anonymous"}
+    logger.info(f"Question from {user_info.get('email', 'anonymous')}: {question}")
     
     # Prepare request for Knowledge Layer v5 (public API, no auth needed)
     knowledge_layer_request = {
@@ -174,8 +183,8 @@ async def ask_question(
         result = response.json()
         
         # Add user context for logging/tracking (not sent to Knowledge Layer API)
-        result["user_email"] = user["email"]
-        result["user_name"] = user.get("name", "")
+        result["user_email"] = user_info.get("email", "anonymous")
+        result["user_name"] = user_info.get("name", "Anonymous")
         
         return result
         
@@ -189,7 +198,7 @@ async def ask_question(
 @app.get("/api/chat/history")
 async def get_history(
     session_id: str,
-    user: dict = Depends(verify_google_token)
+    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
 ):
     """
     Get conversation history for a session
@@ -207,7 +216,7 @@ async def get_history(
 @app.post("/api/chat/export")
 async def export_conversation(
     request: dict,
-    user: dict = Depends(verify_google_token)
+    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
 ):
     """
     Export conversation as PDF or markdown

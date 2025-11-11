@@ -39,8 +39,7 @@ gcloud run deploy product-gpt-chat-api \
   --cpu 1 \
   --timeout 300s \
   --max-instances 10 \
-  --set-env-vars "KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app" \
-  --set-secrets "GOOGLE_CLIENT_ID=google-client-id:latest,GOOGLE_CLIENT_SECRET=google-client-secret:latest" \
+  --set-env-vars "KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=false" \
   --service-account="productgpt-api-caller@pulsepoint-datahub.iam.gserviceaccount.com"
 
 if [ $? -eq 0 ]; then
@@ -74,7 +73,7 @@ gcloud run deploy product-gpt-chat \
   --cpu 1 \
   --timeout 60s \
   --max-instances 10 \
-  --set-env-vars "NEXT_PUBLIC_API_URL=$BACKEND_URL" \
+  --set-env-vars "NEXT_PUBLIC_API_URL=$BACKEND_URL,NEXT_PUBLIC_ENABLE_SSO=false" \
   --service-account="productgpt-api-caller@pulsepoint-datahub.iam.gserviceaccount.com"
 
 if [ $? -eq 0 ]; then

@@ -2,6 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useState } from 'react';
 
 interface Message {
   id: string;
@@ -15,8 +16,15 @@ interface ChatMessageProps {
   message: Message;
 }
 
-// Function to convert raw URLs to markdown links
+// Function to convert raw URLs to markdown links and make ticket IDs clickable
 function convertUrlsToMarkdown(text: string): string {
+  // First, make JIRA ticket IDs clickable (e.g., ET-19862, PROD-12345)
+  // Match ticket IDs that aren't already in links
+  const ticketIdRegex = /\b([A-Z]+-\d+)\b(?![^\[]*\]\()/g;
+  text = text.replace(ticketIdRegex, (match) => {
+    return `[${match}](https://ppinc.atlassian.net/browse/${match})`;
+  });
+  
   // Match URLs that aren't already in markdown link format
   const urlRegex = /(https?:\/\/[^\s\)]+)/g;
   
@@ -31,8 +39,10 @@ function convertUrlsToMarkdown(text: string): string {
       const urlObj = new URL(url);
       let linkText = urlObj.hostname.replace('www.', '');
       
-      // For Jira URLs, extract issue keys if present
-      if (urlObj.hostname.includes('atlassian.net')) {
+      // For Jira URLs with JQL queries, use "JIRA Epics & Tickets" as link text
+      if (urlObj.hostname.includes('atlassian.net') && urlObj.pathname.includes('/issues/') && urlObj.search.includes('jql=')) {
+        linkText = 'JIRA Epics & Tickets';
+      } else if (urlObj.hostname.includes('atlassian.net')) {
         const issueMatch = url.match(/[A-Z]+-\d+/);
         if (issueMatch) {
           linkText = issueMatch[0];
@@ -67,19 +77,47 @@ function convertUrlsToMarkdown(text: string): string {
 
 export default function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const [copied, setCopied] = useState(false);
   
   // Convert raw URLs to markdown links for assistant messages
   const processedContent = isUser ? message.content : convertUrlsToMarkdown(message.content);
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div
-        className={`max-w-3xl rounded-lg p-4 ${
+        className={`max-w-3xl rounded-lg p-4 relative ${
           isUser
             ? 'bg-blue-600 text-white'
             : 'bg-white text-gray-800 shadow-sm border'
         }`}
       >
+        {!isUser && (
+          <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+            title="Copy response"
+          >
+            {copied ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )}
+          </button>
+        )}
         {isUser ? (
           <div className="whitespace-pre-wrap">{message.content}</div>
         ) : (
@@ -110,8 +148,13 @@ export default function ChatMessage({ message }: ChatMessageProps) {
                     let linkText = urlObj.hostname.replace('www.', '');
                     // Extract meaningful text from URL
                     if (urlObj.hostname.includes('atlassian.net')) {
-                      const issueMatch = source.match(/[A-Z]+-\d+/);
-                      linkText = issueMatch ? issueMatch[0] : 'JIRA';
+                      // Check if it's a JQL link (issues page with jql parameter)
+                      if (urlObj.pathname.includes('/issues/') && urlObj.search.includes('jql=')) {
+                        linkText = 'JIRA Epics & Tickets';
+                      } else {
+                        const issueMatch = source.match(/[A-Z]+-\d+/);
+                        linkText = issueMatch ? issueMatch[0] : 'JIRA';
+                      }
                     } else if (urlObj.hostname.includes('github.com')) {
                       const pathParts = urlObj.pathname.split('/').filter(p => p);
                       linkText = pathParts.length >= 2 ? `${pathParts[0]}/${pathParts[1]}` : 'GitHub';

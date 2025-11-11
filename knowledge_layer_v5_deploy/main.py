@@ -763,34 +763,43 @@ Respond professionally and helpfully, processing all available content to provid
 """
         
         # Call OpenAI API (v1.0+ compatible) with optimized parameters and timeout
-        client = openai.OpenAI(api_key=openai.api_key, timeout=20.0)  # 20 second timeout
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant for PulsePoint employees."},
-                {"role": "user", "content": synthesis_prompt}
-            ],
-            max_tokens=1200,  # Further reduced for faster response
-            temperature=0.5   # Reduced from 0.7 for more focused responses
-        )
-        
-        synthesized_response = response.choices[0].message.content
-        
-        return {
-            "synthesis_response": {
-                "response": synthesized_response,
-                "sources": [
-                    "JIRA API",
-                    "Confluence API", 
-                    "GitHub API",
-                    "Document360 API"
+        try:
+            client = openai.OpenAI(api_key=openai.api_key, timeout=30.0)  # Increased to 30 seconds
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant for PulsePoint employees."},
+                    {"role": "user", "content": synthesis_prompt}
                 ],
-                "synthesis_method": "openai_gpt4o_mini"
+                max_tokens=1000,  # Further reduced for faster response
+                temperature=0.5   # Reduced from 0.7 for more focused responses
+            )
+            
+            synthesized_response = response.choices[0].message.content
+            
+            return {
+                "synthesis_response": {
+                    "response": synthesized_response,
+                    "sources": [
+                        "JIRA API",
+                        "Confluence API", 
+                        "GitHub API",
+                        "Document360 API"
+                    ],
+                    "synthesis_method": "openai_gpt4o_mini"
+                }
             }
-        }
+        except openai.APITimeoutError as e:
+            print(f"❌ OpenAI API timeout: {e}")
+            # Return a fallback response with the data we have
+            return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
+        except Exception as e:
+            print(f"❌ OpenAI API error: {e}")
+            # Return a fallback response with the data we have
+            return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
         
     except Exception as e:
-        print(f"❌ OpenAI synthesis error: {e}")
+        print(f"❌ Synthesis error: {e}")
         return {
             "synthesis_response": {
                 "response": f"Error in synthesis: {str(e)}",
@@ -798,6 +807,50 @@ Respond professionally and helpfully, processing all available content to provid
                 "synthesis_method": "error"
             }
         }
+
+def _generate_fallback_response(question: str, jira_data: dict, confluence_data: dict, github_data: dict, document360_data: dict, jql_link: str = None) -> dict:
+    """Generate a fallback response when OpenAI times out or fails"""
+    response_parts = []
+    
+    # Add JIRA data if available
+    if jira_data.get('tickets') and len(jira_data['tickets']) > 0:
+        response_parts.append(f"Found {len(jira_data['tickets'])} JIRA tickets.")
+        if jira_data.get('summary'):
+            response_parts.append("\nSummary:")
+            for item in jira_data['summary'][:5]:
+                response_parts.append(f"- {item}")
+    
+    # Add Confluence data if available
+    if confluence_data.get('results') and len(confluence_data['results']) > 0:
+        response_parts.append(f"\nFound {len(confluence_data['results'])} Confluence pages:")
+        for page in confluence_data['results'][:3]:
+            title = page.get('title', 'No title')
+            url = page.get('confluence_url', page.get('source_url', '#'))
+            response_parts.append(f"- [{title}]({url})")
+    
+    # Add sources
+    sources = []
+    if jira_data.get('tickets'):
+        if jql_link:
+            sources.append(jql_link)
+        else:
+            sources.append("JIRA API")
+    if confluence_data.get('results'):
+        sources.append("Confluence API")
+    if github_data.get('repositories'):
+        sources.append("GitHub API")
+    if document360_data.get('articles'):
+        sources.append("Document360 API")
+    
+    fallback_response = "\n".join(response_parts) if response_parts else "No data available for this query."
+    
+    return {
+        "synthesis_response": {
+            "response": fallback_response,
+            "sources": sources,
+            "synthesis_method": "fallback"
+        }
+    }
 
 @app.route('/', methods=['GET'])
 def health_check():
@@ -1019,4 +1072,34 @@ def knowledge_orchestrator_v5():
 # For Cloud Run, the app is already defined above
 # For Cloud Functions compatibility, export the function
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=False)
+    # In production (Cloud Run), use gunicorn with proper timeout
+    # In development, use Flask's built-in server
+    if os.environ.get('GAE_ENV') or os.environ.get('K_SERVICE'):
+        # Cloud Run environment - use gunicorn
+        import gunicorn.app.base
+        from gunicorn import util
+        
+        class StandaloneApplication(gunicorn.app.base.BaseApplication):
+            def __init__(self, app, options=None):
+                self.options = options or {}
+                self.application = app
+                super().__init__()
+            
+            def load_config(self):
+                for key, value in self.options.items():
+                    self.cfg.set(key.lower(), value)
+            
+            def load(self):
+                return self.application
+        
+        options = {
+            'bind': f"0.0.0.0:{os.environ.get('PORT', 8080)}",
+            'workers': 2,
+            'timeout': 120,
+            'worker_class': 'sync',
+            'keepalive': 5,
+        }
+        StandaloneApplication(app, options).run()
+    else:
+        # Local development
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=False)

@@ -25,12 +25,22 @@
 
 **For your use case: IDENTITY PLATFORM IS FREE** ✅
 
-#### 4. Firestore (Database)
-- **Storage**: ~1GB (conversation history)
-- **Reads**: ~10,000/day
-- **Writes**: ~5,000/day
-- **Estimated Cost**: $5-10/month
+#### 4. Firestore (Database) - Chat History
+- **Storage**: ~1-2GB (conversation history)
+- **Reads**: ~15,000/day (loading conversations + messages)
+- **Writes**: ~8,000/day (new conversations + messages)
+- **Estimated Cost**: $5-15/month
 - **Free Tier**: 1GB storage, 50K reads/day, 20K writes/day free
+- **Cost Breakdown**:
+  - **Storage**: First 1GB free, then $0.18/GB/month
+  - **Reads**: First 50K/day free, then $0.06 per 100K reads
+  - **Writes**: First 20K/day free, then $0.18 per 100K writes
+- **Typical Usage** (10 users, 10 conversations/month, 20 messages each):
+  - Storage: ~500MB-1GB = **$0/month** (within free tier)
+  - Reads: ~15K/day = **$0/month** (within free tier)
+  - Writes: ~8K/day = **$0/month** (within free tier)
+- **At 20 users**: Still likely **$0/month** (within free tier)
+- **At 100 users**: ~$5-10/month (exceeds free tier)
 
 #### 5. Cloud Build (CI/CD)
 - **Build Minutes**: ~10 minutes per deployment
@@ -51,19 +61,19 @@
 - Cloud Run (Backend): $20
 - Cloud Run (Frontend): $10
 - Identity Platform: **$0** (free tier)
-- Firestore: $5
+- Firestore (Chat History): **$0** (free tier - 10 users well within limits)
 - Cloud Build: $2
 - OpenAI API: $30
-- **Total: ~$67/month**
+- **Total: ~$62/month** (Firestore likely free)
 
 ### Higher Usage (20 users)
 - Cloud Run (Backend): $30
 - Cloud Run (Frontend): $15
 - Identity Platform: **$0** (free tier)
-- Firestore: $8
+- Firestore (Chat History): **$0-5** (likely still free tier)
 - Cloud Build: $3
 - OpenAI API: $50
-- **Total: ~$106/month**
+- **Total: ~$98-103/month** (Firestore likely free)
 
 ## Cost Comparison
 

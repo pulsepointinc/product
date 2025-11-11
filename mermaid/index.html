@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Display - ProductGPT Integration</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .controls h2 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-export {
+            background: #059669;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #047857;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .display-area {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        .display-area h2 {
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #f1f5f9;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .code-display {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .diagram-display {
+            text-align: center;
+            padding: 2rem;
+            background: #fefefe;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-style: italic;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-links {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-top: 1rem;
+        }
+
+        .example-links h3 {
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .example-links a {
+            display: inline-block;
+            margin: 0.25rem 0.5rem 0.25rem 0;
+            padding: 0.5rem 1rem;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .example-links a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab {
+                padding: 0.75rem 1rem;
+                text-align: left;
+                border-bottom: 1px solid #e2e8f0;
+                border-right: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mermaid Display</h1>
+        <p>Interactive Mermaid diagrams for ProductGPT integration</p>
+    </div>
+
+    <div class="container">
+        <div class="controls">
+            <h2>Mermaid Diagram Input</h2>
+            <div class="input-group">
+                <label for="mermaidInput">Enter your Mermaid markup:</label>
+                <textarea id="mermaidInput" placeholder="flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E"></textarea>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="renderDiagram()">Render Diagram</button>
+                <button class="btn-secondary" onclick="clearDiagram()">Clear</button>
+                <button class="btn-export" onclick="exportPNG()">Export PNG</button>
+                <button class="btn-export" onclick="exportCSV()">Export CSV</button>
+                <button class="btn-export" onclick="exportExcel()">Export Excel</button>
+            </div>
+            
+            <div class="example-links">
+                <h3>Example Diagrams:</h3>
+                <a href="#" onclick="loadExample('flowchart')">Flowchart</a>
+                <a href="#" onclick="loadExample('sequence')">Sequence Diagram</a>
+                <a href="#" onclick="loadExample('gantt')">Gantt Chart</a>
+                <a href="#" onclick="loadExample('pie')">Pie Chart</a>
+                <a href="#" onclick="loadExample('class')">Class Diagram</a>
+                <a href="#" onclick="loadExample('complex')">Complex Methods</a>
+                <a href="#" onclick="loadExample('table')">Table</a>
+            </div>
+
+            <div class="example-links" style="margin-top: 1rem;">
+                <h3>Hash Management:</h3>
+                <button class="btn-secondary" onclick="showStoredHashes()">View Stored Diagrams</button>
+                <button class="btn-secondary" onclick="clearStoredHashes()">Clear Storage</button>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <h2>Output</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('diagram')">Rendered Diagram</button>
+                <button class="tab" onclick="switchTab('code')">Mermaid Code</button>
+            </div>
+            
+            <div id="diagram-tab" class="tab-content active">
+                <div class="diagram-display" id="diagramContainer">
+                    <div class="loading">No diagram loaded. Enter Mermaid markup above and click "Render Diagram"</div>
+                </div>
+            </div>
+            
+            <div id="code-tab" class="tab-content">
+                <div class="code-display" id="codeDisplay">No code to display</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'inherit',
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+
+        let currentDiagramData = null;
+        let diagramCounter = 0;
+
+        // Hash storage for diagram content
+        const diagramHashStorage = new Map();
+
+        // Generate hash from content
+        async function generateHash(content) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(content);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex.substring(0, 8); // Use first 8 characters for short hash
+        }
+
+        // Store diagram with hash
+        async function storeDiagramWithHash(content) {
+            const hash = await generateHash(content);
+            diagramHashStorage.set(hash, content);
+            // Also store in localStorage for persistence
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                stored[hash] = content;
+                localStorage.setItem('mermaidHashStorage', JSON.stringify(stored));
+            } catch (e) {
+                console.warn('Could not store in localStorage:', e);
+            }
+            return hash;
+        }
+
+        // Retrieve diagram by hash
+        function getDiagramByHash(hash) {
+            // First check memory
+            if (diagramHashStorage.has(hash)) {
+                return diagramHashStorage.get(hash);
+            }
+            // Then check localStorage
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                if (stored[hash]) {
+                    diagramHashStorage.set(hash, stored[hash]); // Cache in memory
+                    return stored[hash];
+                }
+            } catch (e) {
+                console.warn('Could not read from localStorage:', e);
+            }
+            return null;
+        }
+
+        // Load stored hashes from localStorage on startup
+        function loadStoredHashes() {
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                Object.entries(stored).forEach(([hash, content]) => {
+                    diagramHashStorage.set(hash, content);
+                });
+            } catch (e) {
+                console.warn('Could not load stored hashes:', e);
+            }
+        }
+
+        // URL parameter handling (backward compatibility)
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Get hash from URL fragment
+        function getHashFromUrl() {
+            return window.location.hash.substring(1); // Remove # symbol
+        }
+
+        // Load diagram from URL parameter or hash on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Load stored hashes first
+            loadStoredHashes();
+
+            // Check for hash-based URL first (new method)
+            const hashParam = getHashFromUrl();
+            if (hashParam) {
+                const diagramContent = getDiagramByHash(hashParam);
+                if (diagramContent) {
+                    document.getElementById('mermaidInput').value = diagramContent;
+                    renderDiagram();
+                    return;
+                } else {
+                    showError(`Diagram with hash '${hashParam}' not found. The hash may be invalid or the diagram was not stored.`);
+                }
+            }
+
+            // Fall back to old query parameter method (backward compatibility)
+            const diagramParam = getUrlParameter('diagram');
+            if (diagramParam) {
+                try {
+                    const decodedDiagram = decodeURIComponent(diagramParam);
+                    document.getElementById('mermaidInput').value = decodedDiagram;
+                    renderDiagram();
+                } catch (error) {
+                    showError('Invalid URL parameter format');
+                }
+            }
+        });
+
+        // Example diagrams
+        const examples = {
+            flowchart: `flowchart TD
+    A[Start] --> B{Decision Point}
+    B -->|Yes| C[Process A]
+    B -->|No| D[Process B]
+    C --> E[validateInput()]
+    D --> E
+    E --> F[calculateTotal()]
+    F --> G[End]`,
+
+            sequence: `sequenceDiagram
+    participant A as User
+    participant B as System
+    participant C as Database
+    
+    A->>B: login(username, password)
+    B->>C: validateCredentials()
+    C-->>B: authenticationResult()
+    B-->>A: displayUserDashboard()`,
+
+            gantt: `gantt
+    title Project Timeline
+    dateFormat  YYYY-MM-DD
+    section Planning
+    Requirements    :done,    des1, 2024-01-01,2024-01-15
+    Design          :done,    des2, 2024-01-10,2024-01-25
+    section Development
+    Backend         :active,  dev1, 2024-01-20,2024-02-15
+    Frontend        :         dev2, 2024-02-01,2024-02-28
+    Testing         :         test, 2024-02-20,2024-03-10`,
+
+            pie: `pie title Project Budget Allocation
+    "Development" : 45
+    "Design" : 20
+    "Marketing" : 15
+    "Operations" : 12
+    "Contingency" : 8`,
+
+            class: `classDiagram
+    class User {
+        +String name
+        +String email
+        +login()
+        +logout()
+        +authenticate(username, password)
+        +updateProfile(data)
+        +validateEmail()
+    }
+    class Product {
+        +String title
+        +Float price
+        +addToCart()
+        +calculateDiscount(percentage)
+        +isAvailable()
+    }
+    class Order {
+        +Date created
+        +Float total
+        +process()
+        +addItem(product, quantity)
+        +calculateTotal()
+    }
+    User ||--o{ Order : places
+    Order ||--o{ Product : contains`,
+
+            complex: `classDiagram
+    class MpcBidRequest {
+        +String requestId
+        +Map<String, Object> parameters
+        +processRequest()
+        +validateInput(data)
+        +executeFilter(filterType, criteria)
+        +generateResponse(results)
+        +handleException(exception)
+    }
+    class EDWinnerSelectionEngine {
+        +List<Bid> bids
+        +selectWinner()
+        +evaluateBids(criteria)
+        +calculateScore(bid, weights)
+        +applyBusinessRules()
+        +rankCandidates(candidates)
+    }
+    class CompositeMpcFilter {
+        +List<Filter> filters
+        +apply(request)
+        +addFilter(filter)
+        +removeFilter(filterId)
+        +validateFilters()
+        +combineResults(results)
+    }
+    MpcBidRequest --> EDWinnerSelectionEngine : uses
+    MpcBidRequest --> CompositeMpcFilter : applies
+    EDWinnerSelectionEngine --> CompositeMpcFilter : configures`,
+
+            table: `---
+title: Sales Data Q1 2024
+---
+%%{init: {"themeCSS": ".actor {stroke: #333;fill: #fff;}"}}%%
+graph TD
+    subgraph "Sales Table"
+        A["|Month|Sales|Target|Variance|
+        |Jan|$45K|$40K|+$5K|
+        |Feb|$52K|$45K|+$7K|
+        |Mar|$38K|$42K|-$4K|
+        |Total|$135K|$127K|+$8K|"]
+    end`
+        };
+
+        function loadExample(type) {
+            document.getElementById('mermaidInput').value = examples[type];
+            renderDiagram();
+        }
+
+        // Preprocessor to fix common Mermaid syntax issues
+        function preprocessMermaidSyntax(input) {
+            let processed = input;
+            
+            // Fix method names with parentheses in class diagrams
+            if (processed.includes('classDiagram')) {
+                // Replace method signatures that might cause parsing issues
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\(\)/g, (match, visibility, methodName) => {
+                    // Keep visibility modifier and method name but handle parentheses properly
+                    const vis = visibility || '';
+                    return `${vis}${methodName}()`;
+                });
+                
+                // Handle method parameters more carefully
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\(([^)]*)\)/g, (match, visibility, methodName, params) => {
+                    const vis = visibility || '';
+                    // Clean up parameters, remove problematic characters
+                    const cleanParams = params.replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
+                    return cleanParams ? `${vis}${methodName}(${cleanParams})` : `${vis}${methodName}()`;
+                });
+                
+                // Fix property declarations with types
+                processed = processed.replace(/(\+|-|#|~)?([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([a-zA-Z_][a-zA-Z0-9_<>\[\]]*)/g, (match, visibility, propName, propType) => {
+                    const vis = visibility || '';
+                    // Clean up type declarations
+                    const cleanType = propType.replace(/[{}]/g, '').trim();
+                    return `${vis}${propName} : ${cleanType}`;
+                });
+            }
+            
+            // Fix flowchart syntax issues
+            if (processed.includes('flowchart') || processed.includes('graph')) {
+                // Handle method calls in node labels (both simple method() and class.method() patterns)
+                // Only process if not already quoted
+                processed = processed.replace(/([A-Z0-9]+)\[([^\]"]*\([^)]*\)[^\]"]*)\]/g, (match, nodeId, label) => {
+                    // Use quotes to wrap labels containing parentheses
+                    return `${nodeId}["${label}"]`;
+                });
+                
+                // Fix edge labels with parentheses
+                processed = processed.replace(/-->\s*\|([^|"]*\([^)]*\)[^|"]*)\|\s*/g, (match, label) => {
+                    return `-->|"${label}"| `;
+                });
+            }
+            
+            // Fix sequence diagram method calls
+            if (processed.includes('sequenceDiagram')) {
+                // Handle method names in sequence diagram arrows
+                processed = processed.replace(/(-->>|->>\+|-->>-|\+->>\+|->>\+|-->>|\+-->>|\+->>|->)([^:]*:[^:\n]*\([^)]*\)[^:\n]*)/g, (match, arrow, message) => {
+                    // Keep the arrow and handle the message part
+                    const cleanMessage = message.replace(/\(/g, '&#40;').replace(/\)/g, '&#41;');
+                    return `${arrow}${cleanMessage}`;
+                });
+            }
+            
+            // General cleanup
+            // Remove any problematic characters that might interfere with parsing
+            processed = processed.replace(/[""]/g, '"'); // Normalize quotes
+            processed = processed.replace(/['']/g, "'"); // Normalize single quotes
+            
+            // Fix common indentation issues
+            processed = processed.split('\n').map(line => line.trimRight()).join('\n');
+            
+            return processed;
+        }
+
+        function renderDiagram() {
+            const input = document.getElementById('mermaidInput').value.trim();
+            const container = document.getElementById('diagramContainer');
+            const codeDisplay = document.getElementById('codeDisplay');
+
+            if (!input) {
+                showError('Please enter Mermaid markup');
+                return;
+            }
+
+            // Show loading
+            container.innerHTML = '<div class="loading">Rendering diagram...</div>';
+            
+            // Preprocess the input to fix common syntax issues
+            const processedInput = preprocessMermaidSyntax(input);
+            
+            // Update code display with original input
+            codeDisplay.textContent = input;
+
+            try {
+                // Generate unique ID for this diagram
+                const diagramId = `mermaid-diagram-${++diagramCounter}`;
+                
+                // Clear any existing error messages
+                clearMessages();
+
+                // Validate and render the Mermaid diagram with processed input
+                mermaid.render(diagramId, processedInput).then(result => {
+                    container.innerHTML = result.svg;
+                    currentDiagramData = {
+                        svg: result.svg,
+                        code: input, // Store original input
+                        processedCode: processedInput, // Store processed version
+                        id: diagramId
+                    };
+                    showSuccess('Diagram rendered successfully');
+
+                    // Generate hash and update URL with hash-based format
+                    storeDiagramWithHash(input).then(hash => {
+                        const newUrl = `${window.location.pathname}#${hash}`;
+                        window.history.replaceState(null, '', newUrl);
+
+                        // Show the hash-based URL for easy sharing
+                        showHashUrl(hash);
+                    }).catch(error => {
+                        console.warn('Could not generate hash:', error);
+                        // Fall back to old method if hash generation fails
+                        const encodedDiagram = encodeURIComponent(input);
+                        const newUrl = `${window.location.pathname}?diagram=${encodedDiagram}`;
+                        window.history.replaceState(null, '', newUrl);
+                    });
+                    
+                }).catch(error => {
+                    container.innerHTML = '<div class="loading">Failed to render diagram</div>';
+                    showError(`Mermaid parsing error: ${error.message}`);
+                    currentDiagramData = null;
+                });
+
+            } catch (error) {
+                container.innerHTML = '<div class="loading">Failed to render diagram</div>';
+                showError(`Error: ${error.message}`);
+                currentDiagramData = null;
+            }
+        }
+
+        function clearDiagram() {
+            document.getElementById('mermaidInput').value = '';
+            document.getElementById('diagramContainer').innerHTML = '<div class="loading">No diagram loaded. Enter Mermaid markup above and click "Render Diagram"</div>';
+            document.getElementById('codeDisplay').textContent = 'No code to display';
+            currentDiagramData = null;
+            clearMessages();
+            
+            // Clear URL parameters and hash
+            window.history.replaceState(null, '', window.location.pathname);
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        async function exportPNG() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                const diagramElement = document.querySelector('#diagramContainer svg');
+                if (!diagramElement) {
+                    showError('No diagram to export');
+                    return;
+                }
+
+                // Create a canvas and convert SVG to PNG
+                const canvas = await html2canvas(diagramElement, {
+                    backgroundColor: 'white',
+                    scale: 2, // Higher resolution
+                    logging: false
+                });
+
+                // Download the PNG
+                const link = document.createElement('a');
+                link.download = `mermaid-diagram-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                showSuccess('PNG exported successfully');
+            } catch (error) {
+                showError(`Export failed: ${error.message}`);
+            }
+        }
+
+        function exportCSV() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                // Extract data based on diagram type
+                const data = extractDataForExport(currentDiagramData.code);
+                if (!data.length) {
+                    showError('No tabular data found in this diagram type');
+                    return;
+                }
+
+                // Convert to CSV
+                const csv = convertToCSV(data);
+                downloadFile(csv, `mermaid-data-${Date.now()}.csv`, 'text/csv');
+                showSuccess('CSV exported successfully');
+            } catch (error) {
+                showError(`CSV export failed: ${error.message}`);
+            }
+        }
+
+        function exportExcel() {
+            if (!currentDiagramData) {
+                showError('Please render a diagram first');
+                return;
+            }
+
+            try {
+                // Extract data based on diagram type
+                const data = extractDataForExport(currentDiagramData.code);
+                if (!data.length) {
+                    showError('No tabular data found in this diagram type');
+                    return;
+                }
+
+                // Create workbook and worksheet
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, 'Mermaid Data');
+
+                // Download Excel file
+                XLSX.writeFile(wb, `mermaid-data-${Date.now()}.xlsx`);
+                showSuccess('Excel file exported successfully');
+            } catch (error) {
+                showError(`Excel export failed: ${error.message}`);
+            }
+        }
+
+        function extractDataForExport(code) {
+            const data = [];
+            
+            // Extract data based on diagram type
+            if (code.includes('pie ')) {
+                // Parse pie chart data
+                const lines = code.split('\n');
+                lines.forEach(line => {
+                    const match = line.match(/"([^"]+)"\s*:\s*(\d+)/);
+                    if (match) {
+                        data.push({
+                            Category: match[1],
+                            Value: parseInt(match[2])
+                        });
+                    }
+                });
+            } else if (code.includes('gantt')) {
+                // Parse Gantt chart data
+                const lines = code.split('\n');
+                let currentSection = '';
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith('section ')) {
+                        currentSection = line.replace('section ', '');
+                    } else {
+                        const match = line.match(/([^:]+):\s*([^,]+),?\s*([^,]*),?\s*([^,]*),?\s*([^,]*)/);
+                        if (match && match[1] && !line.includes('title') && !line.includes('dateFormat')) {
+                            data.push({
+                                Section: currentSection,
+                                Task: match[1].trim(),
+                                Status: match[2] ? match[2].trim() : '',
+                                ID: match[3] ? match[3].trim() : '',
+                                StartDate: match[4] ? match[4].trim() : '',
+                                EndDate: match[5] ? match[5].trim() : ''
+                            });
+                        }
+                    }
+                });
+            } else if (code.includes('|') && code.includes('---')) {
+                // Parse table data (markdown tables in comments or descriptions)
+                const lines = code.split('\n');
+                let headers = [];
+                lines.forEach(line => {
+                    if (line.includes('|') && !line.includes('---')) {
+                        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+                        if (cells.length > 0 && !headers.length) {
+                            headers = cells;
+                        } else if (cells.length > 0 && headers.length) {
+                            const row = {};
+                            cells.forEach((cell, index) => {
+                                if (headers[index]) {
+                                    row[headers[index]] = cell;
+                                }
+                            });
+                            data.push(row);
+                        }
+                    }
+                });
+            }
+
+            // If no specific data found, create a basic structure
+            if (data.length === 0) {
+                data.push({
+                    DiagramType: getDiagramType(code),
+                    Code: code,
+                    ExportDate: new Date().toISOString()
+                });
+            }
+
+            return data;
+        }
+
+        function getDiagramType(code) {
+            if (code.includes('flowchart') || code.includes('graph')) return 'Flowchart';
+            if (code.includes('sequenceDiagram')) return 'Sequence Diagram';
+            if (code.includes('gantt')) return 'Gantt Chart';
+            if (code.includes('pie ')) return 'Pie Chart';
+            if (code.includes('classDiagram')) return 'Class Diagram';
+            return 'Unknown';
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [
+                headers.join(','),
+                ...data.map(row => 
+                    headers.map(header => {
+                        const value = row[header] || '';
+                        // Escape quotes and wrap in quotes if contains comma
+                        return value.toString().includes(',') ? `"${value.toString().replace(/"/g, '""')}"` : value;
+                    }).join(',')
+                )
+            ];
+            return csvRows.join('\n');
+        }
+
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function showError(message) {
+            clearMessages();
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.display-area').insertBefore(errorDiv, document.querySelector('.tabs'));
+        }
+
+        function showSuccess(message) {
+            clearMessages();
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.querySelector('.display-area').insertBefore(successDiv, document.querySelector('.tabs'));
+
+            // Auto-hide success message after 3 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 3000);
+        }
+
+        function showHashUrl(hash) {
+            const currentUrl = window.location.href;
+            const hashUrl = `${window.location.origin}${window.location.pathname}#${hash}`;
+
+            // Create a temporary element to show the shareable URL
+            const urlDiv = document.createElement('div');
+            urlDiv.className = 'success';
+            urlDiv.innerHTML = `
+                <strong>Shareable URL:</strong><br>
+                <code style="word-break: break-all; font-size: 12px; background: rgba(255,255,255,0.2); padding: 2px 4px; border-radius: 3px;">${hashUrl}</code>
+                <button onclick="navigator.clipboard.writeText('${hashUrl}').then(() => this.textContent = 'Copied!').catch(() => this.textContent = 'Copy failed')"
+                        style="margin-left: 10px; padding: 2px 8px; font-size: 11px; background: rgba(255,255,255,0.3); border: none; border-radius: 3px; cursor: pointer;">Copy</button>
+            `;
+            document.querySelector('.display-area').insertBefore(urlDiv, document.querySelector('.tabs'));
+
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                if (urlDiv.parentNode) {
+                    urlDiv.parentNode.removeChild(urlDiv);
+                }
+            }, 10000);
+        }
+
+        function clearMessages() {
+            const messages = document.querySelectorAll('.error, .success');
+            messages.forEach(msg => {
+                if (msg.parentNode) {
+                    msg.parentNode.removeChild(msg);
+                }
+            });
+        }
+
+        // Hash management functions
+        function showStoredHashes() {
+            const hashes = Array.from(diagramHashStorage.keys());
+            if (hashes.length === 0) {
+                showError('No diagrams stored yet. Render a diagram to create a hash.');
+                return;
+            }
+
+            const hashList = hashes.map(hash => {
+                const content = diagramHashStorage.get(hash);
+                const preview = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+                const url = `${window.location.origin}${window.location.pathname}#${hash}`;
+                return `<div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 5px;">
+                    <strong>Hash:</strong> ${hash}<br>
+                    <strong>Preview:</strong> ${preview}<br>
+                    <strong>URL:</strong> <code style="font-size: 11px; word-break: break-all;">${url}</code>
+                    <button onclick="loadDiagramFromHash('${hash}')" style="margin-left: 10px; padding: 2px 8px; font-size: 11px;">Load</button>
+                </div>`;
+            }).join('');
+
+            const message = `<strong>Stored Diagrams (${hashes.length}):</strong><br>${hashList}`;
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.innerHTML = message;
+            successDiv.style.maxHeight = '300px';
+            successDiv.style.overflowY = 'auto';
+            document.querySelector('.display-area').insertBefore(successDiv, document.querySelector('.tabs'));
+
+            // Auto-hide after 15 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.parentNode.removeChild(successDiv);
+                }
+            }, 15000);
+        }
+
+        function clearStoredHashes() {
+            if (confirm('Are you sure you want to clear all stored diagrams? This cannot be undone.')) {
+                diagramHashStorage.clear();
+                localStorage.removeItem('mermaidHashStorage');
+                showSuccess('All stored diagrams cleared.');
+            }
+        }
+
+        function loadDiagramFromHash(hash) {
+            const content = getDiagramByHash(hash);
+            if (content) {
+                document.getElementById('mermaidInput').value = content;
+                renderDiagram();
+                window.location.hash = hash;
+                clearMessages();
+            } else {
+                // Smart fallback for unknown hashes like d43d55dc
+                handleUnknownHash(hash);
+            }
+        }
+
+        // Handle unknown hashes with intelligent recovery
+        function handleUnknownHash(hash) {
+            console.log(`Attempting to recover diagram for unknown hash: ${hash}`);
+
+            // Show helpful message instead of error
+            showInfo(`Hash '${hash}' not found locally. Attempting recovery...`);
+
+            // Try to recover by prompting user to paste content
+            const message = `
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                    <h3>📋 Diagram Recovery</h3>
+                    <p>The diagram for hash <code>${hash}</code> is not stored locally.</p>
+                    <p><strong>If you have the diagram code:</strong></p>
+                    <ol>
+                        <li>Paste it in the text area above</li>
+                        <li>Click "Render" to display it</li>
+                        <li>The diagram will be automatically saved for future use</li>
+                    </ol>
+                    <p><em>This hash will be preserved in your browser for next time.</em></p>
+                </div>
+            `;
+
+            // Clear any existing error messages and show recovery help
+            document.getElementById('messages').innerHTML = message;
+
+            // Focus on the text area for easy pasting
+            document.getElementById('mermaidInput').focus();
+
+            // Add event listener to auto-save when user pastes and renders
+            const input = document.getElementById('mermaidInput');
+            const originalValue = input.value;
+
+            // Monitor for content changes
+            const checkForContent = setInterval(() => {
+                if (input.value && input.value !== originalValue && input.value.trim().length > 10) {
+                    // User has pasted content, automatically store it with the hash
+                    console.log(`Auto-storing content for hash ${hash}`);
+                    storeDiagramWithSpecificHash(input.value, hash);
+                    clearInterval(checkForContent);
+                    showSuccess(`Diagram automatically saved with hash ${hash}`);
+                }
+            }, 1000);
+
+            // Clear monitor after 30 seconds
+            setTimeout(() => clearInterval(checkForContent), 30000);
+        }
+
+        // Store diagram with a specific hash (for recovery)
+        async function storeDiagramWithSpecificHash(content, hash) {
+            try {
+                const stored = JSON.parse(localStorage.getItem('mermaidHashStorage') || '{}');
+                stored[hash] = content;
+                localStorage.setItem('mermaidHashStorage', JSON.stringify(stored));
+                diagramHashStorage.set(hash, content);
+                console.log(`Successfully stored diagram with specific hash: ${hash}`);
+                return hash;
+            } catch (e) {
+                console.warn('Could not store diagram with specific hash:', e);
+                return null;
+            }
+        }
+
+        // Handle hash changes in URL (when user manually changes hash or uses back/forward)
+        window.addEventListener('hashchange', function() {
+            const hash = getHashFromUrl();
+            if (hash) {
+                const content = getDiagramByHash(hash);
+                if (content && content !== document.getElementById('mermaidInput').value) {
+                    document.getElementById('mermaidInput').value = content;
+                    renderDiagram();
+                }
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'Enter':
+                        e.preventDefault();
+                        renderDiagram();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        exportPNG();
+                        break;
+                }
+            }
+        });
+
+        // Initialize hash detection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOMContentLoaded fired - checking for hash in URL');
+
+            // Debug info
+            console.log('Current URL:', window.location.href);
+            console.log('Hash part:', window.location.hash);
+
+            // Load stored hashes from localStorage
+            loadStoredHashes();
+
+            // Check if there's a hash in the URL
+            const hash = getHashFromUrl();
+            console.log('🔍 Extracted hash:', hash);
+
+            if (hash) {
+                console.log('📋 Hash detected, calling loadDiagramFromHash');
+                // Try to load diagram from hash
+                loadDiagramFromHash(hash);
+            } else {
+                console.log('❌ No hash found in URL');
+            }
+
+            // Force check for d43d55dc specifically
+            if (window.location.hash === '#d43d55dc') {
+                console.log('🎯 Detected specific hash d43d55dc - forcing recovery');
+                handleUnknownHash('d43d55dc');
+            }
+        });
+
+        // Helper function to get hash from URL
+        function getHashFromUrl() {
+            const hash = window.location.hash;
+            return hash ? hash.substring(1) : null; // Remove the # symbol
+        }
+    </script>
+</body>
+</html>

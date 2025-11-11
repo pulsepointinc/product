@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import requests
 import os
-from typing import Optional
+from typing import Optional, List
 import logging
+from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +33,7 @@ app.add_middleware(
 )
 
 # Security
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # Configuration
 KNOWLEDGE_LAYER_URL = os.getenv(
@@ -113,6 +114,13 @@ async def verify_google_token(credentials: HTTPAuthorizationCredentials = Depend
         )
 
 
+async def get_optional_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
+    """Return authenticated user if SSO enabled, else None"""
+    if not ENABLE_SSO or not credentials:
+        return None
+    return await verify_google_token(credentials)
+
+
 @app.get("/")
 async def root():
     """Health check endpoint"""
@@ -133,10 +141,22 @@ async def health():
     }
 
 
+class ConversationMessage(BaseModel):
+    role: Optional[str] = None
+    content: Optional[str] = None
+
+
+class AskRequest(BaseModel):
+    question: str
+    session_id: Optional[str] = None
+    conversation_history: List[ConversationMessage] = []
+    max_results: Optional[int] = 50
+
+
 @app.post("/api/chat/ask")
 async def ask_question(
-    request: dict,
-    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
+    payload: AskRequest,
+    user: dict = Depends(get_optional_user)
 ):
     """
     Forward question to Knowledge Layer v5 API
@@ -149,22 +169,16 @@ async def ask_question(
     2. Forwards request to Knowledge Layer v5 (public API)
     3. Returns response with user context for logging/tracking
     """
-    question = request.get("question")
-    if not question:
+    question = payload.question
+    if not question or not question.strip():
         raise HTTPException(status_code=400, detail="Question is required")
-    
+
     # Get user info (or use anonymous if SSO disabled)
     user_info = user if user else {"email": "anonymous@example.com", "name": "Anonymous"}
     logger.info(f"Question from {user_info.get('email', 'anonymous')}: {question}")
-    
+
     # Prepare request for Knowledge Layer v5 (public API, no auth needed)
-    knowledge_layer_request = {
-        "question": question,
-        "session_id": request.get("session_id"),
-        "conversation_history": request.get("conversation_history", []),
-        "max_results": request.get("max_results", 50)
-    }
-    
+    knowledge_layer_request = payload.model_dump(exclude_none=True)
     try:
         # Forward to Knowledge Layer v5 (public endpoint, no authentication required)
         response = requests.post(
@@ -198,7 +212,7 @@ async def ask_question(
 @app.get("/api/chat/history")
 async def get_history(
     session_id: str,
-    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
+    user: dict = Depends(get_optional_user)
 ):
     """
     Get conversation history for a session
@@ -216,7 +230,7 @@ async def get_history(
 @app.post("/api/chat/export")
 async def export_conversation(
     request: dict,
-    user: dict = Depends(verify_google_token) if ENABLE_SSO else None
+    user: dict = Depends(get_optional_user)
 ):
     """
     Export conversation as PDF or markdown

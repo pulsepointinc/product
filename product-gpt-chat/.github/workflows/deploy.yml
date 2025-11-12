@@ -39,7 +39,7 @@ jobs:
             --memory=2Gi \
             --timeout=300s \
             --max-instances=10 \
-            --set-env-vars="KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=true,FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai"
+            --set-env-vars="KNOWLEDGE_LAYER_URL=https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v5,ENABLE_SSO=true,FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai"
 
   deploy-frontend:
     runs-on: ubuntu-latest

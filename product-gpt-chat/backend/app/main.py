@@ -38,7 +38,7 @@ security = HTTPBearer(auto_error=False)
 # Configuration
 KNOWLEDGE_LAYER_URL = os.getenv(
     "KNOWLEDGE_LAYER_URL",
-    "https://knowledge-layer-v5-420423430685.us-east4.run.app"
+    "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v5"
 )
 
 # Firebase configuration for SSO

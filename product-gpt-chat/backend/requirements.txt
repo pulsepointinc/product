@@ -11,4 +11,5 @@ python-dotenv==1.0.0
 cors==1.0.0
 functions-framework==3.5.0
 mangum==0.17.0
+cachecontrol==0.13.1
 

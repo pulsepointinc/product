@@ -72,13 +72,21 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
         # Verify Firebase ID token
         from google.auth.transport import requests as google_requests
         from google.oauth2 import id_token
+        import cachecontrol
+        import requests
+        
+        # Create a new requests session with cache control to prevent certificate caching issues
+        # This fixes the "Certificate for key id ... not found" error
+        session = requests.Session()
+        cached_session = cachecontrol.CacheControl(session)
+        http_request = google_requests.Request(session=cached_session)
         
         # Firebase ID tokens are verified using verify_oauth2_token
         # The audience should be the Firebase project ID
         # Firebase tokens are issued by: https://securetoken.google.com/{project-id}
         idinfo = id_token.verify_oauth2_token(
             token, 
-            google_requests.Request(),
+            http_request,
             audience=FIREBASE_PROJECT_ID
         )
         
@@ -204,6 +212,21 @@ async def ask_question(
             )
         
         result = response.json()
+        
+        # Ensure consistent response format for frontend
+        # Frontend expects synthesis_response.response or response
+        if "synthesis_response" not in result and "response" in result:
+            # Knowledge layer returned response at top level, wrap it
+            result = {
+                "synthesis_response": {
+                    "response": result.get("response", ""),
+                    "sources": result.get("sources", []),
+                    "synthesis_method": result.get("synthesis_method", "unknown"),
+                    "model_used": result.get("synthesis_method", "unknown").replace("openai_", "").replace("gemini_", ""),
+                    "provider": "openai" if "openai" in result.get("synthesis_method", "") else "gemini" if "gemini" in result.get("synthesis_method", "") else "unknown"
+                },
+                **{k: v for k, v in result.items() if k not in ["response", "sources", "synthesis_method"]}
+            }
         
         # Add user context for logging/tracking (not sent to Knowledge Layer API)
         result["user_email"] = user_info.get("email", "anonymous")

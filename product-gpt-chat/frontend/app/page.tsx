@@ -27,6 +27,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [loadingConversation, setLoadingConversation] = useState(false);
+  const [creatingConversation, setCreatingConversation] = useState(false); // Prevent duplicate creation
   const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
 
@@ -156,8 +157,10 @@ export default function Home() {
     
     // If no conversation exists AND user is sending a message, create one
     // This ensures conversations are only created when user actually interacts
-    if (!conversationIdToUse && isAuthenticated && user?.uid && question.trim()) {
+    // Also prevent duplicate creation if one is already in progress
+    if (!conversationIdToUse && isAuthenticated && user?.uid && question.trim() && !creatingConversation) {
       console.log('🆕 No conversation ID, creating new conversation for user:', user.uid);
+      setCreatingConversation(true);
       try {
         // Create conversation synchronously to get the ID, but with timeout
         const createPromise = createConversation(user.uid);
@@ -179,15 +182,20 @@ export default function Home() {
       } catch (error) {
         console.error('❌ Error creating conversation:', error);
         conversationIdToUse = null;
+      } finally {
+        setCreatingConversation(false);
       }
     } else if (!conversationIdToUse && !question.trim()) {
       console.warn('⚠️ Cannot create conversation - empty question');
+    } else if (!conversationIdToUse && creatingConversation) {
+      console.warn('⚠️ Conversation creation already in progress, skipping');
     } else if (!conversationIdToUse) {
       console.warn('⚠️ Cannot create conversation:', { 
         hasConversationId: !!conversationIdToUse,
         isAuthenticated,
         hasUserId: !!user?.uid,
-        hasQuestion: !!question.trim()
+        hasQuestion: !!question.trim(),
+        creatingConversation
       });
     }
 

@@ -10,6 +10,7 @@ import {
   getConversationMessages,
   addMessage,
   updateConversationTitle,
+  deleteConversation,
   ChatMessage as FirestoreMessage
 } from '../lib/firestore';
 
@@ -26,27 +27,72 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [loadingConversation, setLoadingConversation] = useState(false);
-  const { user, isAuthenticated, signIn, signOut } = useGoogleAuth();
+  const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
 
-  // Create new conversation
+  // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
     if (!isAuthenticated || !user?.uid) return;
 
-    try {
-      const conversationId = await createConversation(user.uid);
-      setCurrentConversationId(conversationId);
-      setMessages([]);
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      alert('Failed to create new conversation');
+    // If current conversation is empty (no messages), just stay there - don't create a new one
+    if (messages.length === 0) {
+      console.log('Current conversation is empty, staying in place');
+      // If there's a conversation ID but no messages, delete it to prevent empty conversations
+      if (currentConversationId && !currentConversationId.startsWith('temp_')) {
+        console.log('Deleting empty conversation:', currentConversationId);
+        deleteConversation(currentConversationId).catch(err => {
+          console.error('Error deleting empty conversation:', err);
+        });
+        setCurrentConversationId(null);
+      }
+      return;
     }
-  }, [isAuthenticated, user?.uid]);
+
+    // Save current conversation messages before clearing (truly async - don't block)
+    const messagesToSave = messages;
+    const conversationIdToSave = currentConversationId;
+
+    // Clear messages and conversation ID immediately
+    setMessages([]);
+    setCurrentConversationId(null);
+
+    // Save current conversation messages before clearing (truly async - don't block)
+    if (conversationIdToSave && messagesToSave.length > 0) {
+      // Save messages in background - don't await or block UI
+      messagesToSave.forEach((msg) => {
+        addMessage(conversationIdToSave, {
+          role: msg.role,
+          content: msg.content,
+          sources: msg.sources
+        }).catch(err => {
+          console.error('Error saving message:', err);
+        });
+      });
+      
+      // Trigger sidebar refresh after saving messages
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('conversationCreated'));
+        }, 500);
+      }
+    }
+    
+    // Don't create a new conversation here - wait until user sends first message
+    // This prevents empty conversations from being created
+  }, [isAuthenticated, user?.uid, currentConversationId, messages]);
 
   // Load conversation messages
   const loadConversation = useCallback(async (conversationId: string) => {
+    // Don't reload if we're already viewing this conversation
+    if (currentConversationId === conversationId && messages.length > 0) {
+      console.log('Already viewing this conversation, skipping reload');
+      return;
+    }
+    
     setLoadingConversation(true);
     try {
+      // Clear existing messages first to prevent duplication
+      setMessages([]);
       const firestoreMessages = await getConversationMessages(conversationId);
       const formattedMessages: Message[] = firestoreMessages.map(msg => ({
         id: msg.id,
@@ -55,39 +101,45 @@ export default function Home() {
         sources: msg.sources,
         timestamp: msg.timestamp.toISOString()
       }));
-      setMessages(formattedMessages);
+      // Use functional update to ensure we're setting fresh messages
+      setMessages(() => formattedMessages);
       setCurrentConversationId(conversationId);
     } catch (error) {
       console.error('Error loading conversation:', error);
       alert('Failed to load conversation');
+      // Ensure messages are cleared even on error
+      setMessages([]);
     } finally {
       setLoadingConversation(false);
     }
-  }, []);
+  }, [currentConversationId, messages.length]);
 
-  // Initialize: Create new conversation on mount if authenticated
+  // Don't auto-create conversation on mount - only create when user sends first message
+  // This prevents creating empty conversations on refresh
+  
+  // Clear messages on mount to prevent duplication on refresh
   useEffect(() => {
-    if (isAuthenticated && user?.uid && !currentConversationId) {
-      handleNewConversation();
-    }
-  }, [isAuthenticated, user?.uid, currentConversationId, handleNewConversation]);
+    // On initial mount, ensure messages are cleared and no conversation is selected
+    // This prevents any stale state from causing issues
+    setMessages([]);
+    setCurrentConversationId(null);
+    console.log('🔄 Page mounted/refreshed - cleared conversation state');
+  }, []); // Only run on mount
 
   const handleSend = async (question: string) => {
-    if (!question.trim()) return;
-    if (SSO_ENABLED && !isAuthenticated) return;
-    if (!currentConversationId && isAuthenticated && user?.uid) {
-      // Create conversation if it doesn't exist
-      try {
-        const conversationId = await createConversation(user.uid);
-        setCurrentConversationId(conversationId);
-      } catch (error) {
-        console.error('Error creating conversation:', error);
-        alert('Failed to create conversation');
-        return;
-      }
+    console.log('📤 handleSend called with question:', question);
+    console.log('🔐 Auth state:', { SSO_ENABLED, isAuthenticated, userId: user?.uid, userEmail: user?.email });
+    
+    if (!question.trim()) {
+      console.warn('⚠️ Empty question, returning');
+      return;
+    }
+    if (SSO_ENABLED && !isAuthenticated) {
+      console.warn('⚠️ SSO enabled but not authenticated, returning');
+      return;
     }
 
-    // Add user message
+    // Add user message immediately to UI
     const userMessage: Message = {
       id: `msg_${Date.now()}`,
       role: 'user',
@@ -95,25 +147,94 @@ export default function Home() {
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, userMessage]);
+    console.log('✅ User message added to UI');
 
-    // Save to Firestore if authenticated
-    if (currentConversationId && isAuthenticated) {
+    // Ensure we have a conversation ID before proceeding
+    // Only create a conversation if user is actually sending a message (not on page load)
+    let conversationIdToUse = currentConversationId;
+    console.log('💬 Current conversation ID:', conversationIdToUse);
+    
+    // If no conversation exists AND user is sending a message, create one
+    // This ensures conversations are only created when user actually interacts
+    if (!conversationIdToUse && isAuthenticated && user?.uid && question.trim()) {
+      console.log('🆕 No conversation ID, creating new conversation for user:', user.uid);
       try {
-        await addMessage(currentConversationId, {
-          role: 'user',
-          content: question
-        });
-
-        // Update conversation title with first message if it's the first user message
-        if (messages.length === 0) {
-          const title = question.length > 50 ? question.substring(0, 50) + '...' : question;
-          await updateConversationTitle(currentConversationId, title);
+        // Create conversation synchronously to get the ID, but with timeout
+        const createPromise = createConversation(user.uid);
+        const timeoutPromise = new Promise<string>((_, reject) => 
+          setTimeout(() => reject(new Error('Conversation creation timeout')), 3000)
+        );
+        
+        conversationIdToUse = await Promise.race([createPromise, timeoutPromise]);
+        console.log('📝 Conversation creation result:', conversationIdToUse);
+        
+        // Only use if it's not a temporary ID
+        if (conversationIdToUse && !conversationIdToUse.startsWith('temp_')) {
+          setCurrentConversationId(conversationIdToUse);
+          console.log('✅ Conversation created and set:', conversationIdToUse);
+        } else {
+          console.warn('⚠️ Got temporary conversation ID, will retry later:', conversationIdToUse);
+          conversationIdToUse = null;
         }
       } catch (error) {
-        console.error('Error saving message to Firestore:', error);
-        // Continue even if Firestore save fails
+        console.error('❌ Error creating conversation:', error);
+        conversationIdToUse = null;
       }
+    } else if (!conversationIdToUse && !question.trim()) {
+      console.warn('⚠️ Cannot create conversation - empty question');
+    } else if (!conversationIdToUse) {
+      console.warn('⚠️ Cannot create conversation:', { 
+        hasConversationId: !!conversationIdToUse,
+        isAuthenticated,
+        hasUserId: !!user?.uid,
+        hasQuestion: !!question.trim()
+      });
     }
+
+    // Save user message if we have a valid conversation ID
+    if (conversationIdToUse && !conversationIdToUse.startsWith('temp_') && isAuthenticated) {
+      console.log('💾 Saving user message to conversation:', conversationIdToUse);
+      const conversationIdForCleanup = conversationIdToUse; // Store for potential cleanup
+      addMessage(conversationIdToUse, {
+        role: 'user',
+        content: question
+      }).then(() => {
+        console.log('✅ User message saved successfully');
+        
+        // Update title if this is the first message
+        if (messages.length === 0) {
+          const title = question.length > 50 ? question.substring(0, 50) + '...' : question;
+          updateConversationTitle(conversationIdToUse, title).catch(err => 
+            console.error('Error updating title:', err)
+          );
+        }
+      }).catch(err => {
+        console.error('❌ Error saving user message:', err);
+        console.error('Error details:', {
+          code: err.code,
+          message: err.message,
+          stack: err.stack
+        });
+        
+        // If message save fails and this is a newly created conversation, delete it to prevent empty conversations
+        if (conversationIdForCleanup === conversationIdToUse && messages.length === 0) {
+          console.log('🗑️ Deleting empty conversation due to failed message save');
+          deleteConversation(conversationIdForCleanup).catch(deleteErr => {
+            console.error('Error deleting empty conversation:', deleteErr);
+          });
+          setCurrentConversationId(null);
+        }
+      });
+    } else {
+      console.warn('⚠️ Skipping user message save:', {
+        hasConversationId: !!conversationIdToUse,
+        isTempId: conversationIdToUse?.startsWith('temp_'),
+        isAuthenticated
+      });
+    }
+    
+    // Create promise for assistant message saving
+    const conversationPromise: Promise<string | null> = Promise.resolve(conversationIdToUse);
 
     setLoading(true);
 
@@ -175,18 +296,42 @@ export default function Home() {
       setMessages(prev => [...prev, assistantMessage]);
 
       // Save assistant message to Firestore
-      if (currentConversationId && isAuthenticated) {
-        try {
-          await addMessage(currentConversationId, {
+      // Wait a bit for conversation to be created if needed, then save
+      const saveAssistantMessage = async () => {
+        let conversationId = conversationIdToUse;
+        
+        // If no conversation ID yet, wait for it to be created (max 3 seconds)
+        if (!conversationId && isAuthenticated && user?.uid) {
+          for (let i = 0; i < 30; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            conversationId = currentConversationId;
+            if (conversationId && !conversationId.startsWith('temp_')) {
+              break;
+            }
+          }
+        }
+        
+        if (conversationId && !conversationId.startsWith('temp_') && isAuthenticated) {
+          console.log('Saving assistant message to conversation:', conversationId);
+          addMessage(conversationId, {
             role: 'assistant',
             content: assistantMessage.content,
             sources: assistantMessage.sources
+          }).then(() => {
+            console.log('✅ Assistant message saved');
+            // Trigger sidebar refresh
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('conversationCreated'));
+            }
+          }).catch(err => {
+            console.error('❌ Error saving assistant message:', err);
           });
-        } catch (error) {
-          console.error('Error saving assistant message to Firestore:', error);
-          // Continue even if Firestore save fails
+        } else {
+          console.warn('⚠️ Skipping assistant message save - no valid conversation ID');
         }
-      }
+      };
+      
+      saveAssistantMessage();
     } catch (error: any) {
       console.error('Error:', error);
       let errorContent = 'Sorry, I encountered an error. Please try again.';
@@ -209,8 +354,20 @@ export default function Home() {
     }
   };
 
-  // Only show login screen if SSO is enabled
-  if (SSO_ENABLED && !isAuthenticated) {
+  // Show loading state while auth is initializing
+  if (SSO_ENABLED && authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show login screen if SSO is enabled AND not loading AND not authenticated
+  if (SSO_ENABLED && !isAuthenticated && !authLoading) {
     const handleSignIn = async () => {
       try {
         await signIn();
@@ -248,7 +405,7 @@ export default function Home() {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${isAuthenticated ? 'ml-64' : ''}`}>
         {/* Header */}
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
@@ -270,7 +427,7 @@ export default function Home() {
         </header>
 
         {/* Chat Messages */}
-        <main className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto px-4 py-6">
+        <main className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto px-4 py-6 pb-20">
           {loadingConversation ? (
             <div className="text-center text-gray-500 mt-12">
               <p>Loading conversation...</p>

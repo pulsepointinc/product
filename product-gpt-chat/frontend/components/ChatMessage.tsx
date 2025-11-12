@@ -18,20 +18,28 @@ interface ChatMessageProps {
 
 // Function to convert raw URLs to markdown links and make ticket IDs clickable
 function convertUrlsToMarkdown(text: string): string {
-  // First, make JIRA ticket IDs clickable (e.g., ET-19862, PROD-12345)
-  // Match ticket IDs that aren't already in links
-  const ticketIdRegex = /\b([A-Z]+-\d+)\b(?![^\[]*\]\()/g;
-  text = text.replace(ticketIdRegex, (match) => {
-    return `[${match}](https://ppinc.atlassian.net/browse/${match})`;
+  // First, clean up any malformed markdown links (e.g., URLs with markdown syntax already in them)
+  // Fix cases like: https://ppinc.atlassian.net/browse/[PROD-14177](https://ppinc.atlassian.net/browse/PROD-14177)
+  // This happens when markdown links are incorrectly embedded in URLs
+  text = text.replace(/https?:\/\/[^\s\)]*\[([A-Z]+-\d+)\]\(https?:\/\/[^\)]+\)/g, (match, ticketId) => {
+    return `https://ppinc.atlassian.net/browse/${ticketId}`;
+  });
+  
+  // Also fix cases where markdown links are embedded in URLs in different ways
+  text = text.replace(/\[([A-Z]+-\d+)\]\(https?:\/\/[^\)]+\)/g, (match, ticketId) => {
+    // If this markdown link is already inside a URL, extract just the ticket ID
+    return ticketId;
   });
   
   // Match URLs that aren't already in markdown link format
   const urlRegex = /(https?:\/\/[^\s\)]+)/g;
   
-  return text.replace(urlRegex, (url) => {
-    // Skip if already in markdown link format
-    if (text.includes(`[`) && text.includes(`](${url})`)) {
-      return url;
+  text = text.replace(urlRegex, (url) => {
+    // Skip if already in markdown link format (check if URL is part of a markdown link)
+    // Check if this URL appears after a ]( in markdown link syntax
+    const beforeUrl = text.substring(0, text.indexOf(url));
+    if (beforeUrl.includes('](') && beforeUrl.lastIndexOf('](') > beforeUrl.lastIndexOf(')')) {
+      return url; // Already part of a markdown link
     }
     
     // Extract domain or last part of URL for link text

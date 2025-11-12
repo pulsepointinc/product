@@ -1583,14 +1583,28 @@ def knowledge_orchestrator_v5():
                         # No workflow subject detected, use all tickets
                         jql_link = create_jql_link_with_issue_ids(jira_data.get('tickets', []))
                 
+                # Filter JIRA tickets BEFORE synthesis for workflow queries
+                # This ensures Gemini/OpenAI only see relevant tickets
+                filtered_jira_data = jira_data.copy()
+                if workflow_subject and jira_data.get('tickets'):
+                    filtered_tickets = [
+                        ticket for ticket in jira_data.get('tickets', [])
+                        if workflow_subject.upper() in ticket.get('summary', '').upper() or 
+                           workflow_subject.upper() in ticket.get('issue_key', '')
+                    ]
+                    filtered_jira_data['tickets'] = filtered_tickets
+                    print(f"🔍 Filtered JIRA tickets for synthesis: {len(filtered_tickets)} {workflow_subject}-related tickets out of {len(jira_data.get('tickets', []))} total")
+                else:
+                    filtered_jira_data = jira_data
+                
                 print(f"🔍 Workflow query - calling synthesis with:")
                 print(f"  - Confluence: {len(confluence_data.get('results', []))} pages")
                 print(f"  - GitHub: {len(github_data.get('repositories', []))} repos")
-                print(f"  - JIRA: {len(jira_data.get('tickets', []))} tickets")
+                print(f"  - JIRA: {len(filtered_jira_data.get('tickets', []))} tickets (filtered for {workflow_subject if workflow_subject else 'all'})")
                 print(f"  - OpenAI available: {OPENAI_AVAILABLE}")
                 
                 synthesis_result = synthesize_with_openai(
-                    question, jira_data, confluence_data, github_data, document360_data, 
+                    question, filtered_jira_data, confluence_data, github_data, document360_data, 
                     conversation_history, jql_link, gpt_context, detected_intent, model_preference
                 )
                 

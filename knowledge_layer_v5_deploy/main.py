@@ -1074,8 +1074,39 @@ def knowledge_orchestrator_v5():
             "timestamp": datetime.now().isoformat()
         }), 500
 
-# For Cloud Run, the app is already defined above
-# For Cloud Functions compatibility, export the function
+# === CLOUD FUNCTION GEN2 ENTRY POINT ===
+# This allows deployment as Cloud Function gen2 (shows as "Cloud Run functions" deployer)
+@functions_framework.http
+def knowledge_layer_v5(request):
+    """
+    Cloud Function gen2 HTTP entry point for Flask app
+    Converts Cloud Functions request to Flask request context
+    """
+    with app.test_request_context(
+        path=request.path,
+        method=request.method,
+        headers=dict(request.headers),
+        data=request.get_data(),
+        query_string=request.query_string
+    ):
+        try:
+            response = app.full_dispatch_request()
+            return (
+                response.get_data(),
+                response.status_code,
+                dict(response.headers)
+            )
+        except Exception as e:
+            import traceback
+            error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
+            print(f"❌ Error in knowledge_layer_v5: {error_msg}")
+            return (
+                json.dumps({"error": str(e), "type": type(e).__name__}),
+                500,
+                {"Content-Type": "application/json"}
+            )
+
+# For Cloud Run direct deployment (legacy - kept for compatibility)
 if __name__ == '__main__':
     # In production (Cloud Run), use gunicorn with proper timeout
     # In development, use Flask's built-in server

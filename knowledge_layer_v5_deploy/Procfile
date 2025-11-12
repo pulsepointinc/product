@@ -1,2 +1,2 @@
-web: gunicorn --config gunicorn.conf.py main:app
+web: gunicorn --timeout=120 --workers=2 --bind=0.0.0.0:${PORT:-8080} main:app
 

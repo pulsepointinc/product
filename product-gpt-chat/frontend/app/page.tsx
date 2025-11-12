@@ -49,34 +49,11 @@ export default function Home() {
       return;
     }
 
-    // Save current conversation messages before clearing (truly async - don't block)
-    const messagesToSave = messages;
-    const conversationIdToSave = currentConversationId;
-
     // Clear messages and conversation ID immediately
+    // Don't save messages here - they should already be saved when created in handleSend
+    // Saving them again would create duplicates
     setMessages([]);
     setCurrentConversationId(null);
-
-    // Save current conversation messages before clearing (truly async - don't block)
-    if (conversationIdToSave && messagesToSave.length > 0) {
-      // Save messages in background - don't await or block UI
-      messagesToSave.forEach((msg) => {
-        addMessage(conversationIdToSave, {
-          role: msg.role,
-          content: msg.content,
-          sources: msg.sources
-        }).catch(err => {
-          console.error('Error saving message:', err);
-        });
-      });
-      
-      // Trigger sidebar refresh after saving messages
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.dispatchEvent(new Event('conversationCreated'));
-        }, 500);
-      }
-    }
     
     // Don't create a new conversation here - wait until user sends first message
     // This prevents empty conversations from being created
@@ -90,11 +67,21 @@ export default function Home() {
       return;
     }
     
+    // Prevent multiple simultaneous loads
+    if (loadingConversation) {
+      console.log('Already loading a conversation, skipping');
+      return;
+    }
+    
     setLoadingConversation(true);
     try {
       // Clear existing messages first to prevent duplication
       setMessages([]);
+      setCurrentConversationId(null); // Clear ID first to prevent race conditions
+      
       const firestoreMessages = await getConversationMessages(conversationId);
+      console.log(`📥 Loaded ${firestoreMessages.length} messages from Firestore for conversation: ${conversationId}`);
+      
       const formattedMessages: Message[] = firestoreMessages.map(msg => ({
         id: msg.id,
         role: msg.role,
@@ -102,18 +89,21 @@ export default function Home() {
         sources: msg.sources,
         timestamp: msg.timestamp.toISOString()
       }));
-      // Use functional update to ensure we're setting fresh messages
+      
+      // Use functional update to ensure we're setting fresh messages (not appending)
       setMessages(() => formattedMessages);
       setCurrentConversationId(conversationId);
+      console.log(`✅ Set ${formattedMessages.length} messages in UI`);
     } catch (error) {
       console.error('Error loading conversation:', error);
       alert('Failed to load conversation');
       // Ensure messages are cleared even on error
       setMessages([]);
+      setCurrentConversationId(null);
     } finally {
       setLoadingConversation(false);
     }
-  }, [currentConversationId, messages.length]);
+  }, [currentConversationId, messages.length, loadingConversation]);
 
   // Don't auto-create conversation on mount - only create when user sends first message
   // This prevents creating empty conversations on refresh

@@ -1,8 +1,32 @@
 {
-  "Test Feature": {
-    "name": "Test Feature",
-    "source": "v2.6_test",
-    "last_updated": "2025-11-12T20:57:19.346401"
+  "[\"Omnichannel Platform - LinkedIn\"": {
+    "name": "[\"Omnichannel Platform - LinkedIn\"",
+    "source": "jira_definitions",
+    "field": "feature"
   },
-  "version": "v2.6"
+  "\"Omnichannel Platform - Reddit\"": {
+    "name": "\"Omnichannel Platform - Reddit\"",
+    "source": "jira_definitions",
+    "field": "feature"
+  },
+  "\"Omnichannel Platform - TikTok\"": {
+    "name": "\"Omnichannel Platform - TikTok\"",
+    "source": "jira_definitions",
+    "field": "feature"
+  },
+  "\"Workspace Type - Clinical Insights\"": {
+    "name": "\"Workspace Type - Clinical Insights\"",
+    "source": "jira_definitions",
+    "field": "feature"
+  },
+  "\"Workspace Type - HCP Explorer\"": {
+    "name": "\"Workspace Type - HCP Explorer\"",
+    "source": "jira_definitions",
+    "field": "feature"
+  },
+  "\"Workspace Type - HCP365\"]": {
+    "name": "\"Workspace Type - HCP365\"]",
+    "source": "jira_definitions",
+    "field": "feature"
+  }
 }

@@ -1,8 +1,82 @@
 {
-  "Test Stream": {
-    "stream": "Test Stream",
-    "lead": "v2.6 Test Lead",
-    "last_updated": "2025-11-12T20:57:19.346403"
+  "AI Foundation": {
+    "stream": "AI Foundation",
+    "lead": "Nick Plaskassovitis"
   },
-  "version": "v2.6"
+  "Analytics-Platform-and-Workspaces": {
+    "stream": "Analytics-Platform-and-Workspaces",
+    "lead": "Kaustav Basu"
+  },
+  "Audience Management": {
+    "stream": "Audience Management",
+    "lead": "Ash Cipriani"
+  },
+  "Campaign Management": {
+    "stream": "Campaign Management",
+    "lead": "Josh StewartChirag Guiliani (12/1/25)"
+  },
+  "Creatives": {
+    "stream": "Creatives",
+    "lead": "Kenan Akin"
+  },
+  "Deal Platform": {
+    "stream": "Deal Platform",
+    "lead": "Jessica Wang"
+  },
+  "Forecasting": {
+    "stream": "Forecasting",
+    "lead": "NA"
+  },
+  "Identity & Targeting": {
+    "stream": "Identity & Targeting",
+    "lead": "Roman Kuzmych"
+  },
+  "List Management": {
+    "stream": "List Management",
+    "lead": "Donovan Ly"
+  },
+  "Media Effectiveness": {
+    "stream": "Media Effectiveness",
+    "lead": "Divya Suri"
+  },
+  "Omnichannel": {
+    "stream": "Omnichannel",
+    "lead": "Donovan Ly"
+  },
+  "Optimization": {
+    "stream": "Optimization",
+    "lead": "Roman Kuzmych"
+  },
+  "Personalization": {
+    "stream": "Personalization",
+    "lead": "Donovan Ly"
+  },
+  "Planning": {
+    "stream": "Planning",
+    "lead": "NA"
+  },
+  "Platform Administration": {
+    "stream": "Platform Administration",
+    "lead": "Kenan Akin"
+  },
+  "Platform Compliance": {
+    "stream": "Platform Compliance",
+    "lead": ""
+  },
+  "Reporting": {
+    "stream": "Reporting",
+    "lead": "Divya Suri"
+  },
+  "Supply": {
+    "stream": "Supply",
+    "lead": "Jessica Wang"
+  },
+  "Tag Management": {
+    "stream": "Tag Management",
+    "lead": "Kaustav Basu"
+  },
+  "Third Party Data & Partnerships": {
+    "stream": "Third Party Data & Partnerships",
+    "lead": "Carlos Garcia"
+  }
 }

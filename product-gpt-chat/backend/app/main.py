@@ -69,26 +69,24 @@ async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depe
     token = credentials.credentials
     
     try:
-        # Verify Firebase ID token
-        from google.auth.transport import requests as google_requests
-        from google.oauth2 import id_token
-        import cachecontrol
-        import requests
+        # Verify Firebase ID token using Firebase Admin SDK (more reliable than google-auth)
+        # This avoids certificate caching issues
+        import firebase_admin
+        from firebase_admin import auth
         
-        # Create a new requests session with cache control to prevent certificate caching issues
-        # This fixes the "Certificate for key id ... not found" error
-        session = requests.Session()
-        cached_session = cachecontrol.CacheControl(session)
-        http_request = google_requests.Request(session=cached_session)
+        # Initialize Firebase Admin if not already initialized
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            # Initialize with project ID (no credentials needed for token verification)
+            firebase_admin.initialize_app(options={'projectId': FIREBASE_PROJECT_ID})
         
-        # Firebase ID tokens are verified using verify_oauth2_token
-        # The audience should be the Firebase project ID
-        # Firebase tokens are issued by: https://securetoken.google.com/{project-id}
-        idinfo = id_token.verify_oauth2_token(
-            token, 
-            http_request,
-            audience=FIREBASE_PROJECT_ID
-        )
+        # Verify the ID token using Firebase Admin SDK
+        # This handles certificate fetching and caching properly
+        decoded_token = auth.verify_id_token(token)
+        
+        # Extract user info from decoded token
+        idinfo = decoded_token
         
         # Verify the issuer is Firebase
         issuer = idinfo.get('iss', '')

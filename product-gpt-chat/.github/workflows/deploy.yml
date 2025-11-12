@@ -25,19 +25,21 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
       
-      - name: Deploy Backend to Cloud Run
+      - name: Deploy Backend as Cloud Function gen2
         run: |
           cd backend
-          gcloud run deploy product-gpt-chat-api \
-            --source . \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
+          gcloud functions deploy product-gpt-chat-api \
+            --gen2 \
+            --runtime=python312 \
+            --region=${{ env.REGION }} \
+            --source=. \
+            --entry-point=product_gpt_chat_api \
+            --trigger=http \
             --allow-unauthenticated \
-            --memory 2Gi \
-            --cpu 1 \
-            --timeout 300s \
-            --max-instances 10 \
-            --set-env-vars "KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=true,FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai"
+            --memory=2Gi \
+            --timeout=300s \
+            --max-instances=10 \
+            --set-env-vars="KNOWLEDGE_LAYER_URL=https://knowledge-layer-v5-420423430685.us-east4.run.app,ENABLE_SSO=true,FIREBASE_PROJECT_ID=pulsepoint-bitstrapped-ai"
 
   deploy-frontend:
     runs-on: ubuntu-latest

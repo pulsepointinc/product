@@ -28,6 +28,7 @@ export default function Home() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [loadingConversation, setLoadingConversation] = useState(false);
   const [creatingConversation, setCreatingConversation] = useState(false); // Prevent duplicate creation
+  const [modelPreference, setModelPreference] = useState<string>('auto'); // 'auto', 'gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001'
   const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
 
@@ -267,7 +268,8 @@ export default function Home() {
             role: m.role,
             content: m.content
           })),
-          max_results: 50
+          max_results: 50,
+          model_preference: modelPreference !== 'auto' ? modelPreference : undefined
         }),
         signal: controller.signal
       });
@@ -409,6 +411,22 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold">Product GPT Chat</h1>
             <div className="flex items-center gap-4">
+              {/* Model Selector */}
+              <div className="flex items-center gap-2">
+                <label htmlFor="model-select" className="text-sm text-gray-600">Model:</label>
+                <select
+                  id="model-select"
+                  value={modelPreference}
+                  onChange={(e) => setModelPreference(e.target.value)}
+                  className="text-sm border border-gray-300 rounded px-3 py-1.5 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={loading}
+                >
+                  <option value="auto">Auto (Recommended)</option>
+                  <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-Effective)</option>
+                  <option value="gpt-4o">GPT-4o (High Quality)</option>
+                  <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Balanced)</option>
+                </select>
+              </div>
               {SSO_ENABLED && user && (
                 <span className="text-sm text-gray-600">{user.email}</span>
               )}

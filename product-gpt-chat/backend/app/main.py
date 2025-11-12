@@ -158,6 +158,7 @@ class AskRequest(BaseModel):
     session_id: Optional[str] = None
     conversation_history: List[ConversationMessage] = []
     max_results: Optional[int] = 50
+    model_preference: Optional[str] = None  # 'gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001', or None for auto
 
 
 @app.post("/api/chat/ask")

@@ -8,6 +8,23 @@ import functions_framework
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Import Secret Manager for explicit secret access
+try:
+    from google.cloud import secretmanager
+    SECRET_MANAGER_AVAILABLE = True
+except ImportError:
+    SECRET_MANAGER_AVAILABLE = False
+    print("⚠️ Secret Manager not available - will rely on environment variables")
+
+# Import Vertex AI for Gemini 2.0 Flash support
+try:
+    import vertexai
+    from vertexai.generative_models import GenerativeModel
+    VERTEX_AI_AVAILABLE = True
+except ImportError:
+    VERTEX_AI_AVAILABLE = False
+    print("⚠️ Vertex AI not available - Gemini 2.0 Flash will not be available")
+
 # Create Flask app for Cloud Run compatibility
 app = Flask(__name__)
 CORS(app)
@@ -20,21 +37,79 @@ project_id = "pulsepoint-datahub"
 location = "us-east4"
 
 # Initialize OpenAI with proper error handling
+OPENAI_AVAILABLE = False
+OPENAI_API_KEY_CACHE = None  # Cache for runtime access
+
+def _get_openai_api_key() -> str:
+    """
+    Get OpenAI API key from multiple sources:
+    1. Environment variable (Cloud Functions gen2 secret injection)
+    2. Secret Manager (explicit fetch if env var not available)
+    3. Cached value (if already fetched)
+    """
+    global OPENAI_API_KEY_CACHE
+    
+    # Try environment variable first (Cloud Functions gen2 should inject secrets here)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        # Strip whitespace (including newlines) that might be in the secret
+        api_key = api_key.strip()
+    if api_key and api_key.startswith("sk-"):
+        print(f"✅ OpenAI API key found in environment variable (length: {len(api_key)})")
+        OPENAI_API_KEY_CACHE = api_key
+        return api_key
+    
+    # Try cached value
+    if OPENAI_API_KEY_CACHE:
+        print(f"✅ Using cached OpenAI API key")
+        return OPENAI_API_KEY_CACHE
+    
+    # Try Secret Manager as fallback
+    if SECRET_MANAGER_AVAILABLE:
+        try:
+            print("🔍 Attempting to fetch OpenAI API key from Secret Manager...")
+            client = secretmanager.SecretManagerServiceClient()
+            project_id = "pulsepoint-datahub"
+            secret_id = "openai-api-key"
+            name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+            
+            response = client.access_secret_version(request={"name": name})
+            api_key = response.payload.data.decode("UTF-8").strip()
+            
+            # Double-check strip (in case there are multiple newlines)
+            api_key = api_key.strip()
+            
+            if api_key and api_key.startswith("sk-"):
+                print(f"✅ OpenAI API key fetched from Secret Manager (length: {len(api_key)})")
+                OPENAI_API_KEY_CACHE = api_key
+                return api_key
+            else:
+                print(f"⚠️ Secret Manager returned invalid API key format")
+        except Exception as e:
+            print(f"⚠️ Failed to fetch from Secret Manager: {e}")
+            import traceback
+            print(f"⚠️ Traceback: {traceback.format_exc()}")
+    
+    return None
+
 try:
     import openai
-    # Get API key from environment variable (set in Cloud Run)
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-    if not openai.api_key:
-        print("⚠️ OPENAI_API_KEY environment variable not set")
-        OPENAI_AVAILABLE = False
-    else:
+    # Try to get API key at initialization
+    api_key = _get_openai_api_key()
+    if api_key:
+        openai.api_key = api_key
         OPENAI_AVAILABLE = True
-        print("✅ OpenAI initialized successfully with GPT-4o-mini")
+        print(f"✅ OpenAI initialized successfully (API key length: {len(api_key)})")
+    else:
+        print("⚠️ OpenAI API key not available at initialization - will try at runtime")
+        OPENAI_AVAILABLE = False
 except ImportError as e:
-    print(f"⚠️ OpenAI not available: {e}")
+    print(f"⚠️ OpenAI module not available: {e}")
     OPENAI_AVAILABLE = False
 except Exception as e:
     print(f"⚠️ OpenAI initialization error: {e}")
+    import traceback
+    print(f"⚠️ Traceback: {traceback.format_exc()}")
     OPENAI_AVAILABLE = False
 
 # API endpoints - Multi-source integration (Bryan's specified endpoints)
@@ -80,12 +155,70 @@ def generate_session_id(question: str) -> str:
     question_hash = hashlib.md5(question.encode()).hexdigest()[:8]
     return f"session_{timestamp}_{question_hash}"
 
-def intelligent_query_analysis(question: str) -> dict:
+def load_gpt_context_files() -> dict:
+    """
+    Load GPT context files from GitHub repository
+    Always called first to understand user queries and provide context
+    """
+    global GPT_CONTEXT
+    current_time = time.time()
+    
+    # Check if cache is still valid (6 hours TTL)
+    if GPT_CONTEXT.get('last_loaded', 0) + GPT_CONTEXT.get('ttl_seconds', 21600) > current_time:
+        print("✅ Using cached GPT context files")
+        return GPT_CONTEXT
+    
+    print("📥 Loading GPT context files from GitHub...")
+    try:
+        # Load all GPT context files
+        files_to_load = {
+            'acronyms': 'acronyms.json',
+            'products': 'products.json',
+            'stream_leads': 'stream_leads.json',
+            'official_sources': 'official_sources.json',
+            'workflow_instructions': 'workflow_instructions.json',
+            'jira_field_definitions': 'jira_field_definitions.json'
+        }
+        
+        loaded_files = {}
+        for key, filename in files_to_load.items():
+            try:
+                url = f"https://raw.githubusercontent.com/pulsepointinc/product/main/GPT/{filename}"
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    loaded_files[key] = response.json()
+                    print(f"✅ Loaded {filename}")
+                else:
+                    print(f"⚠️ Failed to load {filename}: HTTP {response.status_code}")
+                    loaded_files[key] = {}
+            except Exception as e:
+                print(f"⚠️ Error loading {filename}: {e}")
+                loaded_files[key] = {}
+        
+        # Update cache
+        GPT_CONTEXT.update({
+            'last_loaded': current_time,
+            'files': loaded_files
+        })
+        
+        print(f"✅ GPT context files loaded: {len([f for f in loaded_files.values() if f])} files")
+        return GPT_CONTEXT
+        
+    except Exception as e:
+        print(f"❌ Error loading GPT context files: {e}")
+        return GPT_CONTEXT
+
+def intelligent_query_analysis(question: str, gpt_context: dict = None) -> dict:
     """
     Enhanced intelligent query analysis with better keyword extraction
     Bryan's requirement: Extract meaningful keywords and detect query intent
+    Now includes GPT context for better understanding
     """
     question_lower = question.lower()
+    
+    # Load GPT context if not provided
+    if gpt_context is None:
+        gpt_context = load_gpt_context_files()
     
     # Enhanced keyword extraction - remove duplicates and punctuation
     import re
@@ -102,12 +235,33 @@ def intelligent_query_analysis(question: str) -> dict:
     # Extract meaningful keywords (remove stop words and duplicates)
     keywords = list(dict.fromkeys([word for word in words if word not in stop_words and len(word) > 1]))
     
+    # Check GPT context for acronyms/products to expand keywords
+    acronyms = gpt_context.get('files', {}).get('acronyms', {})
+    products = gpt_context.get('files', {}).get('products', {})
+    
+    # Expand keywords with known acronyms/products
+    expanded_keywords = keywords.copy()
+    for keyword in keywords:
+        # Check if keyword matches an acronym
+        for section, terms in acronyms.items():
+            if isinstance(terms, dict):
+                if keyword.upper() in terms:
+                    expanded_keywords.append(terms[keyword.upper()])
+        # Check if keyword matches a product
+        if keyword in products:
+            expanded_keywords.append(keyword)
+    
     # Limit to most relevant keywords
-    keywords = keywords[:5]
+    keywords = expanded_keywords[:5]
     
     # Detect query intent
     intent = "general"
-    if any(word in question_lower for word in ['ticket', 'tickets', 'issue', 'issues', 'story', 'stories', 'epic', 'epics', 'bug', 'bugs', 'task', 'tasks']):
+    
+    # Detect workflow questions (e.g., "tell me the workflow of PRTS", "how does X work", "explain the process")
+    workflow_keywords = ['workflow', 'work flow', 'process', 'how does', 'how do', 'explain', 'describe']
+    if any(keyword in question_lower for keyword in workflow_keywords):
+        intent = "workflow"
+    elif any(word in question_lower for word in ['ticket', 'tickets', 'issue', 'issues', 'story', 'stories', 'epic', 'epics', 'bug', 'bugs', 'task', 'tasks']):
         intent = "jira_only"
     elif any(word in question_lower for word in ['count', 'sum', 'total', 'how many', 'aggregate']):
         intent = "aggregation"
@@ -374,6 +528,7 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
     try:
         # Extract search terms from query analysis - use full query for better matching
         search_terms = question
+        question_lower = question.lower()
         
         # Check conversation history for context
         has_ao_context = False
@@ -386,17 +541,42 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
                 if 'omnichannel' in content or 'audience' in content:
                     has_omnichannel_context = True
         
-        if query_analysis and query_analysis.get('keywords'):
+        # For workflow questions, extract the main subject (e.g., "PRTS" from "workflow of PRTS")
+        if query_analysis and query_analysis.get('intent') == 'workflow':
+            # Extract the main subject - look for patterns like "workflow of X", "how does X work", etc.
+            import re
+            # Pattern: "workflow of X" or "workflow of the X"
+            match = re.search(r'workflow\s+of\s+(?:the\s+)?([A-Z]+)', question, re.IGNORECASE)
+            if match:
+                search_terms = match.group(1)  # Extract the acronym (e.g., "PRTS")
+            else:
+                # Pattern: "how does X work" or "explain X"
+                match = re.search(r'(?:how\s+does|explain|describe|tell\s+me\s+about)\s+([A-Z]+)', question, re.IGNORECASE)
+                if match:
+                    search_terms = match.group(1)
+                elif query_analysis.get('keywords'):
+                    # Use the first keyword that looks like an acronym/product name
+                    keywords = query_analysis['keywords']
+                    for kw in keywords:
+                        if len(kw) >= 2 and kw.isupper():
+                            search_terms = kw
+                            break
+                    else:
+                        # Fallback: use first keyword
+                        search_terms = keywords[0] if keywords else question
+                else:
+                    search_terms = question
+        elif query_analysis and query_analysis.get('keywords'):
             keywords = query_analysis['keywords']
             # For specific queries like "AO factors", use the full query
-            if 'ao' in question.lower() and 'factor' in question.lower():
+            if 'ao' in question_lower and 'factor' in question_lower:
                 search_terms = 'AO factors'
-            elif 'ao' in question.lower():
+            elif 'ao' in question_lower:
                 search_terms = 'AO'
-            elif 'factor' in question.lower() and has_ao_context:
+            elif 'factor' in question_lower and has_ao_context:
                 # If just "factors" but we have AO context, search for "AO factors"
                 search_terms = 'AO factors'
-            elif 'omnichannel' in question.lower() or 'audience' in question.lower():
+            elif 'omnichannel' in question_lower or 'audience' in question_lower:
                 # For omnichannel queries, search for relevant terms
                 search_terms = 'omnichannel audience OA'
             elif has_omnichannel_context:
@@ -604,23 +784,140 @@ def create_jql_link_with_issue_ids(tickets: list) -> str:
     
     return f"https://ppinc.atlassian.net/issues/?jql={encoded_jql}"
 
-def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict, github_data: dict, document360_data: dict, conversation_history: list = None, jql_link: str = None) -> dict:
+def _determine_model_for_query(question: str, query_intent: str, confluence_data: dict, github_data: dict, jira_data: dict) -> dict:
+    """
+    Determine which model to use based on query complexity
+    Hybrid approach: GPT-4o-mini for simple, Gemini 2.0 Flash for medium, GPT-4o for complex
+    Returns: {"provider": "openai"|"gemini", "model": "model_name"}
+    """
+    # Always use GPT-4o-mini for simple queries
+    simple_intents = ['jira_only', 'listing']
+    
+    # Use GPT-4o for complex queries that need better reasoning
+    complex_intents = ['workflow', 'comparison', 'aggregation']
+    
+    # Check data complexity
+    confluence_pages = len(confluence_data.get('results', []))
+    github_repos = len(github_data.get('repositories', []))
+    jira_tickets = len(jira_data.get('tickets', []))
+    
+    # Use GPT-4o if:
+    # 1. Workflow queries (need comprehensive synthesis)
+    # 2. Comparison queries (need nuanced reasoning)
+    # 3. Aggregation queries with many tickets (need accurate calculations)
+    # 4. Multiple data sources with substantial content
+    if query_intent in complex_intents:
+        if query_intent == 'workflow':
+            # Workflow queries benefit from better reasoning - use Gemini 2.0 Flash (cost-effective alternative to GPT-4o)
+            if VERTEX_AI_AVAILABLE:
+                return {"provider": "gemini", "model": "gemini-2.0-flash-001"}
+            return {"provider": "openai", "model": "gpt-4o"}
+        elif query_intent == 'comparison':
+            # Comparisons need nuanced understanding - use Gemini 2.0 Flash
+            if VERTEX_AI_AVAILABLE:
+                return {"provider": "gemini", "model": "gemini-2.0-flash-001"}
+            return {"provider": "openai", "model": "gpt-4o"}
+        elif query_intent == 'aggregation' and jira_tickets > 20:
+            # Complex aggregations with many tickets - use Gemini 2.0 Flash
+            if VERTEX_AI_AVAILABLE:
+                return {"provider": "gemini", "model": "gemini-2.0-flash-001"}
+            return {"provider": "openai", "model": "gpt-4o"}
+    
+    # Use Gemini 2.0 Flash if we have substantial content from multiple sources (middle tier)
+    if confluence_pages >= 5 and github_repos >= 3:
+        if VERTEX_AI_AVAILABLE:
+            return {"provider": "gemini", "model": "gemini-2.0-flash-001"}
+        return {"provider": "openai", "model": "gpt-4o"}
+    
+    # Default to GPT-4o-mini for cost efficiency
+    return {"provider": "openai", "model": "gpt-4o-mini"}
+
+def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict, github_data: dict, document360_data: dict, conversation_history: list = None, jql_link: str = None, gpt_context: dict = None, query_intent: str = "general", model_preference: str = None) -> dict:
     """
     Synthesize comprehensive response using OpenAI
     Bryan's requirement: Intelligent synthesis combining all data sources
+    Now includes GPT context and workflow-specific handling
     """
-    if not OPENAI_AVAILABLE:
+    print(f"🔍 synthesize_with_openai called with intent: {query_intent}")
+    print(f"🔍 OPENAI_AVAILABLE at start: {OPENAI_AVAILABLE}")
+    
+    # Get API key using comprehensive method (env var, Secret Manager, cache)
+    api_key_runtime = _get_openai_api_key()
+    
+    if not api_key_runtime:
+        print("❌ OpenAI API key not found via any method (env var, Secret Manager, cache)")
+        print(f"🔍 Environment check: OPENAI_API_KEY={'SET' if os.getenv('OPENAI_API_KEY') else 'NOT SET'}")
+        print(f"🔍 Secret Manager available: {SECRET_MANAGER_AVAILABLE}")
+        print(f"🔍 Cache check: {'SET' if OPENAI_API_KEY_CACHE else 'NOT SET'}")
         return {
             "synthesis_response": {
-                "response": "OpenAI not available for synthesis",
+                "response": "OpenAI API key not available - checked environment variable and Secret Manager",
                 "sources": [],
                 "synthesis_method": "fallback"
             }
         }
     
+    # Verify API key format
+    if not api_key_runtime.startswith("sk-"):
+        print(f"⚠️ OpenAI API key format invalid (doesn't start with sk-): {api_key_runtime[:20]}...")
+        return {
+            "synthesis_response": {
+                "response": "OpenAI API key format invalid",
+                "sources": [],
+                "synthesis_method": "fallback"
+            }
+        }
+    
+    print(f"✅ API key retrieved successfully (length: {len(api_key_runtime)}, starts with: {api_key_runtime[:7]}...)")
+    
+    # Ensure openai module is imported
+    try:
+        import openai
+    except ImportError as e:
+        print(f"❌ OpenAI module not available: {e}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
+        return {
+            "synthesis_response": {
+                "response": "OpenAI module not available",
+                "sources": [],
+                "synthesis_method": "fallback"
+            }
+        }
+    
+    # Set API key
+    try:
+        openai.api_key = api_key_runtime
+        print(f"✅ OpenAI API key set successfully")
+    except Exception as e:
+        print(f"❌ Failed to set OpenAI API key: {e}")
+        import traceback
+        print(f"❌ Traceback: {traceback.format_exc()}")
+        return {
+            "synthesis_response": {
+                "response": "Failed to set OpenAI API key",
+                "sources": [],
+                "synthesis_method": "fallback"
+            }
+        }
+    
+    # Load GPT context if not provided
+    if gpt_context is None:
+        gpt_context = load_gpt_context_files()
+    
     try:
         # Build context from all data sources - ONLY include actual data
         context_parts = []
+        
+        # Add GPT context files FIRST (for understanding acronyms, products, etc.)
+        gpt_context_str = "GPT Context Files (for reference):\n"
+        if gpt_context.get('files', {}).get('acronyms'):
+            gpt_context_str += f"- Acronyms loaded: {len(gpt_context['files']['acronyms'])} sections\n"
+        if gpt_context.get('files', {}).get('products'):
+            gpt_context_str += f"- Products loaded: {len(gpt_context['files']['products'])} products\n"
+        if gpt_context.get('files', {}).get('workflow_instructions'):
+            gpt_context_str += f"- Workflow instructions available\n"
+        context_parts.append(gpt_context_str)
         
         # Add JIRA context - ONLY if we have actual tickets
         if jira_data.get('tickets') and len(jira_data['tickets']) > 0:
@@ -675,22 +972,29 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
             context_parts.append("JIRA Data: No JIRA tickets found for this query.")
         
         # Add Confluence context - ONLY if we have actual results
+        # For workflow queries, prioritize Confluence content (include more)
+        confluence_limit = 10 if query_intent == 'workflow' else 5
+        confluence_content_limit = 2000 if query_intent == 'workflow' else 1000
+        
         if confluence_data.get('results') and len(confluence_data['results']) > 0:
-            confluence_context = "Confluence Pages with Full Content:\n"
-            for page in confluence_data['results'][:5]:  # Limit to 5 pages
+            confluence_context = "Confluence Pages with Full Content (PRIMARY SOURCE for workflow questions):\n"
+            for page in confluence_data['results'][:confluence_limit]:
                 title = page.get('title', 'No title')
                 url = page.get('confluence_url', page.get('source_url', '#'))
                 content = page.get('content', 'No content available')
                 confluence_context += f"- [{title}]({url})\n"
-                confluence_context += f"  Content: {content[:1000]}...\n\n"  # Include first 1000 chars
+                confluence_context += f"  Content: {content[:confluence_content_limit]}...\n\n"
             context_parts.append(confluence_context)
         else:
             context_parts.append("Confluence Data: No Confluence pages found for this query.")
         
         # Add GitHub context - ONLY if we have actual repositories
+        # For workflow queries, prioritize GitHub content (include more)
+        github_limit = 10 if query_intent == 'workflow' else 5
+        
         if github_data.get('repositories') and len(github_data['repositories']) > 0:
-            github_context = "GitHub Repositories with Details:\n"
-            for repo in github_data['repositories'][:5]:  # Limit to 5 repos
+            github_context = "GitHub Repositories with Details (PRIMARY SOURCE for workflow questions):\n"
+            for repo in github_data['repositories'][:github_limit]:
                 name = repo.get('repository_name', repo.get('name', 'No name'))
                 url = repo.get('github_url', repo.get('url', '#'))
                 description = repo.get('description', 'No description')
@@ -703,7 +1007,8 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
             context_parts.append("GitHub Data: No GitHub repositories found for this query.")
         
         # Add Document360 context - ONLY if we have actual articles
-        if document360_data.get('articles') and len(document360_data['articles']) > 0:
+        # Skip Document360 for workflow queries (internal processes)
+        if query_intent != 'workflow' and document360_data.get('articles') and len(document360_data['articles']) > 0:
             doc360_context = "Document360 Articles with Content:\n"
             for article in document360_data['articles'][:5]:  # Limit to 5 articles
                 title = article.get('title', 'No title')
@@ -712,11 +1017,35 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
                 doc360_context += f"- [{title}]({url})\n"
                 doc360_context += f"  Content: {content[:500]}...\n\n"  # Include first 500 chars
             context_parts.append(doc360_context)
+        elif query_intent == 'workflow':
+            context_parts.append("Document360 Data: Skipped for internal process/workflow questions (Document360 is for client-facing documentation).")
         else:
             context_parts.append("Document360 Data: No Document360 articles found for this query.")
         
         # Combine all context
         full_context = "\n\n".join(context_parts)
+        
+        # Create synthesis prompt with workflow-specific instructions
+        workflow_instructions = ""
+        if query_intent == 'workflow':
+            workflow_instructions = """
+29. FOR WORKFLOW QUESTIONS (CRITICAL):
+    - PRIORITIZE Confluence and GitHub content - these are the PRIMARY sources for workflow/process questions
+    - Use Confluence pages to explain the complete workflow, process steps, and system architecture
+    - Use GitHub repositories to explain technical implementation details, code structure, and integration points
+    - JIRA tickets should be used ONLY for context about current work/improvements, NOT as the primary source for workflow explanation
+    - Provide a COMPREHENSIVE workflow explanation including:
+      * Core Purpose: What the system/process does
+      * High-Level Flow: Step-by-step process overview
+      * Key Components: Major parts and their roles
+      * Data Flow: How data moves through the system
+      * Integration Points: How it connects with other systems
+      * Current Status: Any known issues or improvements (from JIRA if available)
+    - Structure the response with clear sections and subsections
+    - Use the GPT context files (acronyms, products) to ensure accurate terminology
+    - DO NOT just list JIRA tickets - explain the actual workflow from Confluence and GitHub
+    - If Confluence/GitHub content is available, use it as the PRIMARY source and synthesize it comprehensively
+"""
         
         # Create synthesis prompt
         synthesis_prompt = f"""
@@ -763,24 +1092,162 @@ CRITICAL INSTRUCTIONS:
 26. For JIRA sources: ONLY include the JQL link at the end as: [JIRA Epics & Tickets](JQL_LINK)
 27. IMPORTANT: The JQL link should include ALL tickets from the query, not just a subset
 28. IMPORTANT: Individual tickets should be referenced inline in the response body when relevant, not listed separately at the end
-
+{workflow_instructions}
 Respond professionally and helpfully, processing all available content to provide the most comprehensive and useful response possible.
 """
         
         # Call OpenAI API (v1.0+ compatible) with optimized parameters and timeout
         try:
-            client = openai.OpenAI(api_key=openai.api_key, timeout=30.0)  # Increased to 30 seconds
+            # Get API key using comprehensive method (should already be set above, but double-check)
+            api_key = openai.api_key or _get_openai_api_key()
+            if not api_key:
+                print("❌ OpenAI API key not found - checked all sources")
+                print(f"🔍 openai.api_key: {'SET' if openai.api_key else 'NOT SET'}")
+                print(f"🔍 _get_openai_api_key(): {'RETURNED KEY' if _get_openai_api_key() else 'RETURNED NONE'}")
+                return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
+            
+            # Ensure openai.api_key is set
+            if not openai.api_key:
+                openai.api_key = api_key
+                print(f"✅ Set openai.api_key from retrieved key")
+            
+            # Determine which model to use (hybrid approach or user preference)
+            if model_preference:
+                # User has specified a model preference
+                print(f"🎯 Using user-specified model: {model_preference}")
+                if model_preference == 'gemini-2.0-flash-001':
+                    if VERTEX_AI_AVAILABLE:
+                        provider = "gemini"
+                        selected_model = model_preference
+                    else:
+                        print("⚠️ Gemini not available, falling back to GPT-4o")
+                        provider = "openai"
+                        selected_model = "gpt-4o"
+                elif model_preference in ['gpt-4o-mini', 'gpt-4o']:
+                    provider = "openai"
+                    selected_model = model_preference
+                else:
+                    # Invalid preference, fall back to auto
+                    print(f"⚠️ Invalid model preference '{model_preference}', using auto-selection")
+                    model_selection = _determine_model_for_query(question, query_intent, confluence_data, github_data, jira_data)
+                    provider = model_selection.get("provider", "openai")
+                    selected_model = model_selection.get("model", "gpt-4o-mini")
+            else:
+                # Auto-select based on query complexity
+                model_selection = _determine_model_for_query(question, query_intent, confluence_data, github_data, jira_data)
+                provider = model_selection.get("provider", "openai")
+                selected_model = model_selection.get("model", "gpt-4o-mini")
+            
+            print(f"🔍 Using {provider} with model: {selected_model}")
+            print(f"🔍 Query intent: {query_intent}")
+            print(f"🔍 Prompt length: {len(synthesis_prompt)} characters")
+            print(f"🔍 Context parts: {len(context_parts)}")
+            print(f"🔍 Data sources: Confluence={len(confluence_data.get('results', []))}, GitHub={len(github_data.get('repositories', []))}, JIRA={len(jira_data.get('tickets', []))}")
+            
+            # Increase max_tokens for workflow questions to allow comprehensive answers
+            max_tokens = 2000 if query_intent == 'workflow' else 1000
+            
+            print(f"🔍 Requesting {max_tokens} max_tokens for {query_intent} query")
+            print(f"🔍 Using {provider} model: {selected_model} (hybrid routing)")
+            
+            if provider == "gemini":
+                # Use Gemini 2.0 Flash via Vertex AI
+                if not VERTEX_AI_AVAILABLE:
+                    print("⚠️ Vertex AI not available, falling back to OpenAI")
+                    provider = "openai"
+                    selected_model = "gpt-4o" if query_intent in ['workflow', 'comparison'] else "gpt-4o-mini"
+                else:
+                    try:
+                        # Initialize Vertex AI
+                        vertexai.init(project="pulsepoint-bitstrapped-ai", location="us-east4")
+                        model = GenerativeModel(selected_model)
+                        
+                        # Call Gemini
+                        response = model.generate_content(
+                            synthesis_prompt,
+                            generation_config={
+                                "max_output_tokens": max_tokens,
+                                "temperature": 0.5,
+                            }
+                        )
+                        
+                        synthesized_response = response.text
+                        
+                        # Track usage for cost monitoring (Gemini pricing)
+                        # Gemini 2.0 Flash: $0.075 per 1M input tokens, $0.30 per 1M output tokens
+                        input_tokens = len(synthesis_prompt.split()) * 1.3  # Rough estimate (words to tokens)
+                        output_tokens = len(synthesized_response.split()) * 1.3
+                        total_tokens = input_tokens + output_tokens
+                        
+                        print(f"✅ Gemini synthesis successful: {len(synthesized_response)} characters")
+                        print(f"📊 Estimated token usage: {int(input_tokens)} input + {int(output_tokens)} output = {int(total_tokens)} total")
+                        print(f"💰 Estimated cost: ${(input_tokens * 0.075 + output_tokens * 0.30) / 1_000_000:.6f}")
+                        
+                        synthesis_method = f"gemini_{selected_model.replace('-', '_')}"
+                        
+                        return {
+                            "synthesis_response": {
+                                "response": synthesized_response,
+                                "sources": [
+                                    "JIRA API",
+                                    "Confluence API", 
+                                    "GitHub API",
+                                    "Document360 API"
+                                ],
+                                "synthesis_method": synthesis_method,
+                                "model_used": selected_model,
+                                "provider": "gemini",
+                                "token_usage": {
+                                    "input_tokens": int(input_tokens),
+                                    "output_tokens": int(output_tokens),
+                                    "total_tokens": int(total_tokens)
+                                }
+                            }
+                        }
+                    except Exception as e:
+                        print(f"❌ Gemini API error: {e}")
+                        import traceback
+                        print(f"❌ Traceback: {traceback.format_exc()}")
+                        # Fallback to OpenAI
+                        print("⚠️ Falling back to OpenAI GPT-4o")
+                        provider = "openai"
+                        selected_model = "gpt-4o"
+            
+            # Use OpenAI (default or fallback)
+            client = openai.OpenAI(api_key=api_key, timeout=60.0)  # Increased to 60 seconds for workflow questions
+            
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model=selected_model,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant for PulsePoint employees."},
                     {"role": "user", "content": synthesis_prompt}
                 ],
-                max_tokens=1000,  # Further reduced for faster response
+                max_tokens=max_tokens,
                 temperature=0.5   # Reduced from 0.7 for more focused responses
             )
             
             synthesized_response = response.choices[0].message.content
+            
+            # Track usage for cost monitoring
+            usage = response.usage
+            input_tokens = usage.prompt_tokens if usage else 0
+            output_tokens = usage.completion_tokens if usage else 0
+            total_tokens = usage.total_tokens if usage else 0
+            
+            print(f"✅ OpenAI synthesis successful: {len(synthesized_response)} characters")
+            print(f"📊 Token usage: {input_tokens} input + {output_tokens} output = {total_tokens} total")
+            
+            # Calculate cost based on model
+            if selected_model == 'gpt-4o-mini':
+                cost = (input_tokens * 0.15 + output_tokens * 0.60) / 1_000_000
+            elif selected_model == 'gpt-4o':
+                cost = (input_tokens * 2.50 + output_tokens * 10.00) / 1_000_000
+            else:
+                cost = (input_tokens * 2.50 + output_tokens * 10.00) / 1_000_000  # Default to GPT-4o pricing
+            
+            print(f"💰 Estimated cost: ${cost:.6f}")
+            
+            synthesis_method = f"openai_{selected_model.replace('-', '_')}"
             
             return {
                 "synthesis_response": {
@@ -791,15 +1258,32 @@ Respond professionally and helpfully, processing all available content to provid
                         "GitHub API",
                         "Document360 API"
                     ],
-                    "synthesis_method": "openai_gpt4o_mini"
+                    "synthesis_method": synthesis_method,
+                    "model_used": selected_model,
+                    "provider": "openai",
+                    "token_usage": {
+                        "input_tokens": input_tokens,
+                        "output_tokens": output_tokens,
+                        "total_tokens": total_tokens
+                    }
                 }
             }
         except openai.APITimeoutError as e:
             print(f"❌ OpenAI API timeout: {e}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
             # Return a fallback response with the data we have
+            return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
+        except openai.AuthenticationError as e:
+            print(f"❌ OpenAI Authentication error: {e}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
             return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
         except Exception as e:
             print(f"❌ OpenAI API error: {e}")
+            import traceback
+            print(f"❌ Traceback: {traceback.format_exc()}")
+            print(f"❌ Error type: {type(e).__name__}")
             # Return a fallback response with the data we have
             return _generate_fallback_response(question, jira_data, confluence_data, github_data, document360_data, jql_link)
         
@@ -859,12 +1343,35 @@ def _generate_fallback_response(question: str, jira_data: dict, confluence_data:
 
 @app.route('/', methods=['GET'])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with API key status"""
+    # Check OpenAI API key status for debugging
+    api_key_status = {
+        "env_var": "SET" if os.getenv("OPENAI_API_KEY") else "NOT SET",
+        "env_var_length": len(os.getenv("OPENAI_API_KEY", "")),
+        "openai_api_key_set": "SET" if hasattr(openai, 'api_key') and openai.api_key else "NOT SET",
+        "openai_available": OPENAI_AVAILABLE,
+        "secret_manager_available": SECRET_MANAGER_AVAILABLE,
+        "cache_set": "SET" if OPENAI_API_KEY_CACHE else "NOT SET"
+    }
+    
+    # Try to get key using our function
+    try:
+        test_key = _get_openai_api_key()
+        api_key_status["_get_openai_api_key_result"] = "SUCCESS" if test_key else "FAILED"
+        api_key_status["retrieved_key_length"] = len(test_key) if test_key else 0
+        if test_key:
+            api_key_status["key_preview"] = f"{test_key[:7]}...{test_key[-4:]}" if len(test_key) > 11 else "SHORT"
+    except Exception as e:
+        api_key_status["_get_openai_api_key_error"] = str(e)
+        import traceback
+        api_key_status["_get_openai_api_key_traceback"] = traceback.format_exc()
+    
     return jsonify({
         "version": "5.0-FIXED-DATA-SOURCES",
         "message": "Knowledge Layer v5 - Fixed Data Source Integration + Intelligent Synthesis",
         "status": "healthy",
         "synthesis_type": "openai_powered_multi_source_synthesis",
+        "openai_api_key_status": api_key_status,
         "features": [
             "CRITICAL FIX: All data sources now use actual search instead of hardcoded responses",
             "CRITICAL FIX: Confluence API - POST with JSON body to /search endpoint",
@@ -878,7 +1385,8 @@ def health_check():
             "ENHANCED: Proper source attribution and clickable links",
             "ENHANCED: Session management and conversation history",
             "ENHANCED: Dynamic date detection and response optimization",
-            "ENHANCED: JQL links with actual issue IDs"
+            "ENHANCED: JQL links with actual issue IDs",
+            "ENHANCED: Hybrid model selection (GPT-4o-mini for simple, GPT-4o for complex queries)"
         ]
     })
 
@@ -892,11 +1400,30 @@ def knowledge_orchestrator_v5():
     try:
         # Handle GET request (health check + debug)
         if request.method == 'GET':
+            # Check OpenAI API key status for debugging
+            api_key_status = {
+                "env_var": "SET" if os.getenv("OPENAI_API_KEY") else "NOT SET",
+                "env_var_length": len(os.getenv("OPENAI_API_KEY", "")),
+                "openai_api_key_set": "SET" if hasattr(openai, 'api_key') and openai.api_key else "NOT SET",
+                "openai_available": OPENAI_AVAILABLE,
+                "secret_manager_available": SECRET_MANAGER_AVAILABLE,
+                "cache_set": "SET" if OPENAI_API_KEY_CACHE else "NOT SET"
+            }
+            
+            # Try to get key using our function
+            try:
+                test_key = _get_openai_api_key()
+                api_key_status["_get_openai_api_key_result"] = "SUCCESS" if test_key else "FAILED"
+                api_key_status["retrieved_key_length"] = len(test_key) if test_key else 0
+            except Exception as e:
+                api_key_status["_get_openai_api_key_error"] = str(e)
+            
             return jsonify({
                 "version": "5.0-FIXED-DATA-SOURCES",
                 "message": "Knowledge Layer v5 - Fixed Data Source Integration + Intelligent Synthesis",
                 "status": "healthy",
                 "synthesis_type": "openai_powered_multi_source_synthesis",
+                "openai_api_key_status": api_key_status,
                 "features": [
                     "CRITICAL FIX: All data sources now use actual search instead of hardcoded responses",
                     "CRITICAL FIX: Confluence API - POST with JSON body to /search endpoint",
@@ -930,10 +1457,13 @@ def knowledge_orchestrator_v5():
         session_id = request_data.get('session_id', generate_session_id(question))
         conversation_history = request_data.get('conversation_history', [])
         max_results = request_data.get('max_results', 50)
+        model_preference = request_data.get('model_preference')  # User's model preference (optional)
 
         print(f"🤖 v5 Query: {question}")
         print(f"🔄 Session ID: {session_id}")
         print(f"📜 Conversation History: {len(conversation_history)} messages")
+        if model_preference:
+            print(f"🎯 User model preference: {model_preference}")
 
         # Intelligent query analysis with enhanced keyword extraction
         query_analysis = intelligent_query_analysis(question)
@@ -941,6 +1471,9 @@ def knowledge_orchestrator_v5():
         print(f"📅 Date extracted: {query_analysis.get('jira_params', {}).get('sprint_date', 'Not found')}")
         print(f"🔍 Keywords extracted: {query_analysis.get('keywords', [])}")
 
+        # Load GPT context files FIRST (always, for all queries)
+        gpt_context = load_gpt_context_files()
+        
         # Get data sources based on query intent
         detected_intent = query_analysis.get('intent', 'general')
         print(f"🔍 Query intent: {detected_intent}")
@@ -959,6 +1492,121 @@ def knowledge_orchestrator_v5():
             confluence_data = {'results': [], 'api_success': False, 'total_sources_found': 0}
             github_data = {'repositories': [], 'api_success': False, 'total_repos_found': 0}
             document360_data = {'articles': [], 'api_success': False, 'total_articles_found': 0}
+        elif detected_intent == 'workflow':
+            print("🔍 Workflow query - prioritizing Confluence + GitHub, skipping Document360 (internal process)")
+            # For workflow questions: Prioritize Confluence + GitHub, skip Document360
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                confluence_future = executor.submit(call_confluence_api, question, query_analysis, conversation_history)
+                github_future = executor.submit(call_github_api, question, query_analysis)
+                product_mappings_future = executor.submit(get_product_mappings_from_github)
+                # Skip Document360 for workflow/internal process questions
+                document360_data = {'articles': [], 'api_success': False, 'total_articles_found': 0}
+                
+                # Get product mappings first (needed for JIRA)
+                try:
+                    product_mappings = product_mappings_future.result(timeout=10)
+                except Exception as e:
+                    print(f"⚠️ Product mappings timeout/error: {e}")
+                    product_mappings = {}
+                
+                # JIRA call for context (but not primary source for workflow questions)
+                # For workflow queries, filter JIRA tickets by the main subject (e.g., PRTS)
+                # Extract the main subject from the question to filter tickets
+                workflow_subject = None
+                import re
+                # Pattern: "workflow of X" or "workflow of the X"
+                match = re.search(r'workflow\s+of\s+(?:the\s+)?([A-Z]+)', question, re.IGNORECASE)
+                if match:
+                    workflow_subject = match.group(1)  # Extract the acronym (e.g., "PRTS")
+                else:
+                    # Pattern: "how does X work" or "explain X"
+                    match = re.search(r'(?:how\s+does|explain|describe|tell\s+me\s+about)\s+([A-Z]+)', question, re.IGNORECASE)
+                    if match:
+                        workflow_subject = match.group(1)
+                    elif query_analysis.get('keywords'):
+                        # Use the first keyword that looks like an acronym/product name
+                        keywords = query_analysis['keywords']
+                        for kw in keywords:
+                            if len(kw) >= 2 and kw.isupper():
+                                workflow_subject = kw
+                                break
+                
+                # If we found a workflow subject, add it to query_analysis for JIRA filtering
+                if workflow_subject and query_analysis:
+                    if 'jira_params' not in query_analysis:
+                        query_analysis['jira_params'] = {}
+                    # Add search terms to filter JIRA tickets by the workflow subject
+                    query_analysis['jira_params']['search_terms'] = workflow_subject
+                    query_analysis['jira_params']['summary'] = workflow_subject  # Also search in summary field
+                    print(f"🔍 Workflow query detected subject: {workflow_subject} - filtering JIRA tickets")
+                
+                jira_future = executor.submit(call_jira_v4_api, question, max_results, query_analysis, product_mappings)
+                
+                # Wait for Confluence and GitHub (primary sources)
+                try:
+                    confluence_data = confluence_future.result(timeout=15)
+                except Exception as e:
+                    print(f"⚠️ Confluence API timeout/error: {e}")
+                    confluence_data = {'results': [], 'api_success': False, 'total_sources_found': 0}
+                
+                try:
+                    github_data = github_future.result(timeout=15)
+                except Exception as e:
+                    print(f"⚠️ GitHub API timeout/error: {e}")
+                    github_data = {'repositories': [], 'api_success': False, 'total_repos_found': 0}
+                
+                # Get JIRA data (for context, but not primary)
+                try:
+                    jira_data = jira_future.result(timeout=20)
+                    print(f"✅ JIRA data retrieved: {len(jira_data.get('tickets', []))} tickets")
+                except Exception as e:
+                    print(f"⚠️ JIRA API timeout/error: {e}")
+                    jira_data = {'tickets': [], 'api_success': False, 'total_tickets_found': 0}
+                
+                # Skip to synthesis for workflow queries (already have all data)
+                # Create JQL link ONLY if we have PRTS-related tickets (filter out unrelated tickets)
+                jql_link = ''
+                if jira_data.get('tickets'):
+                    # Filter tickets to only include those related to the workflow subject
+                    if workflow_subject:
+                        filtered_tickets = [
+                            ticket for ticket in jira_data.get('tickets', [])
+                            if workflow_subject.upper() in ticket.get('summary', '').upper() or 
+                               workflow_subject.upper() in ticket.get('issue_key', '')
+                        ]
+                        if filtered_tickets:
+                            jql_link = create_jql_link_with_issue_ids(filtered_tickets)
+                            print(f"🔍 Filtered JIRA tickets: {len(filtered_tickets)} PRTS-related tickets out of {len(jira_data.get('tickets', []))} total")
+                        else:
+                            print(f"⚠️ No PRTS-related tickets found in {len(jira_data.get('tickets', []))} tickets - not creating JQL link")
+                    else:
+                        # No workflow subject detected, use all tickets
+                        jql_link = create_jql_link_with_issue_ids(jira_data.get('tickets', []))
+                
+                print(f"🔍 Workflow query - calling synthesis with:")
+                print(f"  - Confluence: {len(confluence_data.get('results', []))} pages")
+                print(f"  - GitHub: {len(github_data.get('repositories', []))} repos")
+                print(f"  - JIRA: {len(jira_data.get('tickets', []))} tickets")
+                print(f"  - OpenAI available: {OPENAI_AVAILABLE}")
+                
+                synthesis_result = synthesize_with_openai(
+                    question, jira_data, confluence_data, github_data, document360_data, 
+                    conversation_history, jql_link, gpt_context, detected_intent, model_preference
+                )
+                
+                print(f"✅ Synthesis result method: {synthesis_result.get('synthesis_response', {}).get('synthesis_method', 'unknown')}")
+                
+                return jsonify({
+                    "response": synthesis_result.get("synthesis_response", {}).get("response", "No response generated"),
+                    "sources": synthesis_result.get("synthesis_response", {}).get("sources", []),
+                    "jql_link": jql_link,
+                    "confluence_results": len(confluence_data.get('results', [])),
+                    "github_repos": len(github_data.get('repositories', [])),
+                    "jira_tickets": len(jira_data.get('tickets', [])),
+                    "document360_articles": 0,  # Skipped for workflow queries
+                    "query_intent": detected_intent,
+                    "synthesis_method": synthesis_result.get("synthesis_response", {}).get("synthesis_method", "unknown")
+                })
         else:
             print("🔍 General query - calling all data sources concurrently...")
             # Make API calls concurrently for faster response
@@ -1025,22 +1673,20 @@ def knowledge_orchestrator_v5():
         # Create JQL link with issue IDs
         jql_link = create_jql_link_with_issue_ids(tickets)
 
+        # Synthesize response with OpenAI (include GPT context and query intent)
+        synthesis_result = synthesize_with_openai(
+            question, jira_data, confluence_data, github_data, document360_data,
+            conversation_history, jql_link, gpt_context, detected_intent, model_preference
+        )
+
         # Build sources list
         sources = []
         if jql_link:
             sources.append(jql_link)
 
-        # Synthesize comprehensive response using OpenAI
-        print("🧠 Synthesizing response with OpenAI...")
-        openai_response = synthesize_with_openai(
-            question, 
-            jira_data, 
-            confluence_data, 
-            github_data, 
-            document360_data,
-            conversation_history=conversation_history,
-            jql_link=jql_link
-        )
+        # Response already synthesized above, use it
+        print("🧠 Using synthesized response...")
+        openai_response = synthesis_result
 
         # Add session management and API status to OpenAI response
         if "synthesis_response" in openai_response:

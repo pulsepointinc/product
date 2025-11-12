@@ -95,7 +95,7 @@ export default function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}>
       <div
-        className={`max-w-3xl rounded-lg p-4 relative ${
+        className={`max-w-3xl rounded-lg p-5 relative ${
           isUser
             ? 'bg-blue-600 text-white'
             : 'bg-white text-gray-800 shadow-sm border'
@@ -119,14 +119,101 @@ export default function ChatMessage({ message }: ChatMessageProps) {
           </button>
         )}
         {isUser ? (
-          <div className="whitespace-pre-wrap">{message.content}</div>
+          <div className="whitespace-pre-wrap break-words">{message.content}</div>
         ) : (
-          <div className="markdown-content">
+          <div className="markdown-content pr-8 break-words">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
+                // Headings
+                h1: ({ node, ...props }) => (
+                  <h1 className="text-2xl font-bold mt-6 mb-4 pb-2 border-b border-gray-200" {...props} />
+                ),
+                h2: ({ node, ...props }) => (
+                  <h2 className="text-xl font-bold mt-5 mb-3 pb-1 border-b border-gray-200" {...props} />
+                ),
+                h3: ({ node, ...props }) => (
+                  <h3 className="text-lg font-semibold mt-4 mb-2" {...props} />
+                ),
+                h4: ({ node, ...props }) => (
+                  <h4 className="text-base font-semibold mt-3 mb-2" {...props} />
+                ),
+                // Paragraphs
+                p: ({ node, ...props }) => (
+                  <p className="mb-4 leading-7 text-gray-800" {...props} />
+                ),
+                // Lists
+                ul: ({ node, ...props }) => (
+                  <ul className="mb-4 ml-6 list-disc space-y-2" {...props} />
+                ),
+                ol: ({ node, ...props }) => (
+                  <ol className="mb-4 ml-6 list-decimal space-y-2" {...props} />
+                ),
+                li: ({ node, ...props }) => (
+                  <li className="leading-7 text-gray-800" {...props} />
+                ),
+                // Links
                 a: ({ node, ...props }) => (
-                  <a {...props} target="_blank" rel="noopener noreferrer" />
+                  <a 
+                    {...props} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                  />
+                ),
+                // Code blocks
+                code: ({ node, inline, ...props }: any) => {
+                  if (inline) {
+                    return (
+                      <code 
+                        className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono"
+                        {...props} 
+                      />
+                    );
+                  }
+                  return (
+                    <code 
+                      className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm font-mono mb-4"
+                      {...props} 
+                    />
+                  );
+                },
+                pre: ({ node, ...props }) => (
+                  <pre className="mb-4 overflow-x-auto" {...props} />
+                ),
+                // Blockquotes
+                blockquote: ({ node, ...props }) => (
+                  <blockquote 
+                    className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-700"
+                    {...props} 
+                  />
+                ),
+                // Tables
+                table: ({ node, ...props }) => (
+                  <div className="overflow-x-auto my-4">
+                    <table className="min-w-full border-collapse border border-gray-300" {...props} />
+                  </div>
+                ),
+                thead: ({ node, ...props }) => (
+                  <thead className="bg-gray-100" {...props} />
+                ),
+                th: ({ node, ...props }) => (
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold" {...props} />
+                ),
+                td: ({ node, ...props }) => (
+                  <td className="border border-gray-300 px-4 py-2" {...props} />
+                ),
+                // Horizontal rule
+                hr: ({ node, ...props }) => (
+                  <hr className="my-6 border-gray-300" {...props} />
+                ),
+                // Strong/Bold
+                strong: ({ node, ...props }) => (
+                  <strong className="font-semibold text-gray-900" {...props} />
+                ),
+                // Emphasis/Italic
+                em: ({ node, ...props }) => (
+                  <em className="italic" {...props} />
                 ),
               }}
             >

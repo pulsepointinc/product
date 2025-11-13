@@ -5,6 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 // Firebase imports - only if SSO is enabled
 let GoogleAuthProvider: any;
 let signInWithPopup: any;
+let signInWithRedirect: any;
+let getRedirectResult: any;
 let firebaseSignOut: any;
 let onAuthStateChanged: any;
 let initializeApp: any;
@@ -18,6 +20,8 @@ const loadFirebase = async () => {
     const firebaseApp = await import('firebase/app');
     GoogleAuthProvider = firebase.GoogleAuthProvider;
     signInWithPopup = firebase.signInWithPopup;
+    signInWithRedirect = firebase.signInWithRedirect;
+    getRedirectResult = firebase.getRedirectResult;
     firebaseSignOut = firebase.signOut;
     onAuthStateChanged = firebase.onAuthStateChanged;
     initializeApp = firebaseApp.initializeApp;
@@ -76,9 +80,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Load Firebase if SSO is enabled
-    loadFirebase().then(() => {
+    loadFirebase().then(async () => {
       initFirebase();
       if (auth) {
+        // Check for redirect result first (in case user is returning from redirect)
+        try {
+          const result = await getRedirectResult(auth);
+          if (result?.user) {
+            const user = result.user;
+            // Verify domain restriction
+            if (user.email && !user.email.endsWith('@pulsepoint.com')) {
+              console.warn('Non-PulsePoint user detected, signing out');
+              await firebaseSignOut(auth);
+              setUser(null);
+              setLoading(false);
+              return;
+            }
+            setUser(user);
+            setLoading(false);
+          }
+        } catch (error: any) {
+          console.error('Error handling redirect result:', error);
+          // Continue to auth state listener even if redirect check fails
+        }
+        
         const unsubscribe = onAuthStateChanged(auth, (user: any) => {
           // Verify domain restriction on auth state change
           if (user && user.email && !user.email.endsWith('@pulsepoint.com')) {
@@ -104,14 +129,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      
-      // Double-check domain restriction (Firebase hd parameter should handle this, but verify)
-      if (user.email && !user.email.endsWith('@pulsepoint.com')) {
-        await firebaseSignOut(auth);
-        throw new Error('Only PulsePoint employees (@pulsepoint.com) can access this application.');
-      }
+      // Use redirect instead of popup to avoid Fortinet/proxy interception
+      // This will redirect the entire page to Google OAuth, then redirect back
+      await signInWithRedirect(auth, googleProvider);
+      // Note: After redirect, getRedirectResult() will be called in useEffect
+      // to handle the authentication result
     } catch (error: any) {
       console.error('Sign in error:', error);
       throw error;

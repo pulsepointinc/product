@@ -5,6 +5,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 // Firebase imports - only if SSO is enabled
 let GoogleAuthProvider: any;
 let signInWithPopup: any;
+let signInWithRedirect: any;
+let getRedirectResult: any;
 let firebaseSignOut: any;
 let onAuthStateChanged: any;
 let initializeApp: any;
@@ -18,6 +20,8 @@ const loadFirebase = async () => {
     const firebaseApp = await import('firebase/app');
     GoogleAuthProvider = firebase.GoogleAuthProvider;
     signInWithPopup = firebase.signInWithPopup;
+    signInWithRedirect = firebase.signInWithRedirect;
+    getRedirectResult = firebase.getRedirectResult;
     firebaseSignOut = firebase.signOut;
     onAuthStateChanged = firebase.onAuthStateChanged;
     initializeApp = firebaseApp.initializeApp;
@@ -81,9 +85,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Load Firebase if SSO is enabled
-    loadFirebase().then(() => {
+    loadFirebase().then(async () => {
       initFirebase();
       if (auth) {
+        // Check for redirect result first (in case user is returning from redirect)
+        try {
+          const result = await getRedirectResult(auth);
+          if (result?.user) {
+            const user = result.user;
+            // Verify domain restriction
+            if (user.email && !user.email.endsWith('@pulsepoint.com')) {
+              console.warn('Non-PulsePoint user detected, signing out');
+              await firebaseSignOut(auth);
+              setUser(null);
+              setLoading(false);
+              return;
+            }
+            setUser(user);
+            setLoading(false);
+          }
+        } catch (error: any) {
+          console.error('Error handling redirect result:', error);
+          // Continue to auth state listener even if redirect check fails
+        }
+        
         const unsubscribe = onAuthStateChanged(auth, (user: any) => {
           // Verify domain restriction on auth state change
           if (user && user.email && !user.email.endsWith('@pulsepoint.com')) {
@@ -124,8 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Google provider not initialized. Please refresh the page.');
     }
     
+    // Try popup first (works in regular browser)
     try {
-      console.log('🔐 Calling signInWithPopup...');
+      console.log('🔐 Attempting signInWithPopup...');
       const result = await signInWithPopup(auth, googleProvider);
       console.log('✅ Popup sign-in successful, result:', result);
       const user = result.user;
@@ -139,10 +165,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       console.log('✅ Sign-in complete');
+      return;
     } catch (error: any) {
+      console.warn('⚠️ Popup sign-in failed:', error.code, error.message);
+      
+      // If popup is blocked (common in incognito), fall back to redirect
+      if (
+        error.code === 'auth/popup-blocked' ||
+        error.code === 'auth/popup-closed-by-user' ||
+        error.code === 'auth/cancelled-popup-request' ||
+        error.message?.includes('popup') ||
+        error.message?.includes('blocked')
+      ) {
+        console.log('🔄 Popup blocked/failed, falling back to redirect (common in incognito mode)');
+        try {
+          // Fall back to redirect - this works better in incognito
+          await signInWithRedirect(auth, googleProvider);
+          // This will redirect the page, so this line won't execute
+          return;
+        } catch (redirectError: any) {
+          console.error('❌ Redirect also failed:', redirectError);
+          throw new Error('Both popup and redirect authentication failed. Please check your browser settings or try allowing popups for this site.');
+        }
+      }
+      
+      // For other errors, throw them as-is
       console.error('❌ Sign in error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
       throw error;
     }
   };

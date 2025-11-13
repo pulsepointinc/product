@@ -20,9 +20,9 @@ const loadFirebase = async () => {
     signInWithPopup = firebase.signInWithPopup;
     firebaseSignOut = firebase.signOut;
     onAuthStateChanged = firebase.onAuthStateChanged;
+    getAuth = firebase.getAuth;
     initializeApp = firebaseApp.initializeApp;
     getApps = firebaseApp.getApps;
-    getAuth = firebaseApp.getAuth;
   }
 };
 

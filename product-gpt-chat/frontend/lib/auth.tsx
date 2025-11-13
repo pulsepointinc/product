@@ -52,14 +52,10 @@ const initFirebase = () => {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
     
-    // Configure auth to prefer redirects over popups
-    if (auth) {
-      auth.settings.appVerificationDisabledForTesting = false;
-    }
-    
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
-      hd: 'pulsepoint.com'  // Restrict to PulsePoint domain
+      hd: 'pulsepoint.com',  // Restrict to PulsePoint domain
+      prompt: 'select_account'  // Force account selection, helps with redirect flow
     });
     
     // Add additional scopes if needed
@@ -139,13 +135,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
+      console.log('🔐 Initiating sign-in with redirect (not popup)');
+      console.log('🔐 Auth object:', auth);
+      console.log('🔐 Provider:', googleProvider);
+      
       // Use redirect instead of popup to avoid Fortinet/proxy interception
       // This will redirect the entire page to Google OAuth, then redirect back
+      // IMPORTANT: signInWithRedirect does NOT return - it redirects the page immediately
       await signInWithRedirect(auth, googleProvider);
-      // Note: After redirect, getRedirectResult() will be called in useEffect
-      // to handle the authentication result
+      
+      // This line should never execute because redirect happens immediately
+      console.warn('⚠️ signInWithRedirect returned - this should not happen');
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      
+      // If redirect fails for some reason, don't fall back to popup
+      // Instead, show an error message
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+        throw new Error('Redirect authentication failed. Please ensure popups are not blocked and try again.');
+      }
       throw error;
     }
   };

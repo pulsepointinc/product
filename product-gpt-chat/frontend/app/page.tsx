@@ -35,6 +35,11 @@ export default function Home() {
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = no access
   const [checkingAccess, setCheckingAccess] = useState(false);
+  // Email/password login state (must be at top level - React hooks rule)
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
@@ -420,11 +425,6 @@ export default function Home() {
 
   // Only show login screen if SSO is enabled AND not loading AND not authenticated
   if (SSO_ENABLED && !isAuthenticated && !authLoading) {
-    const [showEmailLogin, setShowEmailLogin] = useState(false);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loginError, setLoginError] = useState('');
-
     const handleGoogleSignIn = async () => {
       console.log('🔘 Google sign in button clicked');
       setLoginError('');

@@ -134,28 +134,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('SSO is not enabled');
       return;
     }
+    
+    // Try popup first (it was working before), fall back to redirect if blocked
     try {
-      console.log('🔐 Initiating sign-in with redirect (not popup)');
-      console.log('🔐 Auth object:', auth);
-      console.log('🔐 Provider:', googleProvider);
+      console.log('🔐 Attempting sign-in with popup (was working before)');
       
-      // Use redirect instead of popup to avoid Fortinet/proxy interception
-      // This will redirect the entire page to Google OAuth, then redirect back
-      // IMPORTANT: signInWithRedirect does NOT return - it redirects the page immediately
-      await signInWithRedirect(auth, googleProvider);
+      // Try popup first - this was working before Fortinet interception
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
       
-      // This line should never execute because redirect happens immediately
-      console.warn('⚠️ signInWithRedirect returned - this should not happen');
-    } catch (error: any) {
-      console.error('❌ Sign in error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      
-      // If redirect fails for some reason, don't fall back to popup
-      // Instead, show an error message
-      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
-        throw new Error('Redirect authentication failed. Please ensure popups are not blocked and try again.');
+      // Verify domain restriction
+      if (user.email && !user.email.endsWith('@pulsepoint.com')) {
+        await firebaseSignOut(auth);
+        throw new Error('Only PulsePoint employees (@pulsepoint.com) can access this application.');
       }
+      
+      console.log('✅ Popup sign-in successful');
+      return;
+    } catch (error: any) {
+      console.warn('⚠️ Popup sign-in failed:', error.code, error.message);
+      
+      // If popup is blocked or fails, fall back to redirect
+      if (
+        error.code === 'auth/popup-blocked' ||
+        error.code === 'auth/popup-closed-by-user' ||
+        error.code === 'auth/cancelled-popup-request' ||
+        error.message?.includes('popup')
+      ) {
+        console.log('🔄 Popup blocked/failed, falling back to redirect');
+        try {
+          // Fall back to redirect
+          await signInWithRedirect(auth, googleProvider);
+          // This will redirect the page, so this line won't execute
+          return;
+        } catch (redirectError: any) {
+          console.error('❌ Redirect also failed:', redirectError);
+          throw new Error('Both popup and redirect authentication failed. Please check your browser settings or network configuration.');
+        }
+      }
+      
+      // For other errors, throw them as-is
       throw error;
     }
   };

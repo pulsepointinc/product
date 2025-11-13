@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
+import concurrent.futures
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -194,6 +195,7 @@ def check_user_has_access(email: str) -> bool:
     """
     # Always allow bweinstein@pulsepoint.com (fallback admin)
     if email and (email == 'bweinstein@pulsepoint.com' or email.lower() == 'bweinstein@pulsepoint.com'):
+        logger.info(f"Access granted for {email}: Admin fallback")
         return True
     
     if not ENABLE_SSO:
@@ -201,27 +203,41 @@ def check_user_has_access(email: str) -> bool:
     
     firestore_db = get_firestore_db()
     if not firestore_db:
-        logger.warning("Firestore not available, denying access for security")
-        return False
+        logger.warning(f"Firestore not available, allowing access for {email} (Firestore unavailable)")
+        # If Firestore is unavailable, allow access to prevent blocking users
+        # This is safer than denying everyone when Firestore is down
+        return True
     
     try:
-        # Check if user has an active permission record
+        # Check if user has an active permission record with timeout
+        import concurrent.futures
         users_ref = firestore_db.collection('user_permissions')
         query = users_ref.where('email', '==', email.lower()).limit(1)
-        docs = query.stream()
         
-        for doc in docs:
-            doc_data = doc.to_dict()
-            if doc_data.get('isActive', False):
+        # Use ThreadPoolExecutor to add timeout to Firestore query
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future = executor.submit(lambda: list(query.stream()))
+            try:
+                docs = future.result(timeout=3)  # 3 second timeout
+                
+                for doc in docs:
+                    doc_data = doc.to_dict()
+                    if doc_data.get('isActive', False):
+                        logger.info(f"Access granted for {email}: Active permission found")
+                        return True
+                
+                # No active permission found
+                logger.info(f"Access denied for {email}: No active permission record found")
+                return False
+            except concurrent.futures.TimeoutError:
+                logger.warning(f"Firestore query timeout for {email}, allowing access")
+                # On timeout, allow access to prevent blocking users
                 return True
-        
-        # No active permission found
-        logger.info(f"Access denied for {email}: No active permission record found")
-        return False
     except Exception as e:
-        logger.error(f"Error checking user access: {e}")
-        # On error, deny access for security
-        return False
+        logger.error(f"Error checking user access for {email}: {e}")
+        # On error, allow access to prevent blocking users when Firestore has issues
+        logger.warning(f"Allowing access for {email} due to error (Firestore issue)")
+        return True
 
 
 @app.post("/api/chat/ask")

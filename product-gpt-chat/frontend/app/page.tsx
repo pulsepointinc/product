@@ -421,11 +421,20 @@ export default function Home() {
   // Only show login screen if SSO is enabled AND not loading AND not authenticated
   if (SSO_ENABLED && !isAuthenticated && !authLoading) {
     const handleSignIn = async () => {
+      console.log('🔘 Sign in button clicked');
+      console.log('🔘 SSO_ENABLED:', SSO_ENABLED);
+      console.log('🔘 isAuthenticated:', isAuthenticated);
+      console.log('🔘 authLoading:', authLoading);
+      console.log('🔘 signIn function:', signIn);
       try {
+        console.log('🔘 Calling signIn()...');
         await signIn();
+        console.log('🔘 signIn() completed');
       } catch (error: any) {
+        console.error('🔘 Sign-in error caught in handleSignIn:', error);
+        console.error('Error code:', error?.code);
+        console.error('Error message:', error?.message);
         alert(`Sign-in failed: ${error.message || error.code || 'Unknown error'}. Please check the browser console for details.`);
-        console.error('Sign-in error details:', error);
       }
     };
 

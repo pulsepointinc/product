@@ -14,7 +14,6 @@ import {
   deleteConversation,
   ChatMessage as FirestoreMessage
 } from '../lib/firestore';
-import { checkUserAccess } from '../lib/admin';
 
 interface Message {
   id: string;
@@ -34,7 +33,6 @@ export default function Home() {
   const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = no access
-  const [checkingAccess, setCheckingAccess] = useState(false);
 
   // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
@@ -414,8 +412,8 @@ export default function Home() {
     );
   }
 
-  // Show loading screen while checking auth or access
-  if (authLoading || checkingAccess || hasAccess === null) {
+  // Show loading screen while checking auth
+  if (authLoading || hasAccess === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

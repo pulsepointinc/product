@@ -188,8 +188,16 @@ export const updateUserPermission = async (
 };
 
 export const checkIsAdmin = async (email: string): Promise<boolean> => {
-  const permission = await getUserPermission(email);
-  return permission !== null && permission.isAdmin === true;
+  try {
+    const permission = await getUserPermission(email);
+    if (permission && permission.isAdmin === true) {
+      return true;
+    }
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+  }
+  // Fallback: Allow bweinstein@pulsepoint.com access until Firestore is set up
+  return email === 'bweinstein@pulsepoint.com' || email?.toLowerCase() === 'bweinstein@pulsepoint.com';
 };
 
 export const checkUserAccess = async (email: string): Promise<boolean> => {

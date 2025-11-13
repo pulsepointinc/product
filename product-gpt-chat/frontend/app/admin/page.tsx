@@ -40,8 +40,8 @@ export default function AdminPage() {
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);
-          // Fallback to hardcoded admin email for now
-          setIsAdmin(user.email === 'bweinstein@pulsepoint.com');
+          // Fallback: Allow bweinstein@pulsepoint.com access until Firestore is set up
+          setIsAdmin(user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com');
         }
       }
     };

@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 // Firebase imports - only if SSO is enabled
 let GoogleAuthProvider: any;
+let SAMLAuthProvider: any;
 let signInWithPopup: any;
 let signInWithRedirect: any;
 let getRedirectResult: any;
@@ -19,6 +20,7 @@ const loadFirebase = async () => {
     const firebase = await import('firebase/auth');
     const firebaseApp = await import('firebase/app');
     GoogleAuthProvider = firebase.GoogleAuthProvider;
+    SAMLAuthProvider = firebase.SAMLAuthProvider;
     signInWithPopup = firebase.signInWithPopup;
     signInWithRedirect = firebase.signInWithRedirect;
     getRedirectResult = firebase.getRedirectResult;
@@ -34,6 +36,11 @@ const loadFirebase = async () => {
 let app: any = null;
 let auth: any = null;
 let googleProvider: any = null;
+let samlProvider: any = null;
+
+// SAML Provider ID - set this after configuring SAML in Firebase Console
+// Format: 'saml.PROVIDER_ID' (e.g., 'saml.pulsepoint-saml')
+const SAML_PROVIDER_ID = process.env.NEXT_PUBLIC_SAML_PROVIDER_ID || null;
 
 const initFirebase = () => {
   if (typeof window === 'undefined') return;
@@ -52,6 +59,18 @@ const initFirebase = () => {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
     
+    // Initialize SAML provider if configured (preferred method to bypass Fortinet)
+    if (SAML_PROVIDER_ID && SAMLAuthProvider) {
+      try {
+        samlProvider = new SAMLAuthProvider(SAML_PROVIDER_ID);
+        console.log('✅ SAML provider initialized:', SAML_PROVIDER_ID);
+      } catch (error) {
+        console.warn('⚠️ Failed to initialize SAML provider:', error);
+        samlProvider = null;
+      }
+    }
+    
+    // Initialize Google provider as fallback
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
       hd: 'pulsepoint.com',  // Restrict to PulsePoint domain
@@ -130,14 +149,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [SSO_ENABLED]);
 
   const signIn = async () => {
-    if (!SSO_ENABLED || !auth || !googleProvider) {
+    if (!SSO_ENABLED || !auth) {
       console.warn('SSO is not enabled');
       return;
     }
     
+    // Prefer SAML authentication if configured (bypasses Fortinet interception)
+    if (samlProvider) {
+      try {
+        console.log('🔐 Attempting SAML sign-in (bypasses Fortinet)');
+        // SAML always uses redirect
+        await signInWithRedirect(auth, samlProvider);
+        // This will redirect the page, so this line won't execute
+        return;
+      } catch (error: any) {
+        console.error('❌ SAML sign-in failed:', error);
+        // Fall through to Google OAuth fallback
+      }
+    }
+    
+    // Fallback to Google OAuth if SAML not configured or failed
+    if (!googleProvider) {
+      throw new Error('No authentication provider configured');
+    }
+    
     // Try popup first (it was working before), fall back to redirect if blocked
     try {
-      console.log('🔐 Attempting sign-in with popup (was working before)');
+      console.log('🔐 Attempting Google sign-in with popup');
       
       // Try popup first - this was working before Fortinet interception
       const result = await signInWithPopup(auth, googleProvider);

@@ -4,10 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 // Firebase imports - only if SSO is enabled
 let GoogleAuthProvider: any;
-let SAMLAuthProvider: any;
 let signInWithPopup: any;
-let signInWithRedirect: any;
-let getRedirectResult: any;
 let firebaseSignOut: any;
 let onAuthStateChanged: any;
 let initializeApp: any;
@@ -20,10 +17,7 @@ const loadFirebase = async () => {
     const firebase = await import('firebase/auth');
     const firebaseApp = await import('firebase/app');
     GoogleAuthProvider = firebase.GoogleAuthProvider;
-    SAMLAuthProvider = firebase.SAMLAuthProvider;
     signInWithPopup = firebase.signInWithPopup;
-    signInWithRedirect = firebase.signInWithRedirect;
-    getRedirectResult = firebase.getRedirectResult;
     firebaseSignOut = firebase.signOut;
     onAuthStateChanged = firebase.onAuthStateChanged;
     initializeApp = firebaseApp.initializeApp;
@@ -36,11 +30,6 @@ const loadFirebase = async () => {
 let app: any = null;
 let auth: any = null;
 let googleProvider: any = null;
-let samlProvider: any = null;
-
-// SAML Provider ID - set this after configuring SAML in Firebase Console
-// Format: 'saml.PROVIDER_ID' (e.g., 'saml.pulsepoint-saml')
-const SAML_PROVIDER_ID = process.env.NEXT_PUBLIC_SAML_PROVIDER_ID || null;
 
 const initFirebase = () => {
   if (typeof window === 'undefined') return;
@@ -58,28 +47,10 @@ const initFirebase = () => {
   if (firebaseConfig.apiKey && firebaseConfig.authDomain) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
-    
-    // Initialize SAML provider if configured (preferred method to bypass Fortinet)
-    if (SAML_PROVIDER_ID && SAMLAuthProvider) {
-      try {
-        samlProvider = new SAMLAuthProvider(SAML_PROVIDER_ID);
-        console.log('✅ SAML provider initialized:', SAML_PROVIDER_ID);
-      } catch (error) {
-        console.warn('⚠️ Failed to initialize SAML provider:', error);
-        samlProvider = null;
-      }
-    }
-    
-    // Initialize Google provider as fallback
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
-      hd: 'pulsepoint.com',  // Restrict to PulsePoint domain
-      prompt: 'select_account'  // Force account selection, helps with redirect flow
+      hd: 'pulsepoint.com'  // Restrict to PulsePoint domain
     });
-    
-    // Add additional scopes if needed
-    googleProvider.addScope('profile');
-    googleProvider.addScope('email');
   }
 };
 
@@ -105,30 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Load Firebase if SSO is enabled
-    loadFirebase().then(async () => {
+    loadFirebase().then(() => {
       initFirebase();
       if (auth) {
-        // Check for redirect result first (in case user is returning from redirect)
-        try {
-          const result = await getRedirectResult(auth);
-          if (result?.user) {
-            const user = result.user;
-            // Verify domain restriction
-            if (user.email && !user.email.endsWith('@pulsepoint.com')) {
-              console.warn('Non-PulsePoint user detected, signing out');
-              await firebaseSignOut(auth);
-              setUser(null);
-              setLoading(false);
-              return;
-            }
-            setUser(user);
-            setLoading(false);
-          }
-        } catch (error: any) {
-          console.error('Error handling redirect result:', error);
-          // Continue to auth state listener even if redirect check fails
-        }
-        
         const unsubscribe = onAuthStateChanged(auth, (user: any) => {
           // Verify domain restriction on auth state change
           if (user && user.email && !user.email.endsWith('@pulsepoint.com')) {

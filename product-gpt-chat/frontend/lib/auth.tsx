@@ -51,10 +51,20 @@ const initFirebase = () => {
   if (firebaseConfig.apiKey && firebaseConfig.authDomain) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
     auth = getAuth(app);
+    
+    // Configure auth to prefer redirects over popups
+    if (auth) {
+      auth.settings.appVerificationDisabledForTesting = false;
+    }
+    
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({
       hd: 'pulsepoint.com'  // Restrict to PulsePoint domain
     });
+    
+    // Add additional scopes if needed
+    googleProvider.addScope('profile');
+    googleProvider.addScope('email');
   }
 };
 

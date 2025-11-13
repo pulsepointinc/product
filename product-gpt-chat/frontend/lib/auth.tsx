@@ -185,61 +185,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     
-    // Otherwise, try Google OAuth (may be intercepted by Fortinet)
+    // Otherwise, try Google OAuth
+    // NOTE: Due to Fortinet interception, we use redirect by default instead of popup
+    // Popup often gets intercepted and goes directly to Firebase handler, skipping Google account chooser
     if (!googleProvider) {
       console.error('❌ Google provider not initialized');
       throw new Error('Google provider not initialized. Please refresh the page.');
     }
     
-    // Try popup first (works in regular browser)
+    // Use redirect by default (works better with Fortinet)
+    // Redirect goes through Google's account chooser properly
+    console.log('🔄 Using redirect authentication (works better with Fortinet)...');
     try {
-      console.log('🔐 Attempting Google signInWithPopup...');
-      const result = await signInWithPopup(auth, googleProvider);
-      console.log('✅ Popup sign-in successful, result:', result);
-      const user = result.user;
-      console.log('👤 User:', user.email);
-      
-      // Double-check domain restriction (Firebase hd parameter should handle this, but verify)
-      if (user.email && !user.email.endsWith('@pulsepoint.com')) {
-        console.warn('⚠️ Non-PulsePoint user detected, signing out');
-        await firebaseSignOut(auth);
-        throw new Error('Only PulsePoint employees (@pulsepoint.com) can access this application.');
-      }
-      
-      console.log('✅ Sign-in complete');
+      await signInWithRedirect(auth, googleProvider);
+      // This will redirect the page, so this line won't execute
+      console.log('🔄 Redirect initiated (page will redirect to Google account chooser)');
       return;
-    } catch (error: any) {
-      console.warn('⚠️ Popup sign-in failed:', error.code, error.message);
+    } catch (redirectError: any) {
+      console.error('❌ Redirect failed:', redirectError);
+      console.error('Redirect error details:', redirectError.code, redirectError.message);
       
-      // If popup is blocked or fails, fall back to redirect
-      // This handles cases where Fortinet intercepts popups
-      if (
-        error.code === 'auth/popup-blocked' ||
-        error.code === 'auth/popup-closed-by-user' ||
-        error.code === 'auth/cancelled-popup-request' ||
-        error.code === 'auth/popup-closed-by-user' ||
-        error.message?.includes('popup') ||
-        error.message?.includes('blocked') ||
-        error.message?.includes('Cross-Origin')
-      ) {
-        console.log('🔄 Popup blocked/failed, falling back to redirect');
-        console.log('🔄 Redirecting to Google OAuth...');
-        try {
-          // Fall back to redirect - this works better when popups are blocked
-          await signInWithRedirect(auth, googleProvider);
-          // This will redirect the page, so this line won't execute
-          console.log('🔄 Redirect initiated (page will redirect)');
-          return;
-        } catch (redirectError: any) {
-          console.error('❌ Redirect also failed:', redirectError);
-          console.error('Redirect error details:', redirectError.code, redirectError.message);
-          throw new Error(`Redirect authentication failed: ${redirectError.message || redirectError.code || 'Unknown error'}. Please try again or use email/password login.`);
+      // If redirect fails, try popup as fallback
+      console.log('🔄 Redirect failed, trying popup as fallback...');
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        console.log('✅ Popup sign-in successful, result:', result);
+        const user = result.user;
+        console.log('👤 User:', user.email);
+        
+        // Double-check domain restriction
+        if (user.email && !user.email.endsWith('@pulsepoint.com')) {
+          console.warn('⚠️ Non-PulsePoint user detected, signing out');
+          await firebaseSignOut(auth);
+          throw new Error('Only PulsePoint employees (@pulsepoint.com) can access this application.');
         }
+        
+        console.log('✅ Sign-in complete');
+        return;
+      } catch (popupError: any) {
+        console.error('❌ Popup also failed:', popupError);
+        throw new Error(`Authentication failed. Redirect error: ${redirectError.message || redirectError.code || 'Unknown'}. Popup error: ${popupError.message || popupError.code || 'Unknown'}. Please try email/password login.`);
       }
-      
-      // For other errors, throw them as-is
-      console.error('❌ Sign in error:', error);
-      throw error;
     }
   };
 

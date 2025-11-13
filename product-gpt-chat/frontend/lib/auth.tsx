@@ -94,12 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (auth) {
         // Check for redirect result first (in case user is returning from redirect)
         try {
+          console.log('🔍 Checking for redirect result...');
           const result = await getRedirectResult(auth);
+          console.log('🔍 Redirect result:', result ? 'Found' : 'None');
+          
           if (result?.user) {
             const user = result.user;
+            console.log('✅ Redirect authentication successful:', user.email);
+            
             // Verify domain restriction
             if (user.email && !user.email.endsWith('@pulsepoint.com')) {
-              console.warn('Non-PulsePoint user detected, signing out');
+              console.warn('⚠️ Non-PulsePoint user detected, signing out');
               await firebaseSignOut(auth);
               setUser(null);
               setLoading(false);
@@ -107,16 +112,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
             setUser(user);
             setLoading(false);
+            return; // Don't set up auth state listener if we already have a user from redirect
+          } else if (result?.error) {
+            console.error('❌ Redirect authentication error:', result.error);
+            // Continue to auth state listener to check current auth state
           }
         } catch (error: any) {
-          console.error('Error handling redirect result:', error);
+          console.error('❌ Error handling redirect result:', error);
+          console.error('Error details:', error.code, error.message);
           // Continue to auth state listener even if redirect check fails
         }
         
+        // Set up auth state listener for normal authentication flow
+        console.log('👂 Setting up auth state listener...');
         const unsubscribe = onAuthStateChanged(auth, (user: any) => {
+          console.log('👂 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+          
           // Verify domain restriction on auth state change
           if (user && user.email && !user.email.endsWith('@pulsepoint.com')) {
-            console.warn('Non-PulsePoint user detected, signing out');
+            console.warn('⚠️ Non-PulsePoint user detected, signing out');
             firebaseSignOut(auth);
             setUser(null);
             setLoading(false);
@@ -127,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return () => unsubscribe();
       } else {
+        console.warn('⚠️ Auth not initialized');
         setLoading(false);
       }
     });
@@ -196,23 +211,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       console.warn('⚠️ Popup sign-in failed:', error.code, error.message);
       
-      // If popup is blocked (common in incognito), fall back to redirect
+      // If popup is blocked or fails, fall back to redirect
+      // This handles cases where Fortinet intercepts popups
       if (
         error.code === 'auth/popup-blocked' ||
         error.code === 'auth/popup-closed-by-user' ||
         error.code === 'auth/cancelled-popup-request' ||
+        error.code === 'auth/popup-closed-by-user' ||
         error.message?.includes('popup') ||
-        error.message?.includes('blocked')
+        error.message?.includes('blocked') ||
+        error.message?.includes('Cross-Origin')
       ) {
-        console.log('🔄 Popup blocked/failed, falling back to redirect (common in incognito mode)');
+        console.log('🔄 Popup blocked/failed, falling back to redirect');
+        console.log('🔄 Redirecting to Google OAuth...');
         try {
-          // Fall back to redirect - this works better in incognito
+          // Fall back to redirect - this works better when popups are blocked
           await signInWithRedirect(auth, googleProvider);
           // This will redirect the page, so this line won't execute
+          console.log('🔄 Redirect initiated (page will redirect)');
           return;
         } catch (redirectError: any) {
           console.error('❌ Redirect also failed:', redirectError);
-          throw new Error('Both popup and redirect authentication failed. Please check your browser settings or try allowing popups for this site.');
+          console.error('Redirect error details:', redirectError.code, redirectError.message);
+          throw new Error(`Redirect authentication failed: ${redirectError.message || redirectError.code || 'Unknown error'}. Please try again or use email/password login.`);
         }
       }
       

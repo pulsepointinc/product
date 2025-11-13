@@ -130,12 +130,9 @@ export default function AdminPage() {
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-semibold text-gray-900">
-              Studio
+            <Link href="/" className="flex items-center justify-center w-12 h-12 rounded-full" style={{ backgroundColor: PURPLE_PRIMARY }}>
+              <span className="text-white text-sm font-bold">PP GPT</span>
             </Link>
-            <div className="flex items-center justify-center w-12 h-12 rounded-full" style={{ backgroundColor: PURPLE_PRIMARY }}>
-              <span className="text-white text-xl font-bold">P</span>
-            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">

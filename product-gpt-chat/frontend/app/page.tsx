@@ -409,10 +409,14 @@ export default function Home() {
 
       {/* Main Content */}
       <div className={`flex-1 flex flex-col ${isAuthenticated ? 'ml-64' : ''}`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Product GPT Chat</h1>
+        {/* Header matching Genome Studio style */}
+        <header className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-full mx-auto px-6 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full" style={{ backgroundColor: '#6B46C1' }}>
+                <span className="text-white text-xs font-bold">PP GPT</span>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               {/* Admin Link */}
               {isAdmin && (
@@ -430,7 +434,7 @@ export default function Home() {
                   id="model-select"
                   value={modelPreference}
                   onChange={(e) => setModelPreference(e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-3 py-1.5 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="text-sm border border-gray-300 rounded px-3 py-1.5 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   disabled={loading}
                 >
                   <option value="auto">Auto (Recommended)</option>
@@ -440,12 +444,19 @@ export default function Home() {
                 </select>
               </div>
               {SSO_ENABLED && user && (
-                <span className="text-sm text-gray-600">{user.email}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-gray-700">{user.email?.split('@')[0]}</span>
+                </div>
               )}
               {SSO_ENABLED && (
                 <button
                   onClick={signOut}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-sm text-gray-600 hover:text-gray-900"
                 >
                   Sign out
                 </button>
@@ -455,7 +466,7 @@ export default function Home() {
         </header>
 
         {/* Chat Messages */}
-        <main className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto px-4 py-6 pb-20">
+        <main className="flex-1 overflow-y-auto max-w-4xl w-full mx-auto px-6 py-6 pb-20 bg-gray-50">
           {loadingConversation ? (
             <div className="text-center text-gray-500 mt-12">
               <p>Loading conversation...</p>
@@ -463,9 +474,9 @@ export default function Home() {
           ) : (
             <div className="space-y-4">
               {messages.length === 0 && (
-                <div className="text-center text-gray-500 mt-12">
-                  <p className="text-lg mb-2">Welcome to Product GPT Chat!</p>
-                  <p>Ask me anything about PulsePoint products, roadmaps, or documentation.</p>
+                <div className="text-center text-gray-600 mt-12">
+                  <p className="text-xl font-semibold mb-2">Welcome to PP GPT</p>
+                  <p className="text-sm">Ask me anything about PulsePoint products, roadmaps, or documentation.</p>
                 </div>
               )}
               {messages.map((message) => (
@@ -487,8 +498,8 @@ export default function Home() {
         </main>
 
         {/* Chat Input */}
-        <footer className="bg-white border-t">
-          <div className="max-w-4xl mx-auto px-4 py-4">
+        <footer className="bg-white border-t border-gray-200">
+          <div className="max-w-4xl mx-auto px-6 py-4">
             <ChatInput onSend={handleSend} disabled={loading || loadingConversation} />
           </div>
         </footer>

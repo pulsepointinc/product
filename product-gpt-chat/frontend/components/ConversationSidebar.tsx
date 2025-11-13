@@ -212,12 +212,17 @@ export default function ConversationSidebar({
 
   const conversationsWithMessages = conversations.filter(c => c.messageCount > 0);
 
+  const PURPLE_PRIMARY = '#6B46C1';
+
   return (
-    <div className="w-64 bg-gray-900 text-white flex flex-col h-screen fixed left-0 top-0 bottom-0">
-      <div className="p-4 border-b border-gray-700 flex-shrink-0 space-y-2">
+    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen fixed left-0 top-0 bottom-0 shadow-sm">
+      <div className="p-4 border-b border-gray-200 flex-shrink-0 space-y-2">
         <button
           onClick={onNewConversation}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="w-full text-white px-4 py-2 rounded-lg text-sm font-medium"
+          style={{ backgroundColor: PURPLE_PRIMARY }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5B21B6'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = PURPLE_PRIMARY}
         >
           + New Chat
         </button>
@@ -230,7 +235,7 @@ export default function ConversationSidebar({
                   setSelectedIds(new Set());
                 }
               }}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-3 py-1.5 rounded text-xs"
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded text-xs font-medium"
             >
               {isBulkMode ? 'Cancel' : 'Select'}
             </button>
@@ -239,14 +244,14 @@ export default function ConversationSidebar({
                 <button
                   onClick={handleBulkDelete}
                   disabled={selectedIds.size === 0 || bulkDeleting}
-                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs"
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs font-medium"
                 >
                   {bulkDeleting ? 'Deleting...' : `Delete (${selectedIds.size})`}
                 </button>
                 <button
                   onClick={handleDeleteAll}
                   disabled={bulkDeleting}
-                  className="flex-1 bg-red-700 hover:bg-red-800 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs"
+                  className="flex-1 bg-red-700 hover:bg-red-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded text-xs font-medium"
                   title="Delete all conversations"
                 >
                   Delete All
@@ -259,23 +264,23 @@ export default function ConversationSidebar({
       
       <div className="flex-1 overflow-y-auto p-2 min-h-0">
         {loading ? (
-          <div className="text-gray-400 text-sm text-center py-4">Loading...</div>
+          <div className="text-gray-500 text-sm text-center py-4">Loading...</div>
         ) : conversations.length === 0 ? (
-          <div className="text-gray-400 text-sm text-center py-4">
+          <div className="text-gray-500 text-sm text-center py-4">
             No conversations yet
           </div>
         ) : (
           <div className="space-y-1">
             {isBulkMode && conversationsWithMessages.length > 0 && (
-              <div className="p-2 border-b border-gray-700">
+              <div className="p-2 border-b border-gray-200 bg-gray-50">
                 <label className="flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     checked={selectedIds.size === conversationsWithMessages.length}
                     onChange={toggleSelectAll}
-                    className="mr-2"
+                    className="mr-2 text-purple-600 focus:ring-purple-500"
                   />
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-600">
                     Select All ({selectedIds.size}/{conversationsWithMessages.length})
                   </span>
                 </label>
@@ -294,9 +299,10 @@ export default function ConversationSidebar({
                     onSelectConversation(conversation.id);
                   }
                 }}
-                className={`group flex items-center justify-between p-3 rounded-lg cursor-pointer hover:bg-gray-800 ${
-                  currentConversationId === conversation.id ? 'bg-gray-800' : ''
-                } ${isBulkMode && selectedIds.has(conversation.id) ? 'bg-blue-900' : ''}`}
+                className={`group flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 ${
+                  currentConversationId === conversation.id ? 'bg-purple-50 border-l-4' : ''
+                } ${isBulkMode && selectedIds.has(conversation.id) ? 'bg-purple-100' : ''}`}
+                style={currentConversationId === conversation.id ? { borderLeftColor: PURPLE_PRIMARY } : {}}
               >
                 {isBulkMode && (
                   <input
@@ -304,14 +310,14 @@ export default function ConversationSidebar({
                     checked={selectedIds.has(conversation.id)}
                     onChange={() => toggleSelect(conversation.id)}
                     onClick={(e) => e.stopPropagation()}
-                    className="mr-2"
+                    className="mr-2 text-purple-600 focus:ring-purple-500"
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
+                  <div className="text-sm font-medium truncate text-gray-900">
                     {conversation.title}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="text-xs text-gray-500 mt-1">
                     {conversation.messageCount} messages
                   </div>
                 </div>
@@ -319,7 +325,7 @@ export default function ConversationSidebar({
                   <button
                     onClick={(e) => handleDelete(e, conversation.id)}
                     disabled={deletingId === conversation.id}
-                    className="opacity-0 group-hover:opacity-100 ml-2 text-gray-400 hover:text-red-400 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 ml-2 text-gray-400 hover:text-red-600 transition-opacity"
                     title="Delete conversation"
                   >
                     {deletingId === conversation.id ? (

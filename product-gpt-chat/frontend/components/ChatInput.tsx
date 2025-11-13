@@ -26,12 +26,26 @@ export default function ChatInput({ onSend, disabled }: ChatInputProps) {
         onChange={(e) => setInput(e.target.value)}
         placeholder="Ask a question about PulsePoint products, roadmaps, or documentation..."
         disabled={disabled}
-        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100 text-sm"
       />
       <button
         type="submit"
         disabled={disabled || !input.trim()}
-        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        className="px-6 py-3 text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+        style={{ 
+          backgroundColor: disabled || !input.trim() ? undefined : '#6B46C1',
+          ...(disabled || !input.trim() ? {} : { ':hover': { backgroundColor: '#5B21B6' } })
+        }}
+        onMouseEnter={(e) => {
+          if (!disabled && input.trim()) {
+            e.currentTarget.style.backgroundColor = '#5B21B6';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!disabled && input.trim()) {
+            e.currentTarget.style.backgroundColor = '#6B46C1';
+          }
+        }}
       >
         Send
       </button>

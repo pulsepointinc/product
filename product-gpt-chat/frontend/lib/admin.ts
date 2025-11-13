@@ -11,41 +11,7 @@ import {
   updateDoc, 
   Timestamp
 } from 'firebase/firestore';
-import { getApps } from 'firebase/app';
-// Re-export initFirestore from firestore.ts
-const initFirestore = () => {
-  if (typeof window === 'undefined') {
-    console.warn('⚠️ initFirestore: window is undefined (server-side)');
-    return null;
-  }
-  
-  try {
-    const { getFirestore } = require('firebase/firestore');
-    const { getApps, initializeApp } = require('firebase/app');
-    
-    const firebaseConfig = {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs",
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "pulsepoint-bitstrapped-ai.firebaseapp.com",
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "pulsepoint-bitstrapped-ai",
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "pulsepoint-bitstrapped-ai.firebasestorage.app",
-      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "505719121244",
-      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:505719121244:web:85409d7987746786740d99"
-    };
-
-    const apps = getApps();
-    let app;
-    if (apps.length === 0) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = apps[0];
-    }
-    
-    return getFirestore(app);
-  } catch (error) {
-    console.error('Error initializing Firestore:', error);
-    return null;
-  }
-};
+import { getApps, initializeApp, getApp } from 'firebase/app';
 
 export interface UserPermission {
   id: string;
@@ -83,19 +49,48 @@ export interface UsageRecord {
 let db: any = null;
 
 const getDb = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   if (!db) {
-    db = initFirestore();
+    try {
+      const firebaseConfig = {
+        apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyB5g8EI16p2waqesbR0JvBymbNBhg5t6Rs",
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "pulsepoint-bitstrapped-ai.firebaseapp.com",
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "pulsepoint-bitstrapped-ai",
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "pulsepoint-bitstrapped-ai.firebasestorage.app",
+        messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "505719121244",
+        appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:505719121244:web:85409d7987746786740d99"
+      };
+
+      const apps = getApps();
+      let app;
+      if (apps.length === 0) {
+        app = initializeApp(firebaseConfig);
+      } else {
+        app = getApp();
+      }
+      
+      db = getFirestore(app);
+    } catch (error) {
+      console.error('Error initializing Firestore:', error);
+      return null;
+    }
   }
   return db;
 };
 
 // User Permissions Functions
 export const getUserPermissions = async (): Promise<UserPermission[]> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
   const q = query(
-    collection(db, 'user_permissions'),
+    collection(firestoreDb, 'user_permissions'),
     orderBy('createdAt', 'desc')
   );
   
@@ -111,11 +106,14 @@ export const getUserPermissions = async (): Promise<UserPermission[]> => {
 };
 
 export const getUserPermission = async (email: string): Promise<UserPermission | null> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
   const q = query(
-    collection(db, 'user_permissions'),
+    collection(firestoreDb, 'user_permissions'),
     where('email', '==', email.toLowerCase())
   );
   
@@ -137,8 +135,11 @@ export const createUserPermission = async (
   email: string, 
   allowedModels: string[] = []
 ): Promise<string> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
   // Check if user already exists
   const existing = await getUserPermission(email);
@@ -147,7 +148,7 @@ export const createUserPermission = async (
   }
 
   const now = Timestamp.now();
-  const docRef = await addDoc(collection(db, 'user_permissions'), {
+  const docRef = await addDoc(collection(firestoreDb, 'user_permissions'), {
     email: email.toLowerCase(),
     allowedModels,
     isActive: true,
@@ -162,10 +163,13 @@ export const updateUserPermission = async (
   userId: string,
   allowedModels: string[]
 ): Promise<void> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
-  await updateDoc(doc(db, 'user_permissions', userId), {
+  await updateDoc(doc(firestoreDb, 'user_permissions', userId), {
     allowedModels,
     updatedAt: Timestamp.now(),
   });
@@ -188,10 +192,13 @@ export const checkModelAccess = async (email: string, model: string): Promise<bo
 
 // Usage Tracking Functions
 export const recordUsage = async (usage: Omit<UsageRecord, 'timestamp'>): Promise<void> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
-  await addDoc(collection(db, 'usage_tracking'), {
+  await addDoc(collection(firestoreDb, 'usage_tracking'), {
     userId: usage.userId,
     email: usage.email.toLowerCase(),
     model: usage.model,
@@ -204,11 +211,14 @@ export const recordUsage = async (usage: Omit<UsageRecord, 'timestamp'>): Promis
 };
 
 export const getUsageStats = async (startDate?: Date, endDate?: Date): Promise<UsageStats> => {
-  const db = getDb();
-  if (!db) throw new Error('Firestore not initialized');
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
 
   let q = query(
-    collection(db, 'usage_tracking'),
+    collection(firestoreDb, 'usage_tracking'),
     orderBy('timestamp', 'desc')
   );
 
@@ -221,7 +231,7 @@ export const getUsageStats = async (startDate?: Date, endDate?: Date): Promise<U
       constraints.push(where('timestamp', '<=', Timestamp.fromDate(endDate)));
     }
     q = query(
-      collection(db, 'usage_tracking'),
+      collection(firestoreDb, 'usage_tracking'),
       ...constraints,
       orderBy('timestamp', 'desc')
     );

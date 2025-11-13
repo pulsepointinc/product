@@ -483,17 +483,22 @@ export default function Home() {
           
           {!showEmailLogin ? (
             <>
-              <button
-                onClick={handleGoogleSignIn}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 mb-4 w-full"
-              >
-                Sign in with Google
-              </button>
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800 mb-2">
+                  <strong>Note:</strong> Google SSO may be blocked by Fortinet. If you see a Fortinet login page, use email/password instead.
+                </p>
+              </div>
               <button
                 onClick={() => setShowEmailLogin(true)}
-                className="text-gray-600 text-sm underline"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 mb-3 w-full"
               >
-                Use email/password instead (bypasses Fortinet)
+                Sign in with Email/Password (Recommended)
+              </button>
+              <button
+                onClick={handleGoogleSignIn}
+                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 w-full text-sm"
+              >
+                Try Google SSO (may be blocked)
               </button>
               {loginError && (
                 <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -550,7 +555,7 @@ export default function Home() {
                 }}
                 className="w-full text-gray-600 text-sm underline"
               >
-                Back to Google sign-in
+                Back to sign-in options
               </button>
               <p className="mt-4 text-xs text-gray-500">
                 Note: Users must be created in Firebase Console first. Contact an administrator if you don't have an account.

@@ -14,6 +14,7 @@ import {
   deleteConversation,
   ChatMessage as FirestoreMessage
 } from '../lib/firestore';
+import { checkUserAccess } from '../lib/admin';
 
 interface Message {
   id: string;
@@ -32,6 +33,8 @@ export default function Home() {
   const [modelPreference, setModelPreference] = useState<string>('auto'); // 'auto', 'gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001'
   const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = no access
+  const [checkingAccess, setCheckingAccess] = useState(false);
 
   // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
@@ -118,6 +121,43 @@ export default function Home() {
     setCurrentConversationId(null);
     console.log('🔄 Page mounted/refreshed - cleared conversation state');
   }, []); // Only run on mount
+
+  // Check user access when authenticated
+  useEffect(() => {
+    const verifyAccess = async () => {
+      if (!SSO_ENABLED) {
+        // If SSO is disabled, allow access
+        setHasAccess(true);
+        return;
+      }
+
+      if (!isAuthenticated || !user?.email) {
+        setHasAccess(false);
+        return;
+      }
+
+      // Always allow bweinstein@pulsepoint.com (fallback admin)
+      if (user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com') {
+        setHasAccess(true);
+        return;
+      }
+
+      setCheckingAccess(true);
+      try {
+        const access = await checkUserAccess(user.email);
+        console.log(`🔐 Access check for ${user.email}: ${access ? 'GRANTED' : 'DENIED'}`);
+        setHasAccess(access);
+      } catch (error) {
+        console.error('Error checking user access:', error);
+        // On error, deny access for security
+        setHasAccess(false);
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+
+    verifyAccess();
+  }, [isAuthenticated, user?.email, SSO_ENABLED]);
 
   const handleSend = async (question: string) => {
     console.log('📤 handleSend called with question:', question);
@@ -367,6 +407,17 @@ export default function Home() {
     );
   }
 
+  // Show loading screen while checking auth or access
+  if (authLoading || checkingAccess || hasAccess === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-lg">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   // Only show login screen if SSO is enabled AND not loading AND not authenticated
   if (SSO_ENABLED && !isAuthenticated && !authLoading) {
     const handleSignIn = async () => {
@@ -388,6 +439,29 @@ export default function Home() {
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
             Sign in with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has access (only if SSO is enabled and authenticated)
+  if (SSO_ENABLED && isAuthenticated && hasAccess === false) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto px-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-2">
+            You don't have permission to access this platform.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Please contact an administrator to request access.
+          </p>
+          <button
+            onClick={signOut}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+          >
+            Sign Out
           </button>
         </div>
       </div>

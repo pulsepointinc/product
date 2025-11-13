@@ -187,6 +187,43 @@ class AskRequest(BaseModel):
     model_preference: Optional[str] = None  # 'gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001', or None for auto
 
 
+def check_user_has_access(email: str) -> bool:
+    """
+    Check if user has access to the platform via Firestore user_permissions
+    Always allows bweinstein@pulsepoint.com as fallback admin
+    """
+    # Always allow bweinstein@pulsepoint.com (fallback admin)
+    if email and (email == 'bweinstein@pulsepoint.com' or email.lower() == 'bweinstein@pulsepoint.com'):
+        return True
+    
+    if not ENABLE_SSO:
+        return True  # If SSO is disabled, allow access
+    
+    firestore_db = get_firestore_db()
+    if not firestore_db:
+        logger.warning("Firestore not available, denying access for security")
+        return False
+    
+    try:
+        # Check if user has an active permission record
+        users_ref = firestore_db.collection('user_permissions')
+        query = users_ref.where('email', '==', email.lower()).limit(1)
+        docs = query.stream()
+        
+        for doc in docs:
+            doc_data = doc.to_dict()
+            if doc_data.get('isActive', False):
+                return True
+        
+        # No active permission found
+        logger.info(f"Access denied for {email}: No active permission record found")
+        return False
+    except Exception as e:
+        logger.error(f"Error checking user access: {e}")
+        # On error, deny access for security
+        return False
+
+
 @app.post("/api/chat/ask")
 async def ask_question(
     payload: AskRequest,
@@ -200,8 +237,9 @@ async def ask_question(
     
     This endpoint:
     1. Verifies user is authenticated via Google SSO (platform access)
-    2. Forwards request to Knowledge Layer v5 (public API)
-    3. Returns response with user context for logging/tracking
+    2. Checks if user has permission to access the platform
+    3. Forwards request to Knowledge Layer v5 (public API)
+    4. Returns response with user context for logging/tracking
     """
     question = payload.question
     if not question or not question.strip():
@@ -209,7 +247,18 @@ async def ask_question(
 
     # Get user info (or use anonymous if SSO disabled)
     user_info = user if user else {"email": "anonymous@example.com", "name": "Anonymous"}
-    logger.info(f"Question from {user_info.get('email', 'anonymous')}: {question}")
+    user_email = user_info.get('email', '')
+    
+    # Check user access (only if SSO is enabled)
+    if ENABLE_SSO and user_email and user_email != "anonymous@example.com":
+        if not check_user_has_access(user_email):
+            logger.warning(f"Access denied for {user_email}: No permission record found")
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied. You don't have permission to use this platform. Please contact an administrator."
+            )
+    
+    logger.info(f"Question from {user_email}: {question}")
 
     # Prepare request for Knowledge Layer v5 (public API, no auth needed)
     knowledge_layer_request = payload.model_dump(exclude_none=True)

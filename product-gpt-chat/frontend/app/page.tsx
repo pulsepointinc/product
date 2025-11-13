@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import ChatMessage from '../components/ChatMessage';
 import ChatInput from '../components/ChatInput';
 import ConversationSidebar from '../components/ConversationSidebar';
@@ -393,6 +394,8 @@ export default function Home() {
     );
   }
 
+  const isAdmin = user?.email === 'bweinstein@pulsepoint.com';
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar - only show if authenticated */}
@@ -411,6 +414,15 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold">Product GPT Chat</h1>
             <div className="flex items-center gap-4">
+              {/* Admin Link */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded hover:bg-gray-100"
+                >
+                  Admin
+                </Link>
+              )}
               {/* Model Selector */}
               <div className="flex items-center gap-2">
                 <label htmlFor="model-select" className="text-sm text-gray-600">Model:</label>

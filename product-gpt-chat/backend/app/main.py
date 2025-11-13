@@ -11,6 +11,9 @@ import os
 from typing import Optional, List
 import logging
 from pydantic import BaseModel
+from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +48,23 @@ KNOWLEDGE_LAYER_URL = os.getenv(
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "pulsepoint-bitstrapped-ai")
 ALLOWED_DOMAINS = ["pulsepoint.com"]  # Only allow corporate emails
 ENABLE_SSO = os.getenv("ENABLE_SSO", "false").lower() == "true"  # SSO disabled by default
+
+# Initialize Firestore for usage tracking
+db = None
+def get_firestore_db():
+    global db
+    if db is None:
+        try:
+            # Initialize Firebase Admin if not already initialized
+            try:
+                firebase_admin.get_app()
+            except ValueError:
+                firebase_admin.initialize_app(options={'projectId': FIREBASE_PROJECT_ID})
+            db = firestore.client()
+        except Exception as e:
+            logger.error(f"Failed to initialize Firestore: {e}")
+            db = None
+    return db
 
 
 async def verify_firebase_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -225,6 +245,50 @@ async def ask_question(
                 },
                 **{k: v for k, v in result.items() if k not in ["response", "sources", "synthesis_method"]}
             }
+        
+        # Track usage in Firestore
+        try:
+            synthesis_response = result.get("synthesis_response", {})
+            token_usage = synthesis_response.get("token_usage", {})
+            model_used = synthesis_response.get("model_used", "unknown")
+            provider = synthesis_response.get("provider", "unknown")
+            
+            # Calculate cost from token usage
+            input_tokens = token_usage.get("input_tokens", 0)
+            output_tokens = token_usage.get("output_tokens", 0)
+            
+            # Calculate cost based on model
+            cost = 0.0
+            if provider == "openai":
+                if model_used == "gpt-4o-mini":
+                    cost = (input_tokens * 0.15 + output_tokens * 0.60) / 1_000_000
+                elif model_used == "gpt-4o":
+                    cost = (input_tokens * 2.50 + output_tokens * 10.00) / 1_000_000
+                else:
+                    cost = (input_tokens * 2.50 + output_tokens * 10.00) / 1_000_000
+            elif provider == "gemini":
+                # Gemini 2.0 Flash: $0.075 per 1M input tokens, $0.30 per 1M output tokens
+                cost = (input_tokens * 0.075 + output_tokens * 0.30) / 1_000_000
+            
+            # Record usage in Firestore
+            if ENABLE_SSO and user_info.get("email") and user_info.get("user_id"):
+                firestore_db = get_firestore_db()
+                if firestore_db:
+                    usage_record = {
+                        "userId": user_info.get("user_id"),
+                        "email": user_info.get("email").lower(),
+                        "model": model_used,
+                        "inputTokens": input_tokens,
+                        "outputTokens": output_tokens,
+                        "cost": cost,
+                        "conversationId": payload.session_id,
+                        "timestamp": firestore.SERVER_TIMESTAMP
+                    }
+                    firestore_db.collection("usage_tracking").add(usage_record)
+                    logger.info(f"Recorded usage: {user_info.get('email')} - {model_used} - ${cost:.6f}")
+        except Exception as e:
+            logger.error(f"Failed to record usage: {e}")
+            # Don't fail the request if usage tracking fails
         
         # Add user context for logging/tracking (not sent to Knowledge Layer API)
         result["user_email"] = user_info.get("email", "anonymous")

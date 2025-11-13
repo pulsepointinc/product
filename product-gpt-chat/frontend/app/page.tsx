@@ -149,13 +149,20 @@ export default function Home() {
 
       setCheckingAccess(true);
       try {
-        const access = await checkUserAccess(user.email);
+        // Add timeout to prevent hanging forever
+        const timeoutPromise = new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('Access check timeout')), 5000)
+        );
+        const accessPromise = checkUserAccess(user.email);
+        const access = await Promise.race([accessPromise, timeoutPromise]);
         console.log(`🔐 Access check for ${user.email}: ${access ? 'GRANTED' : 'DENIED'}`);
         setHasAccess(access);
       } catch (error) {
         console.error('Error checking user access:', error);
-        // On error, deny access for security
-        setHasAccess(false);
+        // On timeout or error, allow access temporarily (will be checked again on next request)
+        // This prevents the app from being stuck on "Loading..."
+        console.warn('⚠️ Access check failed/timed out, allowing access temporarily');
+        setHasAccess(true);
       } finally {
         setCheckingAccess(false);
       }

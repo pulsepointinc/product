@@ -35,14 +35,23 @@ export default function AdminPage() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (user?.email) {
+        // Always allow bweinstein@pulsepoint.com as fallback admin
+        const isFallbackAdmin = user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com';
+        
+        if (isFallbackAdmin) {
+          setIsAdmin(true);
+          return;
+        }
+        
         try {
           const adminStatus = await checkIsAdmin(user.email);
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);
-          // Fallback: Allow bweinstein@pulsepoint.com access until Firestore is set up
-          setIsAdmin(user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com');
+          setIsAdmin(false);
         }
+      } else {
+        setIsAdmin(false);
       }
     };
     checkAdmin();

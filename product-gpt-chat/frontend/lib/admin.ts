@@ -114,24 +114,39 @@ export const getUserPermission = async (email: string): Promise<UserPermission |
     throw new Error('Firestore not initialized');
   }
 
-  const q = query(
-    collection(firestoreDb, 'user_permissions'),
-    where('email', '==', email.toLowerCase())
-  );
-  
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  
-  const docData = snapshot.docs[0].data();
-  return {
-    id: snapshot.docs[0].id,
-    email: docData.email,
-    allowedModels: docData.allowedModels || [],
-    isActive: docData.isActive !== false,
-    isAdmin: docData.isAdmin === true,
-    createdAt: docData.createdAt?.toDate() || new Date(),
-    updatedAt: docData.updatedAt?.toDate() || new Date(),
-  };
+  try {
+    const q = query(
+      collection(firestoreDb, 'user_permissions'),
+      where('email', '==', email.toLowerCase())
+    );
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error('Firestore query timeout')), 4000)
+    );
+    
+    const snapshot = await Promise.race([getDocs(q), timeoutPromise]);
+    
+    if (snapshot.empty) return null;
+    
+    const docData = snapshot.docs[0].data();
+    return {
+      id: snapshot.docs[0].id,
+      email: docData.email,
+      allowedModels: docData.allowedModels || [],
+      isActive: docData.isActive !== false,
+      isAdmin: docData.isAdmin === true,
+      createdAt: docData.createdAt?.toDate() || new Date(),
+      updatedAt: docData.updatedAt?.toDate() || new Date(),
+    };
+  } catch (error: any) {
+    console.error('Error fetching user permission:', error);
+    // If it's a timeout or permission error, return null (user doesn't have access)
+    if (error.message?.includes('timeout') || error.message?.includes('permission')) {
+      return null;
+    }
+    throw error;
+  }
 };
 
 export const createUserPermission = async (

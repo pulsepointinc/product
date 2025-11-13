@@ -35,11 +35,6 @@ export default function Home() {
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = no access
   const [checkingAccess, setCheckingAccess] = useState(false);
-  // Email/password login state (must be at top level - React hooks rule)
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
 
   // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
@@ -432,136 +427,26 @@ export default function Home() {
 
   // Only show login screen if SSO is enabled AND not loading AND not authenticated
   if (SSO_ENABLED && !isAuthenticated && !authLoading) {
-    const handleGoogleSignIn = async () => {
-      console.log('🔘 Google sign in button clicked');
-      setLoginError('');
+    const handleSignIn = async () => {
       try {
         await signIn();
       } catch (error: any) {
-        console.error('🔘 Sign-in error caught in handleGoogleSignIn:', error);
-        const errorMsg = error.message || error.code || 'Unknown error';
-        setLoginError(`Google sign-in failed: ${errorMsg}. Try email/password login instead.`);
-      }
-    };
-
-    const handleEmailSignIn = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoginError('');
-      if (!email || !password) {
-        setLoginError('Please enter both email and password');
-        return;
-      }
-      
-      if (!email.endsWith('@pulsepoint.com')) {
-        setLoginError('Only @pulsepoint.com email addresses are allowed');
-        return;
-      }
-
-      try {
-        console.log('🔘 Email sign in attempted');
-        await signIn(email, password);
-      } catch (error: any) {
-        console.error('🔘 Email sign-in error:', error);
-        const errorMsg = error.message || error.code || 'Unknown error';
-        if (error.code === 'auth/user-not-found') {
-          setLoginError('User not found. Please contact an administrator to create your account.');
-        } else if (error.code === 'auth/wrong-password') {
-          setLoginError('Incorrect password. Please try again.');
-        } else if (error.code === 'auth/invalid-email') {
-          setLoginError('Invalid email address.');
-        } else {
-          setLoginError(`Sign-in failed: ${errorMsg}`);
-        }
+        console.error('Sign-in error:', error);
+        alert(`Sign-in failed: ${error.message || error.code || 'Unknown error'}`);
       }
     };
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md w-full px-4">
+        <div className="text-center">
           <h1 className="text-3xl font-bold mb-4">Product GPT Chat</h1>
           <p className="text-gray-600 mb-6">Sign in with your PulsePoint account to continue</p>
-          
-          {!showEmailLogin ? (
-            <>
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800 mb-2">
-                  <strong>Note:</strong> Google SSO may be blocked by Fortinet. If you see a Fortinet login page, use email/password instead.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowEmailLogin(true)}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 mb-3 w-full"
-              >
-                Sign in with Email/Password (Recommended)
-              </button>
-              <button
-                onClick={handleGoogleSignIn}
-                className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 w-full text-sm"
-              >
-                Try Google SSO (may be blocked)
-              </button>
-              {loginError && (
-                <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {loginError}
-                </div>
-              )}
-            </>
-          ) : (
-            <form onSubmit={handleEmailSignIn} className="text-left">
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email (@pulsepoint.com)
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="yourname@pulsepoint.com"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-              {loginError && (
-                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                  {loginError}
-                </div>
-              )}
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 mb-2"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowEmailLogin(false);
-                  setEmail('');
-                  setPassword('');
-                  setLoginError('');
-                }}
-                className="w-full text-gray-600 text-sm underline"
-              >
-                Back to sign-in options
-              </button>
-              <p className="mt-4 text-xs text-gray-500">
-                Note: Users must be created in Firebase Console first. Contact an administrator if you don't have an account.
-              </p>
-            </form>
-          )}
+          <button
+            onClick={handleSignIn}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+          >
+            Sign in with Google
+          </button>
         </div>
       </div>
     );

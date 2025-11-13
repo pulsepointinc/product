@@ -18,6 +18,7 @@ export interface UserPermission {
   email: string;
   allowedModels: string[];
   isActive: boolean;
+  isAdmin?: boolean;  // Admin users can access admin panel
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,6 +101,7 @@ export const getUserPermissions = async (): Promise<UserPermission[]> => {
     email: doc.data().email,
     allowedModels: doc.data().allowedModels || [],
     isActive: doc.data().isActive !== false,
+    isAdmin: doc.data().isAdmin === true,
     createdAt: doc.data().createdAt?.toDate() || new Date(),
     updatedAt: doc.data().updatedAt?.toDate() || new Date(),
   }));
@@ -126,6 +128,7 @@ export const getUserPermission = async (email: string): Promise<UserPermission |
     email: docData.email,
     allowedModels: docData.allowedModels || [],
     isActive: docData.isActive !== false,
+    isAdmin: docData.isAdmin === true,
     createdAt: docData.createdAt?.toDate() || new Date(),
     updatedAt: docData.updatedAt?.toDate() || new Date(),
   };
@@ -133,7 +136,8 @@ export const getUserPermission = async (email: string): Promise<UserPermission |
 
 export const createUserPermission = async (
   email: string, 
-  allowedModels: string[] = []
+  allowedModels: string[] = [],
+  isAdmin: boolean = false
 ): Promise<string> => {
   const firestoreDb = getDb();
   if (!firestoreDb) {
@@ -152,6 +156,7 @@ export const createUserPermission = async (
     email: email.toLowerCase(),
     allowedModels,
     isActive: true,
+    isAdmin: isAdmin,
     createdAt: now,
     updatedAt: now,
   });
@@ -161,7 +166,8 @@ export const createUserPermission = async (
 
 export const updateUserPermission = async (
   userId: string,
-  allowedModels: string[]
+  allowedModels: string[],
+  isAdmin?: boolean
 ): Promise<void> => {
   const firestoreDb = getDb();
   if (!firestoreDb) {
@@ -169,10 +175,21 @@ export const updateUserPermission = async (
     throw new Error('Firestore not initialized');
   }
 
-  await updateDoc(doc(firestoreDb, 'user_permissions', userId), {
+  const updateData: any = {
     allowedModels,
     updatedAt: Timestamp.now(),
-  });
+  };
+  
+  if (isAdmin !== undefined) {
+    updateData.isAdmin = isAdmin;
+  }
+
+  await updateDoc(doc(firestoreDb, 'user_permissions', userId), updateData);
+};
+
+export const checkIsAdmin = async (email: string): Promise<boolean> => {
+  const permission = await getUserPermission(email);
+  return permission !== null && permission.isAdmin === true;
 };
 
 export const checkUserAccess = async (email: string): Promise<boolean> => {

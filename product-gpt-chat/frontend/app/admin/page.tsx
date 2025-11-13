@@ -8,11 +8,10 @@ import {
   createUserPermission, 
   updateUserPermission,
   getUsageStats,
+  checkIsAdmin,
   UsageStats,
   UserPermission
 } from '../../lib/admin';
-
-const ADMIN_EMAIL = 'bweinstein@pulsepoint.com';
 
 // Purple color scheme matching Genome Studio
 const PURPLE_PRIMARY = '#6B46C1'; // Purple-600
@@ -28,9 +27,26 @@ export default function AdminPage() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserPermission | null>(null);
   const [allowedModels, setAllowedModels] = useState<string[]>([]);
+  const [isAdminUser, setIsAdminUser] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  // Check if current user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user?.email) {
+        try {
+          const adminStatus = await checkIsAdmin(user.email);
+          setIsAdmin(adminStatus);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          // Fallback to hardcoded admin email for now
+          setIsAdmin(user.email === 'bweinstein@pulsepoint.com');
+        }
+      }
+    };
+    checkAdmin();
+  }, [user?.email]);
 
   useEffect(() => {
     if (isAdmin && isAuthenticated) {
@@ -63,6 +79,11 @@ export default function AdminPage() {
       loadData();
     } else if (activeTab === 'usage') {
       loadData();
+      // Auto-refresh usage stats every 30 seconds
+      const interval = setInterval(() => {
+        loadData();
+      }, 30000);
+      return () => clearInterval(interval);
     }
   }, [activeTab]);
 
@@ -74,9 +95,10 @@ export default function AdminPage() {
 
     setLoading(true);
     try {
-      await createUserPermission(newUserEmail, allowedModels);
+      await createUserPermission(newUserEmail, allowedModels, isAdminUser);
       setNewUserEmail('');
       setAllowedModels([]);
+      setIsAdminUser(false);
       await loadData();
       alert('User added successfully');
     } catch (error) {
@@ -87,13 +109,14 @@ export default function AdminPage() {
     }
   };
 
-  const handleUpdateUser = async (userId: string, models: string[]) => {
+  const handleUpdateUser = async (userId: string, models: string[], admin: boolean) => {
     setLoading(true);
     try {
-      await updateUserPermission(userId, models);
+      await updateUserPermission(userId, models, admin);
       await loadData();
       alert('User permissions updated successfully');
       setSelectedUser(null);
+      setIsAdminUser(false);
     } catch (error) {
       console.error('Error updating user:', error);
       alert('Failed to update user permissions');
@@ -293,12 +316,14 @@ export default function AdminPage() {
                         id: 'new', 
                         email: '', 
                         allowedModels: [], 
-                        isActive: true, 
+                        isActive: true,
+                        isAdmin: false,
                         createdAt: new Date(), 
                         updatedAt: new Date() 
                       });
                       setNewUserEmail('');
                       setAllowedModels([]);
+                      setIsAdminUser(false);
                     }}
                     className="px-4 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity"
                     style={{ backgroundColor: PURPLE_PRIMARY }}
@@ -357,15 +382,22 @@ export default function AdminPage() {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            {user.isActive ? (
-                              <span className="px-2 py-1 text-xs font-medium rounded" style={{ backgroundColor: '#D1FAE5', color: '#065F46' }}>
-                                Active
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600">
-                                Inactive
-                              </span>
-                            )}
+                            <div className="flex flex-col gap-1">
+                              {user.isActive ? (
+                                <span className="px-2 py-1 text-xs font-medium rounded" style={{ backgroundColor: '#D1FAE5', color: '#065F46' }}>
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-600">
+                                  Inactive
+                                </span>
+                              )}
+                              {user.isAdmin && (
+                                <span className="px-2 py-1 text-xs font-medium rounded text-white" style={{ backgroundColor: PURPLE_PRIMARY }}>
+                                  Admin
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                             {user.createdAt.toLocaleDateString()}
@@ -378,6 +410,7 @@ export default function AdminPage() {
                               onClick={() => {
                                 setSelectedUser(user);
                                 setAllowedModels([...user.allowedModels]);
+                                setIsAdminUser(user.isAdmin || false);
                               }}
                               className="text-purple-600 hover:text-purple-900"
                               style={{ color: PURPLE_PRIMARY }}
@@ -440,7 +473,24 @@ export default function AdminPage() {
                   </div>
                 )}
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Allowed Models</label>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Allowed Models</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allModels = ['gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001', 'auto'];
+                        if (allowedModels.length === allModels.length) {
+                          setAllowedModels([]);
+                        } else {
+                          setAllowedModels([...allModels]);
+                        }
+                      }}
+                      className="text-xs text-purple-600 hover:text-purple-900"
+                      style={{ color: PURPLE_PRIMARY }}
+                    >
+                      {allowedModels.length === 4 ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {['gpt-4o-mini', 'gpt-4o', 'gemini-2.0-flash-001', 'auto'].map((model) => (
                       <label key={model} className="flex items-center">
@@ -462,6 +512,18 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </div>
+                <div className="mb-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={isAdminUser}
+                      onChange={(e) => setIsAdminUser(e.target.checked)}
+                      className="mr-3 h-4 w-4 rounded border-gray-300"
+                      style={{ accentColor: PURPLE_PRIMARY }}
+                    />
+                    <span className="text-sm font-medium text-gray-700">Admin Access (can view admin panel)</span>
+                  </label>
+                </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex gap-3">
                 <button
@@ -469,7 +531,7 @@ export default function AdminPage() {
                     if (selectedUser.id === 'new') {
                       handleAddUser();
                     } else {
-                      handleUpdateUser(selectedUser.id, allowedModels);
+                      handleUpdateUser(selectedUser.id, allowedModels, isAdminUser);
                     }
                   }}
                   disabled={loading || (selectedUser.id === 'new' && !newUserEmail)}
@@ -483,6 +545,7 @@ export default function AdminPage() {
                     setSelectedUser(null);
                     setAllowedModels([]);
                     setNewUserEmail('');
+                    setIsAdminUser(false);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200"
                 >

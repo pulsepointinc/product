@@ -7,6 +7,8 @@ let GoogleAuthProvider: any;
 let signInWithPopup: any;
 let signInWithRedirect: any;
 let getRedirectResult: any;
+let signInWithEmailAndPassword: any;
+let createUserWithEmailAndPassword: any;
 let firebaseSignOut: any;
 let onAuthStateChanged: any;
 let initializeApp: any;
@@ -22,6 +24,8 @@ const loadFirebase = async () => {
     signInWithPopup = firebase.signInWithPopup;
     signInWithRedirect = firebase.signInWithRedirect;
     getRedirectResult = firebase.getRedirectResult;
+    signInWithEmailAndPassword = firebase.signInWithEmailAndPassword;
+    createUserWithEmailAndPassword = firebase.createUserWithEmailAndPassword;
     firebaseSignOut = firebase.signOut;
     onAuthStateChanged = firebase.onAuthStateChanged;
     initializeApp = firebaseApp.initializeApp;
@@ -67,7 +71,7 @@ interface AuthContextType {
   user: any;
   isAuthenticated: boolean;
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: (email?: string, password?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -128,11 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [SSO_ENABLED]);
 
-  const signIn = async () => {
-    console.log('🔐 signIn called');
+  const signIn = async (email?: string, password?: string) => {
+    console.log('🔐 signIn called', { email: email ? 'provided' : 'not provided' });
     console.log('🔐 SSO_ENABLED:', SSO_ENABLED);
     console.log('🔐 auth:', auth);
-    console.log('🔐 googleProvider:', googleProvider);
     
     if (!SSO_ENABLED) {
       console.warn('❌ SSO is not enabled');
@@ -144,6 +147,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error('Authentication not initialized. Please refresh the page.');
     }
     
+    // If email/password provided, use email/password auth (bypasses Fortinet)
+    if (email && password) {
+      try {
+        console.log('🔐 Attempting email/password sign-in (bypasses Fortinet)...');
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        const user = result.user;
+        console.log('✅ Email/password sign-in successful:', user.email);
+        
+        // Verify domain restriction
+        if (user.email && !user.email.endsWith('@pulsepoint.com')) {
+          console.warn('⚠️ Non-PulsePoint user detected, signing out');
+          await firebaseSignOut(auth);
+          throw new Error('Only PulsePoint employees (@pulsepoint.com) can access this application.');
+        }
+        
+        console.log('✅ Sign-in complete');
+        return;
+      } catch (error: any) {
+        console.error('❌ Email/password sign-in error:', error);
+        throw error;
+      }
+    }
+    
+    // Otherwise, try Google OAuth (may be intercepted by Fortinet)
     if (!googleProvider) {
       console.error('❌ Google provider not initialized');
       throw new Error('Google provider not initialized. Please refresh the page.');
@@ -151,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Try popup first (works in regular browser)
     try {
-      console.log('🔐 Attempting signInWithPopup...');
+      console.log('🔐 Attempting Google signInWithPopup...');
       const result = await signInWithPopup(auth, googleProvider);
       console.log('✅ Popup sign-in successful, result:', result);
       const user = result.user;

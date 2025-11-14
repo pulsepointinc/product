@@ -336,8 +336,10 @@ async def ask_question(
                 cost = (input_tokens * 0.075 + output_tokens * 0.30) / 1_000_000
             
             # Record usage in Firestore
+            logger.info(f"Usage tracking check: ENABLE_SSO={ENABLE_SSO}, email={user_info.get('email')}, user_id={user_info.get('user_id')}")
             if ENABLE_SSO and user_info.get("email") and user_info.get("user_id"):
                 firestore_db = get_firestore_db()
+                logger.info(f"Firestore DB available: {firestore_db is not None}")
                 if firestore_db:
                     usage_record = {
                         "userId": user_info.get("user_id"),
@@ -349,8 +351,13 @@ async def ask_question(
                         "conversationId": payload.session_id,
                         "timestamp": firestore.SERVER_TIMESTAMP
                     }
+                    logger.info(f"Adding usage record: {usage_record}")
                     firestore_db.collection("usage_tracking").add(usage_record)
-                    logger.info(f"Recorded usage: {user_info.get('email')} - {model_used} - ${cost:.6f}")
+                    logger.info(f"✅ Recorded usage: {user_info.get('email')} - {model_used} - ${cost:.6f}")
+                else:
+                    logger.warning("Firestore DB not available, skipping usage tracking")
+            else:
+                logger.warning(f"Skipping usage tracking: SSO={ENABLE_SSO}, email={bool(user_info.get('email'))}, user_id={bool(user_info.get('user_id'))}")
         except Exception as e:
             logger.error(f"Failed to record usage: {e}")
             # Don't fail the request if usage tracking fails

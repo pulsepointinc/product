@@ -60,13 +60,11 @@ def get_firestore_db():
             # Initialize Firebase Admin if not already initialized
             try:
                 firebase_admin.get_app()
+                logger.info("Firebase Admin already initialized")
             except ValueError:
-                # Try to use Firebase Admin SDK service account from the Firebase project
-                # This service account has full access to Firestore
+                # Use ApplicationDefault credentials (service account in Cloud Run)
+                # This ensures the Cloud Run service account has admin privileges
                 try:
-                    # First, try to use the Firebase Admin SDK service account via impersonation
-                    # The productgpt-api-caller service account now has permission to impersonate it
-                    target_sa = f"firebase-adminsdk-fbsvc@{FIREBASE_PROJECT_ID}.iam.gserviceaccount.com"
                     cred = credentials.ApplicationDefault()
                     # Create credentials that impersonate the Firebase Admin SDK service account
                     from google.auth import impersonated_credentials

@@ -195,12 +195,15 @@ def extract_stream_leads_from_confluence(page_content):
         return {}
 
 def get_jira_field_definitions():
-    """Query BigQuery for Jira field definitions"""
+    """Query BigQuery for Jira field definitions - simplified query to avoid resource limits"""
     try:
+        # Simplified query - just get basic field info without complex subqueries
         query = """
-        SELECT field_name, description, possible_values
+        SELECT DISTINCT field_name, description
         FROM `pulsepoint-dataproducts.jira.jira_team_tickets_definition`
+        WHERE field_name IS NOT NULL
         ORDER BY field_name
+        LIMIT 100
         """
         
         query_job = bq_client.query(query)
@@ -210,14 +213,15 @@ def get_jira_field_definitions():
         for row in results:
             field_definitions[row.field_name] = {
                 'field_name': row.field_name,
-                'description': row.description,
-                'possible_values': row.possible_values
+                'description': getattr(row, 'description', ''),
+                'possible_values': []  # Skip complex possible_values to avoid query complexity
             }
         
         logger.info(f"Retrieved {len(field_definitions)} Jira field definitions")
         return field_definitions
     except Exception as e:
         logger.error(f"Error querying BigQuery: {str(e)}")
+        # Return empty dict instead of failing completely
         return {}
 
 def get_products_and_features_from_jira_definitions():

@@ -122,47 +122,35 @@ export default function Home() {
   }, []); // Only run on mount
 
   // Check user access when authenticated
+  // Fetch user permissions to filter models
   useEffect(() => {
-    const verifyAccess = async () => {
+    const fetchUserPermission = async () => {
       if (!SSO_ENABLED) {
-        // If SSO is disabled, allow access
         setHasAccess(true);
+        setUserPermission(null);
         return;
       }
 
       if (!isAuthenticated || !user?.email) {
         setHasAccess(false);
+        setUserPermission(null);
         return;
       }
 
-      // Always allow bweinstein@pulsepoint.com (fallback admin)
-      if (user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com') {
-        setHasAccess(true);
-        return;
-      }
-
-      setCheckingAccess(true);
       try {
-        // Add timeout to prevent hanging forever
-        const timeoutPromise = new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error('Access check timeout')), 5000)
-        );
-        const accessPromise = checkUserAccess(user.email);
-        const access = await Promise.race([accessPromise, timeoutPromise]);
-        console.log(`🔐 Access check for ${user.email}: ${access ? 'GRANTED' : 'DENIED'}`);
-        setHasAccess(access);
+        const permission = await getUserPermission(user.email);
+        setUserPermission(permission);
+        setHasAccess(permission !== null && permission.isActive);
+        console.log(`🔐 User permission for ${user.email}:`, permission);
       } catch (error) {
-        console.error('Error checking user access:', error);
-        // On timeout or error, allow access temporarily (will be checked again on next request)
-        // This prevents the app from being stuck on "Loading..."
-        console.warn('⚠️ Access check failed/timed out, allowing access temporarily');
+        console.error('Error fetching user permission:', error);
+        // On error, allow access temporarily but with no model filtering
         setHasAccess(true);
-      } finally {
-        setCheckingAccess(false);
+        setUserPermission(null);
       }
     };
 
-    verifyAccess();
+    fetchUserPermission();
   }, [isAuthenticated, user?.email, SSO_ENABLED]);
 
   const handleSend = async (question: string) => {

@@ -14,6 +14,7 @@ import {
   deleteConversation,
   ChatMessage as FirestoreMessage
 } from '../lib/firestore';
+import { getUserPermission, UserPermission } from '../lib/admin';
 
 interface Message {
   id: string;

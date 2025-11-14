@@ -28,8 +28,8 @@ service cloud.firestore {
     
     // User permissions collection - admin only
     match /user_permissions/{permissionId} {
-      allow read: if isAdmin();
-      allow write: if isAdmin();
+      // Allow admin to read/write/delete all
+      allow read, write, delete: if isAdmin();
       // Allow users to read their own permission
       allow read: if request.auth != null && 
                      resource.data.email == request.auth.token.email;

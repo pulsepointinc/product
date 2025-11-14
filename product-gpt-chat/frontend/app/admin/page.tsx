@@ -35,29 +35,15 @@ export default function AdminPage() {
   // Check if current user is admin
   useEffect(() => {
     const checkAdmin = async () => {
-      console.log('🔍 Checking admin access for:', user?.email);
       if (user?.email) {
-        // Always allow bweinstein@pulsepoint.com as fallback admin
-        const isFallbackAdmin = user.email === 'bweinstein@pulsepoint.com' || user.email?.toLowerCase() === 'bweinstein@pulsepoint.com';
-        console.log('🔍 Is fallback admin?', isFallbackAdmin);
-        
-        if (isFallbackAdmin) {
-          console.log('✅ Granting admin access (fallback)');
-          setIsAdmin(true);
-          return;
-        }
-        
         try {
           const adminStatus = await checkIsAdmin(user.email);
-          console.log('🔍 Firestore admin status:', adminStatus);
           setIsAdmin(adminStatus);
         } catch (error) {
           console.error('Error checking admin status:', error);
-          setIsAdmin(false);
+          // Fallback to hardcoded admin email for now
+          setIsAdmin(user.email === 'bweinstein@pulsepoint.com');
         }
-      } else {
-        console.log('⚠️ No user email found');
-        setIsAdmin(false);
       }
     };
     checkAdmin();
@@ -306,9 +292,8 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Users Table Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Users ({filteredUsers.length})</h2>
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Users ({filteredUsers.length})</h2>
                 <div className="flex items-center gap-4">
                   {/* Search */}
                   <div className="relative">

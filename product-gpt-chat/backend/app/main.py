@@ -64,11 +64,12 @@ def get_firestore_db():
                 # This gives admin privileges and bypasses Firestore security rules
                 cred = credentials.ApplicationDefault()
                 firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
-                logger.info("✅ Firebase Admin initialized with default credentials")
-            db = firestore.client()
-            logger.info("✅ Firestore client initialized")
+                logger.info(f"✅ Firebase Admin initialized with default credentials for project: {FIREBASE_PROJECT_ID}")
+            # Explicitly create Firestore client with project ID to ensure correct project
+            db = firestore.client(project=FIREBASE_PROJECT_ID)
+            logger.info(f"✅ Firestore client initialized for project: {FIREBASE_PROJECT_ID}")
         except Exception as e:
-            logger.error(f"Failed to initialize Firestore: {e}")
+            logger.error(f"Failed to initialize Firestore: {e}", exc_info=True)
             db = None
     return db
 

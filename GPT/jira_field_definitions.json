@@ -1,9 +1,187 @@
 {
-  "test_field": {
-    "field_name": "test_field",
-    "description": "Test field from v2.6",
-    "possible_values": "v2.6 test values",
-    "last_updated": "2025-11-12T20:57:19.346406"
+  "Team_Driving_Work": {
+    "field_name": "Team_Driving_Work",
+    "description": "Team category driving the work",
+    "possible_values": []
   },
-  "version": "v2.6"
+  "child_ticket_count": {
+    "field_name": "child_ticket_count",
+    "description": "Number of child tickets",
+    "possible_values": []
+  },
+  "current_assignee_name": {
+    "field_name": "current_assignee_name",
+    "description": "Name of the current assignee",
+    "possible_values": []
+  },
+  "days_in_progress_to_closed": {
+    "field_name": "days_in_progress_to_closed",
+    "description": "Days from in-progress to closed status",
+    "possible_values": []
+  },
+  "days_sprint_start_to_in_progress": {
+    "field_name": "days_sprint_start_to_in_progress",
+    "description": "Days from sprint start to in-progress status",
+    "possible_values": []
+  },
+  "description": {
+    "field_name": "description",
+    "description": "Detailed description of the issue",
+    "possible_values": []
+  },
+  "development_queue": {
+    "field_name": "development_queue",
+    "description": "Development status indicator",
+    "possible_values": []
+  },
+  "epic_issue_id": {
+    "field_name": "epic_issue_id",
+    "description": "ID of the parent epic issue",
+    "possible_values": []
+  },
+  "epic_issue_key": {
+    "field_name": "epic_issue_key",
+    "description": "Key of the parent epic issue",
+    "possible_values": []
+  },
+  "epic_project_key": {
+    "field_name": "epic_project_key",
+    "description": "Project key of the parent epic",
+    "possible_values": []
+  },
+  "epic_snapshot": {
+    "field_name": "epic_snapshot",
+    "description": "Snapshot or summary of the epic",
+    "possible_values": []
+  },
+  "epic_status": {
+    "field_name": "epic_status",
+    "description": "Status of the parent epic",
+    "possible_values": []
+  },
+  "feature": {
+    "field_name": "feature",
+    "description": "Feature associated with the issue",
+    "possible_values": []
+  },
+  "fix_version": {
+    "field_name": "fix_version",
+    "description": "Version or release the issue is fixed in",
+    "possible_values": []
+  },
+  "issue_id": {
+    "field_name": "issue_id",
+    "description": "Unique identifier for each issue/ticket",
+    "possible_values": []
+  },
+  "issue_key": {
+    "field_name": "issue_key",
+    "description": "Alphanumeric key for the issue (format: [PROJECT_KEY]-[NUMBER])",
+    "possible_values": []
+  },
+  "issue_status": {
+    "field_name": "issue_status",
+    "description": "Current status of the issue",
+    "possible_values": []
+  },
+  "issue_type_name": {
+    "field_name": "issue_type_name",
+    "description": "Type of issue",
+    "possible_values": []
+  },
+  "label": {
+    "field_name": "label",
+    "description": "Issue label/tag for categorization",
+    "possible_values": []
+  },
+  "number_of_sprint_slips": {
+    "field_name": "number_of_sprint_slips",
+    "description": "Number of times the issue slipped from a sprint",
+    "possible_values": []
+  },
+  "original_release_date": {
+    "field_name": "original_release_date",
+    "description": "Originally planned release date",
+    "possible_values": []
+  },
+  "priority": {
+    "field_name": "priority",
+    "description": "Priority level of the issue (numeric scale)",
+    "possible_values": []
+  },
+  "product": {
+    "field_name": "product",
+    "description": "Product name associated with the issue",
+    "possible_values": []
+  },
+  "product_manager": {
+    "field_name": "product_manager",
+    "description": "Name of the product manager",
+    "possible_values": []
+  },
+  "project_key": {
+    "field_name": "project_key",
+    "description": "Project identifier the issue belongs to",
+    "possible_values": []
+  },
+  "project_manager_name": {
+    "field_name": "project_manager_name",
+    "description": "Name of the project manager",
+    "possible_values": []
+  },
+  "release_date": {
+    "field_name": "release_date",
+    "description": "Actual or current release date",
+    "possible_values": []
+  },
+  "reporter_name": {
+    "field_name": "reporter_name",
+    "description": "Name of the person who reported/created the issue",
+    "possible_values": []
+  },
+  "sprint": {
+    "field_name": "sprint",
+    "description": "Sprint name or identifier",
+    "possible_values": []
+  },
+  "sprint_date": {
+    "field_name": "sprint_date",
+    "description": "Sprint date or period",
+    "possible_values": []
+  },
+  "status_notes": {
+    "field_name": "status_notes",
+    "description": "Notes about the current status",
+    "possible_values": []
+  },
+  "story_points": {
+    "field_name": "story_points",
+    "description": "Estimated story points for the issue",
+    "possible_values": []
+  },
+  "stream": {
+    "field_name": "stream",
+    "description": "Work stream or category",
+    "possible_values": []
+  },
+  "summary": {
+    "field_name": "summary",
+    "description": "Brief summary of the issue",
+    "possible_values": []
+  },
+  "target_date_quarter": {
+    "field_name": "target_date_quarter",
+    "description": "Target quarter for completion",
+    "possible_values": []
+  },
+  "team": {
+    "field_name": "team",
+    "description": "Specific team assigned",
+    "possible_values": []
+  },
+  "total_days_elapsed": {
+    "field_name": "total_days_elapsed",
+    "description": "Total days elapsed for the issue",
+    "possible_values": []
+  }
 }

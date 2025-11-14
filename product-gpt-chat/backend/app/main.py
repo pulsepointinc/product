@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.auth import impersonated_credentials
 import concurrent.futures
 
 # Configure logging
@@ -60,11 +61,29 @@ def get_firestore_db():
             try:
                 firebase_admin.get_app()
             except ValueError:
-                # Initialize with default credentials (uses Cloud Run service account)
-                # This gives admin privileges and bypasses Firestore security rules
-                cred = credentials.ApplicationDefault()
-                firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
-                logger.info(f"✅ Firebase Admin initialized with default credentials for project: {FIREBASE_PROJECT_ID}")
+                # Try to use Firebase Admin SDK service account from the Firebase project
+                # This service account has full access to Firestore
+                try:
+                    # First, try to use the Firebase Admin SDK service account via impersonation
+                    # The productgpt-api-caller service account now has permission to impersonate it
+                    target_sa = f"firebase-adminsdk-fbsvc@{FIREBASE_PROJECT_ID}.iam.gserviceaccount.com"
+                    cred = credentials.ApplicationDefault()
+                    # Create credentials that impersonate the Firebase Admin SDK service account
+                    from google.auth import impersonated_credentials
+                    target_scopes = ['https://www.googleapis.com/auth/cloud-platform']
+                    cred = impersonated_credentials.Credentials(
+                        source_credentials=cred,
+                        target_principal=target_sa,
+                        target_scopes=target_scopes,
+                    )
+                    firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
+                    logger.info(f"✅ Firebase Admin initialized with impersonated credentials: {target_sa}")
+                except Exception as impersonation_error:
+                    logger.warning(f"Failed to use impersonated credentials: {impersonation_error}")
+                    # Fallback to default credentials
+                    cred = credentials.ApplicationDefault()
+                    firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
+                    logger.info(f"✅ Firebase Admin initialized with default credentials for project: {FIREBASE_PROJECT_ID}")
             # Explicitly create Firestore client with project ID to ensure correct project
             db = firestore.client(project=FIREBASE_PROJECT_ID)
             logger.info(f"✅ Firestore client initialized for project: {FIREBASE_PROJECT_ID}")

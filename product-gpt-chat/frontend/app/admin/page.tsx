@@ -7,6 +7,7 @@ import {
   getUserPermissions, 
   createUserPermission, 
   updateUserPermission,
+  deleteUserPermission,
   getUsageStats,
   checkIsAdmin,
   UsageStats,
@@ -305,8 +306,9 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Users Table Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-900">Users ({filteredUsers.length})</h2>
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Users ({filteredUsers.length})</h2>
                 <div className="flex items-center gap-4">
                   {/* Search */}
                   <div className="relative">
@@ -345,6 +347,22 @@ export default function AdminPage() {
                     Add New User
                   </button>
                 </div>
+              </div>
+              
+              {/* Firebase Auth Note */}
+              <div className="px-6 py-3 bg-yellow-50 border-b border-yellow-200">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> User permissions here control platform access and model usage. 
+                  For Google SSO login, users must also be created in{' '}
+                  <a 
+                    href="https://console.firebase.google.com/u/0/project/pulsepoint-bitstrapped-ai/authentication/users" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline font-semibold hover:text-yellow-900"
+                  >
+                    Firebase Authentication
+                  </a>.
+                </p>
               </div>
               
               <div className="overflow-x-auto">
@@ -420,17 +438,36 @@ export default function AdminPage() {
                             {user.updatedAt.toLocaleDateString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setAllowedModels([...user.allowedModels]);
-                                setIsAdminUser(user.isAdmin || false);
-                              }}
-                              className="text-purple-600 hover:text-purple-900"
-                              style={{ color: PURPLE_PRIMARY }}
-                            >
-                              Edit
-                            </button>
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setAllowedModels([...user.allowedModels]);
+                                  setIsAdminUser(user.isAdmin || false);
+                                }}
+                                className="text-purple-600 hover:text-purple-900"
+                                style={{ color: PURPLE_PRIMARY }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Delete user ${user.email}? This cannot be undone.`)) {
+                                    try {
+                                      await deleteUserPermission(user.id);
+                                      alert('User deleted successfully');
+                                      loadData();
+                                    } catch (error) {
+                                      console.error('Error deleting user:', error);
+                                      alert('Failed to delete user');
+                                    }
+                                  }
+                                }}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

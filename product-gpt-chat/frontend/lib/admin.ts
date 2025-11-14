@@ -8,7 +8,8 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  updateDoc, 
+  updateDoc,
+  deleteDoc,
   Timestamp
 } from 'firebase/firestore';
 import { getApps, initializeApp, getApp } from 'firebase/app';
@@ -200,6 +201,16 @@ export const updateUserPermission = async (
   }
 
   await updateDoc(doc(firestoreDb, 'user_permissions', userId), updateData);
+};
+
+export const deleteUserPermission = async (userId: string): Promise<void> => {
+  const firestoreDb = getDb();
+  if (!firestoreDb) {
+    console.error('Firestore not initialized');
+    throw new Error('Firestore not initialized');
+  }
+
+  await deleteDoc(doc(firestoreDb, 'user_permissions', userId));
 };
 
 export const checkIsAdmin = async (email: string): Promise<boolean> => {

@@ -35,11 +35,12 @@ service cloud.firestore {
                      resource.data.email == request.auth.token.email;
     }
     
-    // Usage tracking collection - admin can read all, users can write their own
+    // Usage tracking collection - admin can read all, backend can write via Admin SDK
     match /usage_tracking/{usageId} {
       allow read: if isAdmin();
-      allow create: if request.auth != null && 
-                       request.resource.data.userId == request.auth.uid;
+      // Allow create from authenticated users (client-side) or Admin SDK (backend)
+      // Admin SDK bypasses rules, so this is for client-side writes only
+      allow create: if request.auth != null;
       allow update, delete: if isAdmin();
     }
   }

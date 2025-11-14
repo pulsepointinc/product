@@ -60,8 +60,13 @@ def get_firestore_db():
             try:
                 firebase_admin.get_app()
             except ValueError:
-                firebase_admin.initialize_app(options={'projectId': FIREBASE_PROJECT_ID})
+                # Initialize with default credentials (uses Cloud Run service account)
+                # This gives admin privileges and bypasses Firestore security rules
+                cred = credentials.ApplicationDefault()
+                firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
+                logger.info("✅ Firebase Admin initialized with default credentials")
             db = firestore.client()
+            logger.info("✅ Firestore client initialized")
         except Exception as e:
             logger.error(f"Failed to initialize Firestore: {e}")
             db = None

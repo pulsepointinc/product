@@ -33,6 +33,7 @@ export default function Home() {
   const { user, isAuthenticated, signIn, signOut, loading: authLoading } = useGoogleAuth();
   const SSO_ENABLED = process.env.NEXT_PUBLIC_ENABLE_SSO === 'true';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null); // null = checking, true = has access, false = no access
+  const [userPermission, setUserPermission] = useState<UserPermission | null>(null); // User's allowed models
 
   // Create new conversation - just clear current state, don't create until user sends message
   const handleNewConversation = useCallback(async () => {
@@ -506,7 +507,7 @@ export default function Home() {
                   Admin
                 </Link>
               )}
-              {/* Model Selector */}
+              {/* Model Selector - filtered by user permissions */}
               <div className="flex items-center gap-2">
                 <label htmlFor="model-select" className="text-sm text-gray-600">Model:</label>
                 <select
@@ -516,10 +517,20 @@ export default function Home() {
                   className="text-sm border border-gray-300 rounded px-3 py-1.5 bg-white hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   disabled={loading}
                 >
-                  <option value="auto">Auto (Recommended)</option>
-                  <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-Effective)</option>
-                  <option value="gpt-4o">GPT-4o (High Quality)</option>
-                  <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Balanced)</option>
+                  {/* Always show Auto */}
+                  {(!userPermission || userPermission.allowedModels.includes('auto') || userPermission.allowedModels.length === 0) && (
+                    <option value="auto">Auto (Recommended)</option>
+                  )}
+                  {/* Show only allowed models */}
+                  {(!userPermission || userPermission.allowedModels.includes('gpt-4o-mini')) && (
+                    <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cost-Effective)</option>
+                  )}
+                  {(!userPermission || userPermission.allowedModels.includes('gpt-4o')) && (
+                    <option value="gpt-4o">GPT-4o (High Quality)</option>
+                  )}
+                  {(!userPermission || userPermission.allowedModels.includes('gemini-2.0-flash-001')) && (
+                    <option value="gemini-2.0-flash-001">Gemini 2.0 Flash (Balanced)</option>
+                  )}
                 </select>
               </div>
               {SSO_ENABLED && user && (

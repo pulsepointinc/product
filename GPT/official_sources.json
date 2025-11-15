@@ -1,7 +1,7 @@
 {
   "knowledge_layer": {
-    "endpoint": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v4-intelligent",
-    "version": "4.0-INTELLIGENT-ROUTING",
+    "endpoint": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v5",
+    "version": "5.0-INTELLIGENT-ROUTING",
     "features": [
       "Intelligent query intent detection",
       "Natural language filter extraction",
@@ -9,13 +9,14 @@
       "Product team default filtering",
       "Single API call architecture",
       "Mermaid diagram generation",
-      "Robust temporal/date parsing"
+      "Robust temporal/date parsing",
+      "Hybrid model selection"
     ]
   },
   "jira_api": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/jira-api-v4-dual-mode",
   "git_api": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/pulsepoint-git-api-v2",
   "confluence_api": "https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app",
   "document360_api": "https://pulsepoint-document360-api-v1-420423430685.us-east4.run.app",
-  "last_updated": "2025-09-25T16:04:02.006051+00:00",
+  "last_updated": "2025-11-15T17:08:03.453184",
   "deployment_status": "production"
 }

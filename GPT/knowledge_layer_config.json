@@ -1,6 +1,6 @@
 {
-  "api_version": "4.0-INTELLIGENT-ROUTING",
-  "endpoint": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v4-intelligent",
+  "api_version": "5.0-INTELLIGENT-ROUTING",
+  "endpoint": "https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v5",
   "architecture": "Revolutionary single-call architecture",
   "core_features": {
     "intelligent_routing": "Automatic query intent detection (aggregation vs listing)",
@@ -8,33 +8,8 @@
     "sql_optimization": "Database-level aggregation, no client processing",
     "default_filtering": "Product team focus by default",
     "mermaid_generation": "VertexAI-powered technical diagram creation",
-    "temporal_parsing": "Robust date/sprint recognition from natural language"
-  },
-  "supported_query_types": {
-    "jira_aggregation": {
-      "examples": [
-        "Count tickets for Front End Portal Development",
-        "Sum of points by product manager for current sprint",
-        "Breakdown by stream for Authentication product"
-      ],
-      "response_time": "2-5 seconds (SQL optimized)"
-    },
-    "jira_ticket_listing": {
-      "examples": [
-        "Show me Authentication tickets",
-        "List tickets assigned to Jessica Wang",
-        "Stories for User Management product"
-      ],
-      "response_time": "3-8 seconds"
-    },
-    "technical_mermaid": {
-      "examples": [
-        "Diagram of ad serving process",
-        "Authentication workflow diagram",
-        "Using repos provide mermaid diagram"
-      ],
-      "response_time": "15-30 seconds (VertexAI synthesis)"
-    }
+    "temporal_parsing": "Robust date/sprint recognition from natural language",
+    "hybrid_model_selection": "GPT-4o-mini for simple queries, GPT-4o/Gemini for complex"
   },
   "data_sources": {
     "jira": "Live ticket and sprint data with intelligent routing",
@@ -42,10 +17,5 @@
     "github": "Repository analysis and code insights",
     "document360": "Technical documentation"
   },
-  "performance": {
-    "timeout": "540 seconds maximum",
-    "memory": "2GB allocated",
-    "concurrent_apis": "4 parallel API calls for efficiency"
-  },
-  "last_updated": "2025-09-25T16:04:02.006001+00:00"
+  "last_updated": "2025-11-15T17:08:02.736856"
 }

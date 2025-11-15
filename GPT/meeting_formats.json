@@ -1,36 +1,14 @@
 {
   "meta": {
     "purpose": "Meeting types and naming conventions",
-    "last_updated": "2025-09-25T16:04:03.427696+00:00"
+    "last_updated": "2025-11-15T17:08:04.984923"
   },
   "meetings": {
     "PW": {
       "full_name": "Product Weekly",
       "definition": "Weekly product team meeting for updates, decisions, and alignment",
       "format": "YYYY-MM-DD - PW",
-      "examples": [
-        "2025-08-13 - PW",
-        "2025-08-06 - PW"
-      ],
-      "typical_content": [
-        "Product updates and releases",
-        "Sprint reviews and planning",
-        "Cross-team alignment",
-        "Strategic initiatives discussion",
-        "Blocker resolution"
-      ],
-      "confluence_location": "Product Weekly folder",
       "frequency": "Weekly"
-    },
-    "Stream_Reviews": {
-      "definition": "Stream-specific deep dive meetings",
-      "format": "Stream Name - Date",
-      "purpose": "Detailed review of stream progress and roadmap"
-    },
-    "Sprint_Reviews": {
-      "definition": "Engineering sprint review meetings",
-      "format": "Sprint Name - Date",
-      "purpose": "Review completed work and plan next sprint"
     }
   }
 }

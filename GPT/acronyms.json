@@ -144,6 +144,5 @@
     "Search Extension Creatives": "Displays a creative much like a Google search result, containing a headline, display URL, and description",
     "Ad Group": "This is what a tactic is called under a Search Extension Line ItemThis is also the old name for tactics, so in certain areas like theMPC Debugger, all tactics are called ad groups.",
     "VisitorGUID or VGUID": "PulsePoint\u2019s cookie identifier, if in a mobile application then this will show the IDFA or GAID"
-  },
-  "_last_updated": "2025-11-19T11:00:09.019464"
+  }
 }

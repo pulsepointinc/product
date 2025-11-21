@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mermaid Display - ProductGPT Integration</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -329,8 +327,6 @@
                 <button class="btn-primary" onclick="renderDiagram()">Render Diagram</button>
                 <button class="btn-secondary" onclick="clearDiagram()">Clear</button>
                 <button class="btn-export" onclick="exportPNG()">Export PNG</button>
-                <button class="btn-export" onclick="exportCSV()">Export CSV</button>
-                <button class="btn-export" onclick="exportExcel()">Export Excel</button>
             </div>
             
             <div class="example-links">
@@ -767,181 +763,93 @@ graph TD
                     return;
                 }
 
-                // Create a canvas and convert SVG to PNG
-                const canvas = await html2canvas(diagramElement, {
-                    backgroundColor: 'white',
-                    scale: 2, // Higher resolution
-                    logging: false
-                });
+                // Clone the SVG to avoid modifying the original
+                const svgClone = diagramElement.cloneNode(true);
+                
+                // Get SVG dimensions
+                const svgRect = diagramElement.getBoundingClientRect();
+                const svgWidth = svgRect.width || diagramElement.viewBox.baseVal.width || 800;
+                const svgHeight = svgRect.height || diagramElement.viewBox.baseVal.height || 600;
 
-                // Download the PNG
-                const link = document.createElement('a');
-                link.download = `mermaid-diagram-${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-
-                showSuccess('PNG exported successfully');
-            } catch (error) {
-                showError(`Export failed: ${error.message}`);
-            }
-        }
-
-        function exportCSV() {
-            if (!currentDiagramData) {
-                showError('Please render a diagram first');
-                return;
-            }
-
-            try {
-                // Extract data based on diagram type
-                const data = extractDataForExport(currentDiagramData.code);
-                if (!data.length) {
-                    showError('No tabular data found in this diagram type');
-                    return;
+                // Set explicit dimensions on clone if not present
+                if (!svgClone.hasAttribute('width')) {
+                    svgClone.setAttribute('width', svgWidth);
+                }
+                if (!svgClone.hasAttribute('height')) {
+                    svgClone.setAttribute('height', svgHeight);
                 }
 
-                // Convert to CSV
-                const csv = convertToCSV(data);
-                downloadFile(csv, `mermaid-data-${Date.now()}.csv`, 'text/csv');
-                showSuccess('CSV exported successfully');
-            } catch (error) {
-                showError(`CSV export failed: ${error.message}`);
-            }
-        }
+                // Convert SVG to data URL
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const svgUrl = URL.createObjectURL(svgBlob);
 
-        function exportExcel() {
-            if (!currentDiagramData) {
-                showError('Please render a diagram first');
-                return;
-            }
+                // Create an image element to load the SVG
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                await new Promise((resolve, reject) => {
+                    img.onload = () => {
+                        try {
+                            // Create canvas with higher resolution
+                            const scale = 2;
+                            const canvas = document.createElement('canvas');
+                            canvas.width = svgWidth * scale;
+                            canvas.height = svgHeight * scale;
+                            
+                            const ctx = canvas.getContext('2d');
+                            if (!ctx) {
+                                reject(new Error('Could not get canvas context'));
+                                return;
+                            }
 
-            try {
-                // Extract data based on diagram type
-                const data = extractDataForExport(currentDiagramData.code);
-                if (!data.length) {
-                    showError('No tabular data found in this diagram type');
-                    return;
-                }
+                            // Fill white background
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Create workbook and worksheet
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(data);
-                XLSX.utils.book_append_sheet(wb, ws, 'Mermaid Data');
+                            // Draw the image on canvas
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                // Download Excel file
-                XLSX.writeFile(wb, `mermaid-data-${Date.now()}.xlsx`);
-                showSuccess('Excel file exported successfully');
-            } catch (error) {
-                showError(`Excel export failed: ${error.message}`);
-            }
-        }
-
-        function extractDataForExport(code) {
-            const data = [];
-            
-            // Extract data based on diagram type
-            if (code.includes('pie ')) {
-                // Parse pie chart data
-                const lines = code.split('\n');
-                lines.forEach(line => {
-                    const match = line.match(/"([^"]+)"\s*:\s*(\d+)/);
-                    if (match) {
-                        data.push({
-                            Category: match[1],
-                            Value: parseInt(match[2])
-                        });
-                    }
-                });
-            } else if (code.includes('gantt')) {
-                // Parse Gantt chart data
-                const lines = code.split('\n');
-                let currentSection = '';
-                lines.forEach(line => {
-                    line = line.trim();
-                    if (line.startsWith('section ')) {
-                        currentSection = line.replace('section ', '');
-                    } else {
-                        const match = line.match(/([^:]+):\s*([^,]+),?\s*([^,]*),?\s*([^,]*),?\s*([^,]*)/);
-                        if (match && match[1] && !line.includes('title') && !line.includes('dateFormat')) {
-                            data.push({
-                                Section: currentSection,
-                                Task: match[1].trim(),
-                                Status: match[2] ? match[2].trim() : '',
-                                ID: match[3] ? match[3].trim() : '',
-                                StartDate: match[4] ? match[4].trim() : '',
-                                EndDate: match[5] ? match[5].trim() : ''
-                            });
-                        }
-                    }
-                });
-            } else if (code.includes('|') && code.includes('---')) {
-                // Parse table data (markdown tables in comments or descriptions)
-                const lines = code.split('\n');
-                let headers = [];
-                lines.forEach(line => {
-                    if (line.includes('|') && !line.includes('---')) {
-                        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
-                        if (cells.length > 0 && !headers.length) {
-                            headers = cells;
-                        } else if (cells.length > 0 && headers.length) {
-                            const row = {};
-                            cells.forEach((cell, index) => {
-                                if (headers[index]) {
-                                    row[headers[index]] = cell;
+                            // Convert to PNG and download
+                            canvas.toBlob((blob) => {
+                                if (!blob) {
+                                    reject(new Error('Failed to create PNG blob'));
+                                    return;
                                 }
-                            });
-                            data.push(row);
+                                
+                                const link = document.createElement('a');
+                                link.download = `mermaid-diagram-${Date.now()}.png`;
+                                link.href = URL.createObjectURL(blob);
+                                link.click();
+                                
+                                // Clean up
+                                URL.revokeObjectURL(link.href);
+                                URL.revokeObjectURL(svgUrl);
+                                
+                                showSuccess('PNG exported successfully');
+                                resolve();
+                            }, 'image/png');
+                        } catch (err) {
+                            URL.revokeObjectURL(svgUrl);
+                            reject(err);
                         }
-                    }
+                    };
+                    
+                    img.onerror = () => {
+                        URL.revokeObjectURL(svgUrl);
+                        reject(new Error('Failed to load SVG image'));
+                    };
+                    
+                    img.src = svgUrl;
                 });
+            } catch (error) {
+                const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+                showError(`Export failed: ${errorMessage}`);
+                console.error('PNG export error:', error);
             }
-
-            // If no specific data found, create a basic structure
-            if (data.length === 0) {
-                data.push({
-                    DiagramType: getDiagramType(code),
-                    Code: code,
-                    ExportDate: new Date().toISOString()
-                });
-            }
-
-            return data;
         }
 
-        function getDiagramType(code) {
-            if (code.includes('flowchart') || code.includes('graph')) return 'Flowchart';
-            if (code.includes('sequenceDiagram')) return 'Sequence Diagram';
-            if (code.includes('gantt')) return 'Gantt Chart';
-            if (code.includes('pie ')) return 'Pie Chart';
-            if (code.includes('classDiagram')) return 'Class Diagram';
-            return 'Unknown';
-        }
 
-        function convertToCSV(data) {
-            if (!data.length) return '';
-            
-            const headers = Object.keys(data[0]);
-            const csvRows = [
-                headers.join(','),
-                ...data.map(row => 
-                    headers.map(header => {
-                        const value = row[header] || '';
-                        // Escape quotes and wrap in quotes if contains comma
-                        return value.toString().includes(',') ? `"${value.toString().replace(/"/g, '""')}"` : value;
-                    }).join(',')
-                )
-            ];
-            return csvRows.join('\n');
-        }
-
-        function downloadFile(content, filename, mimeType) {
-            const blob = new Blob([content], { type: mimeType });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = filename;
-            link.click();
-            URL.revokeObjectURL(link.href);
-        }
 
         function showError(message) {
             clearMessages();
@@ -1058,9 +966,6 @@ graph TD
         // Handle unknown hashes with intelligent recovery
         function handleUnknownHash(hash) {
             console.log(`Attempting to recover diagram for unknown hash: ${hash}`);
-
-            // Show helpful message instead of error
-            showInfo(`Hash '${hash}' not found locally. Attempting recovery...`);
 
             // Try to recover by prompting user to paste content
             const message = `

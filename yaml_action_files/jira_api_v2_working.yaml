@@ -1,0 +1,195 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Jira API v2 - WORKING VERSION
+  description: |
+    Enhanced Jira BigQuery API with working filters. For multi-project queries, 
+    make separate API calls per project and aggregate results. 
+    All parameters tested and confirmed working.
+  version: 3.0.0
+servers:
+  - url: https://pulsepoint-jira-api-v2-420423430685.us-east4.run.app
+    description: Production Jira API v2 - ALL FILTERS WORKING
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Get API health status and capabilities
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PulsePoint BigQuery Jira API - Enhanced Version"
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "3.0.0"
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Multi-project support", "Team classification", "Paginated responses"]
+                  data_source:
+                    type: string
+                    example: "pulsepoint-dataproducts.jira.all_jira_tickets"
+
+  /tickets:
+    get:
+      operationId: getTickets
+      summary: Get filtered tickets - ALL PARAMETERS WORKING
+      description: Get tickets with comprehensive filtering - all parameters tested and working
+      parameters:
+        - name: project_key
+          in: query
+          description: "Project key - ✅ WORKING. Single project only: PROD, ET, STUD, or DPD. For multiple projects, make separate API calls."
+          schema:
+            type: string
+            example: "PROD"
+        - name: sprint_date
+          in: query
+          description: "Sprint date - ✅ WORKING (tested: August 2025 = 654 tickets)"
+          schema:
+            type: string
+            example: "August 2025"
+        - name: release_date
+          in: query
+          description: "Release date - ✅ WORKING for roadmap queries"
+          schema:
+            type: string
+            example: "August 2025"
+        - name: assignee
+          in: query
+          description: "Assignee partial matching - ✅ WORKING (tested: 'Jifei' = 1,330 tickets)"
+          schema:
+            type: string
+            example: "Jifei"
+        - name: reporter_name
+          in: query
+          description: "Reporter partial matching - ✅ WORKING (tested: 'Kenan' = 205 tickets)"
+          schema:
+            type: string
+            example: "Kenan"
+        - name: stream
+          in: query
+          description: "Stream filter - ✅ WORKING"
+          schema:
+            type: string
+            example: "Analytics"
+        - name: product
+          in: query
+          description: "Product filter - ✅ WORKING"
+          schema:
+            type: string
+            example: "Adaptive Optimization"
+        - name: status
+          in: query
+          description: "Status filter - ✅ WORKING"
+          schema:
+            type: string
+            example: "In Progress"
+        - name: issue_type
+          in: query
+          description: "Issue type - ✅ WORKING (6=Epic, 3=Story)"
+          schema:
+            type: string
+            example: "6"
+        - name: limit
+          in: query
+          description: "Result limit - ✅ WORKING"
+          schema:
+            type: integer
+            default: 100
+            example: 50
+        - name: offset
+          in: query
+          description: "Pagination offset - ✅ WORKING"
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total tickets matching filters
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+                  filters_applied:
+                    type: object
+                    description: Shows which filters were applied
+                  pagination:
+                    type: object
+                    properties:
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      total:
+                        type: integer
+
+components:
+  schemas:
+    JiraTicket:
+      type: object
+      properties:
+        issue_key:
+          type: string
+          example: "PROD-13141"
+        summary:
+          type: string
+          example: "Support AdX PG - GA"
+        assignee:
+          type: string
+          example: "Bryan Weinstein"
+        reporter_name:
+          type: string
+          example: "Jessica Wang"
+        status:
+          type: string
+          example: "In Progress"
+        priority:
+          type: string
+          example: "Normal"
+        project_key:
+          type: string
+          example: "PROD"
+        sprint:
+          type: string
+          example: "Active Product"
+        sprint_date:
+          type: string
+          example: "August 2025"
+        release_date:
+          type: string
+          example: "June 2024"
+        stream:
+          type: string
+          example: "Analytics"
+        product:
+          type: string
+          example: "Studio Platform"
+        issue_type:
+          type: integer
+          example: 6
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time

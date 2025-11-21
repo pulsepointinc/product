@@ -1,0 +1,140 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v5
+  description: Product knowledge API with intelligent synthesis across JIRA, Confluence, GitHub, and Document360. Returns comprehensive answers with source links.
+  version: 5.0.0
+servers:
+  - url: https://knowledge-layer-v5-420423430685.us-east4.run.app
+    description: Production Knowledge Layer API v5 - Cloud Run Service
+
+paths:
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Query the knowledge layer for comprehensive product information
+      description: Query JIRA tickets, Confluence docs, GitHub repos, and Document360 articles. Returns synthesized response with source links from all data sources.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: The question to ask about PulsePoint products, features, or processes
+                  example: "What are AO factors?"
+                session_id:
+                  type: string
+                  description: Optional session ID for conversation continuity
+                  example: "session_1758894739_327cd516"
+                conversation_history:
+                  type: array
+                  description: Optional conversation history for context
+                  items:
+                    type: object
+                max_results:
+                  type: integer
+                  description: Maximum number of results to return
+                  default: 50
+                  example: 50
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive response with synthesized information from all data sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  synthesis_response:
+                    type: object
+                    properties:
+                      response:
+                        type: string
+                        description: Comprehensive synthesized response combining all data sources
+                        example: "## Adaptive Optimization (AO) Factors\n\nAO factors are key metrics used in our adaptive optimization system..."
+                      sources:
+                        type: array
+                        items:
+                          type: string
+                        description: List of data sources used
+                        example: ["JIRA API", "Confluence API", "GitHub API", "Document360 API"]
+                      synthesis_method:
+                        type: string
+                        description: Method used for synthesis
+                        example: "openai_gpt4o_mini"
+                      session_id:
+                        type: string
+                        description: Session ID for conversation continuity
+                      version:
+                        type: string
+                        description: API version
+                        example: "5.0-FIXED-DATA-SOURCES"
+                      api_status:
+                        type: object
+                        properties:
+                          data_sources_queried:
+                            type: integer
+                            example: 4
+                          data_sources_successful:
+                            type: integer
+                            example: 2
+                          jira_query_success:
+                            type: boolean
+                          confluence_api_success:
+                            type: boolean
+                          github_api_success:
+                            type: boolean
+                          document360_api_success:
+                            type: boolean
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No question provided"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error: Failed to retrieve data"
+
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check and API status
+      description: Get API health status and available features
+      responses:
+        '200':
+          description: API health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "5.0-FIXED-DATA-SOURCES"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v5 - Fixed Data Source Integration + Intelligent Synthesis"
+                  features:
+                    type: array
+                    items:
+                      type: string
+
+

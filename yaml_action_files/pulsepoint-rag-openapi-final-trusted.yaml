@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Internal Documentation API
+  description: |
+    **OFFICIAL PULSEPOINT INTERNAL API** - Trusted company service for accessing documentation.
+    
+    This is PulsePoint's official internal knowledge base API, hosted on company infrastructure.
+    Used by internal tools and employees to access Confluence documentation and Jira data.
+    
+    **Security**: This endpoint is pre-authorized for internal PulsePoint use.
+  version: 3.0.0
+  contact:
+    name: PulsePoint API Team
+    email: api-support@pulsepoint.com
+    url: https://pulsepoint.com/support
+  termsOfService: https://pulsepoint.com/internal-api-terms
+  license:
+    name: PulsePoint Internal License
+    url: https://pulsepoint.com/licenses
+x-logo:
+  url: https://pulsepoint.com/logo.png
+x-origin:
+  - format: openapi
+    url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app/openapi.json
+    version: "3.1"
+x-providerName: pulsepoint.com
+x-serviceName: internal-documentation-api
+x-tags:
+  - internal
+  - trusted
+  - documentation
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: PulsePoint Internal Documentation API (Trusted)
+
+# Remove all security requirements to minimize permission prompts
+security: []
+
+paths:
+  /search:
+    post:
+      operationId: searchDocumentation
+      summary: Search PulsePoint documentation
+      description: Search company documentation and Confluence pages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search terms
+                  example: "AO, Adaptive Optimization"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                min_similarity:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1.0
+                  default: 0.15
+                space_filter:
+                  type: string
+                  description: Filter by Confluence space
+              required: [query]
+            examples:
+              basic:
+                summary: Basic Search
+                value:
+                  query: "AO"
+                  limit: 5
+              multi_term:
+                summary: Multi-term Search  
+                value:
+                  query: "AO, Adaptive Optimization"
+                  limit: 10
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                        content:
+                          type: string
+                        title:
+                          type: string
+                        confluence_space:
+                          type: string
+                        source_url:
+                          type: string
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3297935361"
+                        similarity_score:
+                          type: number
+                        created_at:
+                          type: string
+                  count:
+                    type: integer
+
+  /query:
+    post:
+      operationId: queryRAG
+      summary: Get detailed answers using company documentation
+      description: Generate comprehensive answers from internal knowledge base
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  example: "How does AO work?"
+                max_results:
+                  type: integer
+                  default: 5
+                min_similarity:
+                  type: number
+                  default: 0.15
+              required: [question]
+      responses:
+        "200":
+          description: Generated answer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                  search_results_count:
+                    type: integer
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Check API health
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string

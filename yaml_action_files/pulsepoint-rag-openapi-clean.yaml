@@ -1,0 +1,348 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint RAG API
+  description: High-performance RAG API for PulsePoint Confluence search. Ultra-fast searches (6-12s), multi-term support with comma/OR/AND/semicolon separators. Spaces pt, pd, gs.
+  version: 2.1.0
+  contact:
+    name: PulsePoint Product & Technology
+  license:
+    name: MIT
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: Production server (ultra-fast optimized)
+
+paths:
+  /:
+    get:
+      summary: Health check endpoint
+      description: Simple health check that returns API status
+      operationId: healthCheck
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: PulsePoint RAG API v2
+                  status:
+                    type: string
+                    example: healthy
+
+  /health:
+    get:
+      summary: Detailed health check
+      description: Comprehensive health check including component status and database stats
+      operationId: detailedHealthCheck
+      responses:
+        "200":
+          description: Detailed health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  components:
+                    type: object
+                    properties:
+                      searcher:
+                        type: string
+                        example: ready
+                      generator:
+                        type: string
+                        example: ready
+
+  /stats:
+    get:
+      summary: Get knowledge base statistics
+      description: Returns statistics about the indexed documentation
+      operationId: getKnowledgeBaseStats
+      responses:
+        "200":
+          description: Knowledge base statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_stats:
+                    type: object
+                    properties:
+                      total_chunks:
+                        type: integer
+                        example: 1645
+                      total_pages:
+                        type: integer
+                        example: 682
+                      total_spaces:
+                        type: integer
+                        example: 3
+                      total_documents:
+                        type: integer
+                        example: 679
+                  model_provider:
+                    type: string
+                    example: vertex
+                  available_spaces:
+                    type: array
+                    items:
+                      type: string
+                    example: [gs, pt, pd]
+
+  /search:
+    post:
+      summary: Search for relevant document chunks
+      description: Ultra-fast semantic search (6-12s) with multi-term support. Handles comma, OR, AND, semicolon separators. Pre-computed embeddings for 118+ PulsePoint terms.
+      operationId: searchDocuments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query. Supports multi-term with comma, OR, AND, semicolon separators.
+                  example: AO, Adaptive Optimization
+                space_filter:
+                  type: string
+                  nullable: true
+                  description: Filter results to specific Confluence space
+                  enum: [pt, pd, gs]
+                  example: pt
+                min_similarity:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.4
+                  description: Minimum cosine similarity threshold (0.3-0.7 recommended)
+                  example: 0.4
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: Maximum number of results to return
+                  example: 5
+                num_results:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  nullable: true
+                  description: Alternative parameter name for limit (backward compatibility)
+                  example: 5
+      responses:
+        "200":
+          description: Search results with performance metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: Original search query
+                    example: AO, Adaptive Optimization
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                          description: Unique identifier for the document chunk
+                          example: 1b40b456236456a123ab0eff8911d953
+                        content:
+                          type: string
+                          description: The relevant text content from the document
+                        title:
+                          type: string
+                          description: Title of the source document
+                          example: For_Vomiter_Approved_marketing_copy_for_Adaptive_O
+                        confluence_space:
+                          type: string
+                          description: Confluence space (pt/gs/pd)
+                          example: pt
+                        page_id:
+                          type: string
+                          description: Confluence page ID
+                          example: "3156901934"
+                        source_url:
+                          type: string
+                          format: uri
+                          description: Direct link to the Confluence page
+                          example: confluence://pt/3156901934
+                        doc_type:
+                          type: string
+                          description: Type of document
+                          example: confluence_page
+                        chunk_index:
+                          type: integer
+                          description: Index of this chunk within the document
+                          example: 1
+                        token_count:
+                          type: integer
+                          description: Number of tokens in this chunk
+                          example: 798
+                        matched_term:
+                          type: string
+                          nullable: true
+                          description: For multi-term searches, which specific term matched this result
+                          example: Adaptive Optimization
+                        similarity_score:
+                          type: number
+                          format: float
+                          description: Similarity score (0.0-1.0, higher = more relevant)
+                          example: 0.668889202376381
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: When this content was indexed
+                          example: 2025-08-01T14:05:55.554627+00:00
+                  count:
+                    type: integer
+                    description: Number of results returned
+                    example: 5
+                  space_filter:
+                    type: string
+                    nullable: true
+                    description: Applied space filter
+                    example: null
+                  min_similarity:
+                    type: number
+                    format: float
+                    description: Applied similarity threshold
+                    example: 0.4
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+        "503":
+          description: Service unavailable (searcher not initialized)
+
+  /query:
+    post:
+      summary: Query the RAG system for answers
+      description: Generate comprehensive answers using retrieved documentation chunks and Vertex AI. First searches for relevant content, then generates contextual answers.
+      operationId: askQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Question to ask the RAG system
+                  example: What is Adaptive Optimization and how does it work?
+                space_filter:
+                  type: string
+                  nullable: true
+                  description: Filter context to specific Confluence space
+                  enum: [pt, pd, gs]
+                  example: pt
+                min_similarity:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.3
+                  description: Minimum similarity for context retrieval
+                  example: 0.3
+                max_results:
+                  type: integer
+                  minimum: 1
+                  maximum: 20
+                  default: 5
+                  description: Maximum number of chunks to use as context
+                  example: 5
+      responses:
+        "200":
+          description: Generated answer with sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                    description: Original question
+                    example: What is Adaptive Optimization?
+                  answer:
+                    type: string
+                    description: Generated answer based on retrieved context
+                  sources:
+                    type: array
+                    description: Source chunks used to generate the answer
+                    items:
+                      type: object
+                  search_results_count:
+                    type: integer
+                    description: Number of relevant chunks found
+                    example: 5
+                  context_used:
+                    type: string
+                    description: Combined context sent to the language model
+                  model_info:
+                    type: object
+                    properties:
+                      provider:
+                        type: string
+                        example: vertex
+                      model:
+                        type: string
+                        example: gemini-1.5-flash
+                  space_filter:
+                    type: string
+                    nullable: true
+                    example: pt
+                  min_similarity:
+                    type: number
+                    format: float
+                    example: 0.3
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: 2025-08-09T05:00:00.000Z
+        "400":
+          description: Invalid request
+        "500":
+          description: Internal server error
+        "503":
+          description: Service unavailable (components not initialized)
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        status_code:
+          type: integer
+          description: HTTP status code
+
+tags:
+  - name: health
+    description: Health check and system status endpoints
+  - name: search
+    description: High-performance semantic search with multi-term support
+  - name: query
+    description: RAG-powered question answering
+  - name: stats
+    description: Knowledge base statistics

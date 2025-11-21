@@ -1,0 +1,395 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Internal RAG API
+  description: RAG system for internal product discovery using Confluence and Jira
+  version: 2.0.0
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: Production RAG API with hybrid search
+
+paths:
+  /search/confluence:
+    post:
+      summary: Search Confluence documentation
+      description: Search only Confluence pages optimized for documentation and strategic content
+      operationId: searchConfluence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query for Confluence content
+                limit:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.1
+                  description: Minimum similarity threshold for Confluence
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /search/jira:
+    post:
+      summary: Search Jira tickets
+      description: Search only Jira tickets optimized for technical issues and development
+      operationId: searchJira  
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query for Jira tickets
+                limit:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.1
+                  description: Minimum similarity threshold for Jira
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /search/github:
+    post:
+      summary: Search GitHub content
+      description: Search GitHub repositories, issues, and pull requests (future implementation)
+      operationId: searchGitHub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query for GitHub content
+                limit:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.18
+                  description: Minimum similarity threshold for GitHub
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /search:
+    post:
+      summary: Unified search across all sources
+      description: Search across all sources with optional source filtering
+      operationId: searchUnified
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                source_type:
+                  type: string
+                  enum: [confluence, jira, github]
+                  description: Optional source type filter
+                limit:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.15
+                  description: Minimum similarity threshold
+                space_filter:
+                  type: string
+                  description: Filter to specific Confluence space (pt, pd, gs)
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /search/multi:
+    post:
+      summary: Multi-term search with combination logic
+      description: Search for multiple terms with union or intersection logic
+      operationId: searchMultiTerm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - queries
+              properties:
+                queries:
+                  type: array
+                  items:
+                    type: string
+                  description: List of search queries/terms
+                combine_method:
+                  type: string
+                  enum: [union, intersection]
+                  default: union
+                  description: How to combine results (OR vs AND logic)
+                limit:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.15
+                  description: Minimum similarity threshold
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiSearchResponse'
+
+  /query:
+    post:
+      summary: RAG query with answer generation
+      description: Ask questions and get AI-generated answers based on search results
+      operationId: queryRAG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: The question to ask
+                space_filter:
+                  type: string
+                  description: Filter to specific Confluence space
+                max_chunks:
+                  type: integer
+                  default: 5
+                  description: Maximum number of chunks for context
+                min_similarity:
+                  type: number
+                  default: 0.7
+                  description: Minimum similarity score for search results
+      responses:
+        '200':
+          description: Generated answer with sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+
+  /stats:
+    get:
+      summary: Get search statistics
+      description: Get statistics about the RAG system including source breakdowns
+      operationId: getStats
+      responses:
+        '200':
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+
+components:
+  schemas:
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: The search query used
+        source_type:
+          type: string
+          description: The source type searched (confluence, jira, github, or unified)
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        count:
+          type: integer
+          description: Number of results returned
+        min_similarity:
+          type: number
+          description: Minimum similarity threshold used
+        cached:
+          type: boolean
+          description: Whether results were cached
+        timestamp:
+          type: string
+          description: When the search was performed
+        performance:
+          type: object
+          properties:
+            search_time:
+              type: string
+            total_time:
+              type: string
+            cache_hit:
+              type: boolean
+
+    SearchResult:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        source_url:
+          type: string
+        doc_type:
+          type: string
+        similarity_score:
+          type: number
+        original_similarity:
+          type: number
+        boost_applied:
+          type: boolean
+        source_type:
+          type: string
+        confluence_space:
+          type: string
+        page_id:
+          type: string
+        chunk_index:
+          type: integer
+        token_count:
+          type: integer
+        created_at:
+          type: string
+
+    MultiSearchResponse:
+      type: object
+      properties:
+        queries:
+          type: array
+          items:
+            type: string
+        combine_method:
+          type: string
+        results:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/SearchResult'
+              - type: object
+                properties:
+                  matched_queries:
+                    type: array
+                    items:
+                      type: string
+        count:
+          type: integer
+        results_per_query:
+          type: object
+          additionalProperties:
+            type: integer
+
+    QueryResponse:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        search_results_count:
+          type: integer
+        context_used:
+          type: string
+        model_info:
+          type: object
+        space_filter:
+          type: string
+        min_similarity:
+          type: number
+        timestamp:
+          type: string
+
+    StatsResponse:
+      type: object
+      properties:
+        source_specific_stats:
+          type: object
+          properties:
+            by_source:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  chunks:
+                    type: integer
+                  pages:
+                    type: integer
+                  avg_tokens:
+                    type: number
+            total_chunks:
+              type: integer
+            confluence_total:
+              type: integer
+            jira_total:
+              type: integer
+            last_updated:
+              type: string
+        unified_stats:
+          type: object
+        model_provider:
+          type: string
+        available_sources:
+          type: array
+          items:
+            type: string
+        available_spaces:
+          type: array
+          items:
+            type: string

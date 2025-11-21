@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint GPT APIs
+  version: "1.0.0"
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+
+paths:
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence for AO factors and platform info
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                max_results:
+                  type: integer
+              required: [query]
+            examples:
+              ao_search:
+                value:
+                  query: "AO factors"
+                  max_results: 10
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                  count:
+                    type: integer

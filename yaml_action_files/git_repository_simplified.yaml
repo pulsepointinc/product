@@ -1,0 +1,213 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Git Repository API - Simplified
+  description: |
+    Simplified Git repository API with only working endpoints.
+    **26 repositories, 50,660 files, 64,058 functions**
+    
+  version: "1.0.0"
+
+servers:
+  - url: https://git-repository-api-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: getGitApiStatus
+      summary: Get API status
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /repositories:
+    get:
+      operationId: listRepositories
+      summary: List repositories
+      parameters:
+        - name: repository_name
+          in: query
+          schema:
+            type: string
+        - name: language
+          in: query
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Repository list
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /files/search:
+    post:
+      operationId: filesSearch
+      summary: Search files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search_content:
+                  type: string
+                  description: "Search in file content"
+                file_name:
+                  type: string
+                language:
+                  type: string
+                repository_name:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: File search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /functions/search:
+    post:
+      operationId: functionsSearch
+      summary: Search functions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                function_name:
+                  type: string
+                language:
+                  type: string
+                repository_name:
+                  type: string
+                class_name:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: Function search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /github_code_search:
+    post:
+      operationId: github_code_search
+      summary: Advanced code search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search terms (supports OR logic)"
+                repository_name:
+                  type: string
+                language:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 50
+              required:
+                - query
+      responses:
+        '200':
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # Working correlation endpoint - the only one that actually works
+  /correlations/ticket:
+    post:
+      operationId: getCorrelationsByQuery
+      summary: Find ticket correlations (WORKING ENDPOINT)
+      description: |
+        **THIS IS THE ONLY WORKING CORRELATION ENDPOINT**
+        Use this for all ticket correlation searches.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  description: "Jira ticket ID (e.g., ET-20392)"
+                  example: "ET-20392"
+                max_results:
+                  type: integer
+                  default: 50
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+
+    # Add the same endpoint with different operation ID for ChatGPT
+    put:
+      operationId: github_correlation_search
+      summary: Same correlation endpoint (alternative operation name)
+      description: |
+        **SAME AS POST - Use this if ChatGPT calls 'github_correlation_search'**
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  example: "ET-20392"
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Same as POST method
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /correlations/summary:
+    get:
+      operationId: correlationsSummary
+      summary: Get correlation summary
+      description: "Shows all 76 tickets with correlations"
+      responses:
+        '200':
+          description: Summary of all correlations
+          content:
+            application/json:
+              schema:
+                type: object

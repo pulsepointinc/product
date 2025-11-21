@@ -1,0 +1,289 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Confluence Search API
+  version: "1.0"
+  description: |
+    **WORKING API** - Search PulsePoint's Confluence documentation and knowledge base.
+    
+    **Important**: Use `min_similarity: 0.01` or `0.05` for reliable results. The default threshold of 0.3 is too high.
+    
+    **Base URL**: `https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app`
+
+servers:
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+    description: "✅ WORKING - Production Confluence Search API"
+
+paths:
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence documentation
+      description: "Search Confluence docs. Use min_similarity: 0.01-0.05 for results."
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  description: Search terms (e.g., "Studio API", "AO factors", "security")
+                  example: "Studio API documentation"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum number of results to return
+                min_similarity:
+                  type: number
+                  default: 0.01
+                  minimum: 0.01
+                  maximum: 1.0
+                  description: "**IMPORTANT**: Use 0.01 or 0.05 for reliable results. Default 0.3 is too high."
+                  example: 0.05
+                space_filter:
+                  type: string
+                  description: Filter by Confluence space (e.g., "pt", "gs", "pd")
+                  example: "pt"
+            examples:
+              studio_search:
+                summary: Search for Studio API documentation
+                value:
+                  query: "Studio API"
+                  max_results: 5
+                  min_similarity: 0.05
+              ao_search:
+                summary: Search for Adaptive Optimization information
+                value:
+                  query: "AO factors"
+                  max_results: 3
+                  min_similarity: 0.01
+              security_search:
+                summary: Search security documentation in specific space
+                value:
+                  query: "security configuration"
+                  max_results: 5
+                  min_similarity: 0.05
+                  space_filter: "gs"
+              
+      responses:
+        '200':
+          description: Search results from Confluence
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The search query that was executed
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          description: Page title
+                          example: "Studio_BE_API_v4"
+                        content:
+                          type: string
+                          description: Content preview (truncated with ... for longer content)
+                          example: "Studio BE API v4 provides a powerful interface for communication..."
+                        source_url:
+                          type: string
+                          format: uri
+                          description: Direct link to Confluence page
+                          example: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2799403012"
+                        confluence_url:
+                          type: string
+                          format: uri
+                          description: Same as source_url - proper Confluence link
+                          example: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2799403012"
+                        page_id:
+                          type: string
+                          description: Confluence page ID
+                          example: "2799403012"
+                        confluence_space:
+                          type: string
+                          description: Confluence space key
+                          example: "gs"
+                        similarity_score:
+                          type: number
+                          description: Relevance score (typically 0.01-0.1 for good matches)
+                          example: 0.08
+                        chunk_index:
+                          type: integer
+                          description: Content chunk number
+                        token_count:
+                          type: integer
+                          description: Token count of the content
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: When content was indexed
+                  count:
+                    type: integer
+                    description: Number of results returned
+                    example: 3
+                  space_filter:
+                    type: string
+                    nullable: true
+                    description: Applied space filter
+                  min_similarity:
+                    type: number
+                    description: Applied similarity threshold
+                    example: 0.05
+              examples:
+                studio_results:
+                  summary: Studio API search results
+                  value:
+                    query: "Studio API"
+                    results:
+                      - title: "Studio_BE_API_v4"
+                        content: "Studio BE API v4 provides a powerful and seamless interface for communication between the front-end React application..."
+                        source_url: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2799403012"
+                        confluence_url: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2799403012"
+                        page_id: "2799403012"
+                        confluence_space: "gs"
+                        similarity_score: 0.085
+                        created_at: "2025-08-01T21:29:06.268889+00:00"
+                      - title: "Security"
+                        content: "API security configuration and authentication details..."
+                        source_url: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2493317130"
+                        confluence_url: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2493317130"
+                        page_id: "2493317130"
+                        confluence_space: "gs"
+                        similarity_score: 0.071
+                        created_at: "2025-08-01T21:29:06.267881+00:00"
+                    count: 2
+                    space_filter: null
+                    min_similarity: 0.05
+                    
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items: {}
+                  count:
+                    type: integer
+                    example: 0
+                  error:
+                    type: string
+                    example: "Query parameter is required"
+                    
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items: {}
+                  count:
+                    type: integer
+                    example: 0
+                  error:
+                    type: string
+                    example: "Internal server error"
+
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Check if the Confluence API is running
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PulsePoint RAG API v2"
+                  status:
+                    type: string
+                    example: "healthy"
+
+components:
+  schemas:
+    ConfluenceSearchRequest:
+      type: object
+      required: ["query"]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        min_similarity:
+          type: number
+          minimum: 0.01
+          maximum: 1.0
+          default: 0.01
+        space_filter:
+          type: string
+          
+    ConfluenceSearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfluenceResult'
+        count:
+          type: integer
+        space_filter:
+          type: string
+          nullable: true
+        min_similarity:
+          type: number
+          
+    ConfluenceResult:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        source_url:
+          type: string
+          format: uri
+        confluence_url:
+          type: string
+          format: uri
+        page_id:
+          type: string
+        confluence_space:
+          type: string
+        similarity_score:
+          type: number
+        chunk_index:
+          type: integer
+        token_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time

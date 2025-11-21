@@ -1,0 +1,267 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer v4 - Intelligent Architecture
+  description: |
+    Revolutionary single-call architecture with intelligent query routing and SQL optimization.
+    Enhanced temporal parsing supports flexible date expressions like "march sprint", "all sprints YTD", "5/2025", "May this year".
+    Eliminates client-side processing through automatic intent detection and natural language understanding.
+    Version 4.0 with dual-mode JIRA API integration and product team default filtering.
+  version: 4.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-layer-v4-intelligent
+    description: Knowledge Layer v4 - Intelligent Architecture with Enhanced Temporal Parsing
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check and feature overview
+      description: Get API health status and intelligent architecture capabilities
+      responses:
+        '200':
+          description: Health status showing intelligent features including enhanced temporal parsing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "4.0-INTELLIGENT-ROUTING"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v4 - Intelligent API Architecture"
+                  status:
+                    type: string
+                    example: "healthy"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Intelligent query intent detection", "Enhanced temporal parsing (march sprint, all sprints YTD, 5/2025)", "Natural language filter extraction", "Automatic SQL aggregation routing", "Product team default filtering", "Single API call architecture"]
+
+  /ask:
+    post:
+      operationId: askIntelligentQuestion
+      summary: Ask any product question with intelligent processing and enhanced temporal parsing
+      description: |
+        Revolutionary single-call approach with robust date/sprint recognition. Send natural language queries and receive:
+        - Automatic SQL aggregation for count/sum queries
+        - Individual ticket lists for detail queries
+        - Product team filtering by default
+        - Enhanced temporal parsing: "march sprint", "all sprints YTD", "5/2025", "May this year"
+        - Clean Mermaid diagrams for technical queries
+        - Source links for all responses
+
+        Supported temporal expressions:
+        - Current: "current sprint", "this sprint", "current month", "this month"
+        - Previous: "last sprint", "previous sprint", "last month", "previous month"
+        - YTD: "all sprints", "all months", "ytd", "year to date", "this year", "aggregate", "total across"
+        - Flexible dates: "march sprint", "5/2025", "2025/5", "May this year", "March 2025"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: |
+                    Your natural language question - the API handles everything automatically.
+                    Examples with enhanced temporal parsing:
+                    - "Count tickets for Front End Portal Development march sprint"
+                    - "Sum of points for 5/2025 by product manager"
+                    - "All sprints YTD breakdown for Authentication product"
+                    - "Show me tickets for May this year"
+                  example: "Count of tickets and sum of points for Front End Portal Development team by product manager march sprint"
+                max_results:
+                  type: integer
+                  description: Maximum results (automatically optimized based on query type)
+                  default: 50
+              required:
+                - question
+      responses:
+        '200':
+          description: Intelligent response with automatic routing, optimization, and enhanced temporal parsing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "4.0-INTELLIGENT-ROUTING"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v4 - Revolutionary single-call architecture with enhanced temporal parsing"
+                  question:
+                    type: string
+                    description: Original question
+                  temporal_parsing:
+                    type: object
+                    description: Parsed temporal information from natural language
+                    properties:
+                      detected_period:
+                        type: string
+                        example: "march_2025"
+                      pattern_matched:
+                        type: string
+                        example: "month_name_sprint"
+                      description:
+                        type: string
+                        example: "March 2025 sprint"
+                  jira_analysis:
+                    type: object
+                    description: Intelligently routed JIRA analysis (aggregation or tickets)
+                    properties:
+                      query_type:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                        example: "aggregation"
+                      summary:
+                        type: object
+                        description: Total metrics (for aggregation queries)
+                        properties:
+                          total_tickets:
+                            type: integer
+                          total_story_points:
+                            type: number
+                      breakdowns:
+                        type: object
+                        description: Grouped breakdowns (for aggregation queries)
+                        properties:
+                          by_product_manager:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                product_manager:
+                                  type: string
+                                total_tickets:
+                                  type: integer
+                                total_story_points:
+                                  type: number
+                          by_stream:
+                            type: array
+                            items:
+                              type: object
+                          by_product:
+                            type: array
+                            items:
+                              type: object
+                      tickets:
+                        type: array
+                        description: Individual tickets (for listing queries)
+                        items:
+                          type: object
+                          properties:
+                            issue_key:
+                              type: string
+                              example: "PROD-12914"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            product_manager:
+                              type: string
+                            story_points:
+                              type: number
+                            team:
+                              type: string
+                            stream:
+                              type: string
+                            product:
+                              type: string
+                            status:
+                              type: string
+                      filters_applied:
+                        type: object
+                        description: Automatically extracted filters from natural language including temporal
+                      sql_optimized:
+                        type: boolean
+                        example: true
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis
+                    properties:
+                      sources:
+                        type: array
+                        description: Relevant documentation sources with links
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            content:
+                              type: string
+                            similarity_score:
+                              type: number
+                  github_integration:
+                    type: object
+                    description: GitHub repository analysis and Mermaid generation
+                    properties:
+                      repositories:
+                        type: array
+                        description: Relevant code repositories with clean Mermaid syntax
+                        items:
+                          type: object
+                          properties:
+                            repository:
+                              type: string
+                            files:
+                              type: array
+                            mermaid_diagram:
+                              type: string
+                              description: Clean Mermaid syntax without comments or special characters
+                            mermaid_link:
+                              type: string
+                              description: Direct URL to interactive Mermaid diagram viewer
+                              example: "https://pulsepointinc.github.io/product/mermaid/index.html?diagram=encoded_diagram"
+                            mermaid_instructions:
+                              type: string
+                              description: Instructions for how to use the mermaid_link
+                              example: "Click the link above for immediate interactive viewing"
+                  documentation:
+                    type: array
+                    description: Document360 technical documentation
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        content:
+                          type: string
+                  intelligent_routing:
+                    type: object
+                    description: Intelligence metadata
+                    properties:
+                      detected_intent:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                      sql_optimized:
+                        type: boolean
+                      temporal_intelligence:
+                        type: boolean
+                        description: Whether enhanced temporal parsing was used
+                        example: true
+                  api_status:
+                    type: object
+                    description: Status of all integrated APIs
+                    properties:
+                      jira:
+                        type: string
+                        enum: ["success", "error"]
+                      confluence:
+                        type: string
+                        enum: ["success", "error"]
+                      git:
+                        type: string
+                        enum: ["success", "error"]
+                      document360:
+                        type: string
+                        enum: ["success", "error"]

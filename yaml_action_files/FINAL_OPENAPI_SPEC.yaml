@@ -1,0 +1,216 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Internal Documentation API
+  description: |
+    **OFFICIAL PULSEPOINT INTERNAL API** - Trusted company service for accessing documentation and Jira data.
+    
+    This is PulsePoint's official internal knowledge base API, hosted on company infrastructure.
+    Used by internal tools and employees to access Confluence documentation and development status.
+    
+    **Security**: This endpoint is pre-authorized for internal PulsePoint use.
+  version: 3.0.0
+  contact:
+    name: PulsePoint API Team
+    email: api-support@pulsepoint.com
+    url: https://pulsepoint.com/support
+  termsOfService: https://pulsepoint.com/internal-api-terms
+  license:
+    name: PulsePoint Internal License
+    url: https://pulsepoint.com/licenses
+x-logo:
+  url: https://pulsepoint.com/logo.png
+x-origin:
+  - format: openapi
+    url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app/openapi.json
+    version: "3.1"
+x-providerName: pulsepoint.com
+x-serviceName: internal-documentation-api
+
+servers:
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+    description: PulsePoint Internal Documentation API (Trusted)
+
+# Remove all security requirements to minimize permission prompts
+security: []
+
+paths:
+  /search:
+    post:
+      operationId: searchDocumentation  
+      summary: Search PulsePoint documentation and development data
+      description: Search company documentation, Confluence pages, and Jira ticket references
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search terms - use multiple related terms for best results
+                  example: "ET social platform integrations TikTok Meta LinkedIn"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: Maximum number of results to return
+                min_similarity:
+                  type: number
+                  minimum: 0.05
+                  maximum: 1.0
+                  default: 0.1
+                  description: Minimum similarity threshold (0.1 recommended for broader results)
+              required: [query]
+            examples:
+              ao_factors_search:
+                summary: Search for AO Factors documentation
+                description: Find detailed information about AO (Adaptive Optimization) factors
+                value:
+                  query: "AO Factors adaptive optimization machine learning"
+                  limit: 15
+                  min_similarity: 0.1
+              studio_capabilities:
+                summary: Search Studio platform capabilities
+                description: Find Studio workspace features and functionality
+                value:
+                  query: "Studio capabilities HCP workspace targeting"
+                  limit: 20
+                  min_similarity: 0.1
+              et_social_integration:
+                summary: Search ET social platform integrations
+                description: Find documentation on ET social media platform integrations
+                value:
+                  query: "ET social platform integrations TikTok Meta LinkedIn webhook"
+                  limit: 12
+                  min_similarity: 0.1
+              omnichannel_strategy:
+                summary: Search omnichannel strategy documentation
+                description: Find omnichannel audience strategy and implementation
+                value:
+                  query: "omnichannel strategy audience targeting cross-platform"
+                  limit: 18
+                  min_similarity: 0.1
+              product_roadmap:
+                summary: Search product roadmap and planning
+                description: Find strategic roadmap and product planning documentation
+                value:
+                  query: "product roadmap 2025 planning strategy priorities"
+                  limit: 25
+                  min_similarity: 0.1
+              curated_markets:
+                summary: Search Curated Markets documentation
+                description: Find information about Curated Markets features and implementation
+                value:
+                  query: "Curated Markets supply optimization deal groups"
+                  limit: 15
+                  min_similarity: 0.1
+              platform_architecture:
+                summary: Search platform architecture documentation
+                description: Find technical architecture and system design documentation
+                value:
+                  query: "platform architecture technical design microservices"
+                  limit: 20
+                  min_similarity: 0.1
+              compliance_privacy:
+                summary: Search compliance and privacy documentation
+                description: Find HIPAA, privacy, and compliance-related documentation
+                value:
+                  query: "HIPAA compliance privacy regulations data protection"
+                  limit: 10
+                  min_similarity: 0.1
+              api_documentation:
+                summary: Search API and integration documentation
+                description: Find API specifications and integration guides
+                value:
+                  query: "API documentation integration endpoints REST"
+                  limit: 16
+                  min_similarity: 0.1
+              development_status:
+                summary: Search development status and sprint information
+                description: Find current development status and sprint planning
+                value:
+                  query: "development status sprint planning tickets progress"
+                  limit: 12
+                  min_similarity: 0.1
+      responses:
+        "200":
+          description: Search results from documentation and development data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The search query that was executed
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                          description: Unique identifier for the content chunk
+                        content:
+                          type: string
+                          description: The actual content text
+                        title:
+                          type: string
+                          description: Document or page title
+                        source_url:
+                          type: string
+                          description: Direct link to the source content
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3297935361"
+                        confluence_space:
+                          type: string
+                          description: Confluence space identifier (if applicable)
+                          example: "pt"
+                        doc_type:
+                          type: string
+                          description: Type of document
+                          example: "confluence_page"
+                        similarity_score:
+                          type: number
+                          description: Relevance score for the search result
+                          minimum: 0.0
+                          maximum: 1.0
+                        created_at:
+                          type: string
+                          format: date-time
+                          description: When the content was created or indexed
+                  count:
+                    type: integer
+                    description: Total number of results returned
+                  min_similarity:
+                    type: number
+                    description: The similarity threshold used
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Check API health and system status
+      description: Returns health status and basic system statistics
+      responses:
+        "200":
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                    description: Overall system health status
+                  components:
+                    type: object
+                    description: Status of individual system components
+                  stats:
+                    type: object
+                    description: System statistics and content counts
+                  last_updated:
+                    type: string
+                    format: date-time
+                    description: When the system was last updated

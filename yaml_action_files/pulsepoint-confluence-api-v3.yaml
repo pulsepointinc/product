@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Confluence API v3
+  version: "3.0"
+  description: |
+    ✅ WORKING - Search PulsePoint Confluence documentation and knowledge base.
+    
+    **CRITICAL**: Use min_similarity: 0.3 or lower for reliable results.
+
+servers:
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: getConfluenceHealth
+      summary: Get Confluence API health status
+      description: Returns API health and connection status
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PulsePoint Confluence API v3"
+                  status:
+                    type: string
+                    example: "healthy"
+
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence documentation
+      description: "Search PulsePoint Confluence docs. Supports AO factors, Studio API, and other content."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  description: "Search terms"
+                  examples: ["AO factors", "Adaptive Optimization", "Studio API"]
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: "Similarity threshold - use 0.3 or lower"
+            examples:
+              ao_factors:
+                summary: "Search for AO factors"
+                value:
+                  query: "AO factors"
+                  max_results: 5
+              adaptive_optimization:
+                summary: "Search for Adaptive Optimization"
+                value:
+                  query: "Adaptive Optimization"
+                  max_results: 3
+                  min_similarity: 0.3
+              studio_api:
+                summary: "Search for Studio API documentation"
+                value:
+                  query: "Studio API"
+                  max_results: 5
+                  min_similarity: 0.3
+      responses:
+        '200':
+          description: Search results from Confluence
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          example: "AO-CP-Summary"
+                        content:
+                          type: string
+                          description: "Article content preview"
+                        confluence_url:
+                          type: string
+                          format: uri
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3264708611"
+                        confluence_space:
+                          type: string
+                          example: "pt"
+                        page_id:
+                          type: string
+                          example: "3264708611"
+                        created_at:
+                          type: string
+                          format: date-time
+                  count:
+                    type: integer
+                    example: 5
+              examples:
+                ao_search_results:
+                  summary: "AO factors search results"
+                  value:
+                    query: "AO factors"
+                    results: [
+                      {
+                        "title": "AO-CP-Summary",
+                        "content": "Prototype spec for AO central performance visibility...",
+                        "confluence_url": "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3264708611",
+                        "confluence_space": "pt",
+                        "page_id": "3264708611"
+                      }
+                    ]
+                    count: 1

@@ -1,0 +1,41 @@
+steps:
+  # Build the container image for v2
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-f', 'Dockerfile_v2', '-t', 'us-east4-docker.pkg.dev/$PROJECT_ID/pulsepoint-rag/pulsepoint-knowledge-layer-api-v2', '.']
+  
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'us-east4-docker.pkg.dev/$PROJECT_ID/pulsepoint-rag/pulsepoint-knowledge-layer-api-v2']
+  
+  # Deploy container image to Cloud Run as v2 service
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'pulsepoint-knowledge-layer-api-v2'
+      - '--image'
+      - 'us-east4-docker.pkg.dev/$PROJECT_ID/pulsepoint-rag/pulsepoint-knowledge-layer-api-v2'
+      - '--region'
+      - 'us-east4'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '2Gi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '900s'
+      - '--concurrency'
+      - '100'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-env-vars'
+      - 'ENVIRONMENT=production,PROJECT_ID=$PROJECT_ID,GCS_BUCKET=confluence-pdf-exports,BIGQUERY_DATASET_ID=rag_system,VECTOR_TABLE_ID=unified_content'
+      - '--service-account'
+      - 'productgpt-api-caller@$PROJECT_ID.iam.gserviceaccount.com'
+
+images:
+  - 'us-east4-docker.pkg.dev/$PROJECT_ID/pulsepoint-rag/pulsepoint-knowledge-layer-api-v2'

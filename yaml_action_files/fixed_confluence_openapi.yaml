@@ -1,0 +1,76 @@
+openapi: 3.1.0
+info:
+  title: Confluence Agent
+  description: Semantic search across PulsePoint's Confluence documentation for strategic context, roadmaps, and requirements
+  version: 1.0.0
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+    description: Production Confluence RAG API
+paths:
+  /search:
+    post:
+      operationId: search
+      summary: Search Confluence documentation
+      description: Perform semantic search across PulsePoint's Confluence documentation to find strategic context, roadmaps, requirements, and product information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query for Confluence documentation
+                max_results:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results to return
+              required:
+                - query
+            examples:
+              ao_factors:
+                summary: Search AO Factors documentation
+                value:
+                  query: "AO Factors adaptive optimization"
+                  max_results: 15
+              studio_features:
+                summary: Search Studio capabilities
+                value:
+                  query: "Studio capabilities audience targeting HCP"
+                  max_results: 12
+              targeting_options:
+                summary: Search targeting capabilities
+                value:
+                  query: "targeting options audience segments demographics"
+                  max_results: 30
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        content:
+                          type: string
+                        metadata:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            space:
+                              type: string
+                        score:
+                          type: number
+                  total_results:
+                    type: integer

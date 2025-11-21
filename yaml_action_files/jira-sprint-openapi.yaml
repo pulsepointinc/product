@@ -1,0 +1,169 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Jira Sprint API
+  description: Direct access to comprehensive Jira sprint and release data for ChatGPT queries
+  version: 1.0.0
+  contact:
+    name: PulsePoint Engineering
+    email: bweinstein@pulsepoint.com
+
+servers:
+  - url: https://ppinc.atlassian.net/rest/api/3
+    description: Direct Jira REST API
+
+security:
+  - basicAuth: []
+
+paths:
+  /search:
+    post:
+      operationId: searchJiraTickets
+      summary: Search Jira tickets with JQL
+      description: Search Jira tickets using JQL. For ET current sprint use Portal/Cluster August 2025 (61 tickets). For July release use July 2025 - Portal (24 tickets).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jql
+              properties:
+                jql:
+                  type: string
+                  description: JQL query string
+                  examples:
+                    - 'project = ET AND sprint = "Portal/Cluster August 2025"'
+                    - 'project = ET AND fixVersion = "July 2025 - Portal"'
+                maxResults:
+                  type: integer
+                  default: 100
+                  maximum: 1000
+                  description: Maximum number of results to return
+                fields:
+                  type: array
+                  items:
+                    type: string
+                  default: ["key", "summary", "status", "assignee", "priority", "issuetype", "created", "updated"]
+                  description: Fields to include in the response
+            examples:
+              etAugustSprint:
+                summary: Get all ET tickets in August 2025 sprint
+                value:
+                  jql: 'project = ET AND sprint = "Portal/Cluster August 2025"'
+                  maxResults: 100
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "created", "updated"]
+              etJulyRelease:
+                summary: Get all ET tickets in July 2025 release
+                value:
+                  jql: 'project = ET AND fixVersion = "July 2025 - Portal"'
+                  maxResults: 100
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "fixVersions"]
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total number of tickets matching the query
+                    example: 61
+                  maxResults:
+                    type: integer
+                    description: Maximum results requested
+                  startAt:
+                    type: integer
+                    description: Starting index of results
+                  issues:
+                    type: array
+                    description: Array of Jira tickets
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: Jira ticket key
+                          example: "ET-21261"
+                        fields:
+                          type: object
+                          properties:
+                            summary:
+                              type: string
+                              description: Ticket summary/title
+                              example: "techdebt - cronjob improvements to handle api call failures"
+                            status:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "In Code Review"
+                            assignee:
+                              anyOf:
+                                - type: object
+                                  properties:
+                                    displayName:
+                                      type: string
+                                      example: "Ravi Varma"
+                                    emailAddress:
+                                      type: string
+                                      example: "rbathula@pulsepoint.com"
+                                - type: "null"
+                            priority:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "Normal"
+                            issuetype:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "Improvement"
+                            created:
+                              type: string
+                              format: date-time
+                              description: When the ticket was created
+                            updated:
+                              type: string
+                              format: date-time
+                              description: When the ticket was last updated
+              examples:
+                etSprintResults:
+                  summary: Example response for ET August sprint query
+                  value:
+                    total: 61
+                    maxResults: 100
+                    startAt: 0
+                    issues:
+                      - key: "ET-21261"
+                        fields:
+                          summary: "techdebt - cronjob improvements to handle api call failures"
+                          status:
+                            name: "In Code Review"
+                          assignee:
+                            displayName: "Ravi Varma"
+                            emailAddress: "rbathula@pulsepoint.com"
+                          priority:
+                            name: "Normal"
+                          issuetype:
+                            name: "Improvement"
+                          created: "2025-08-10T10:30:00.000Z"
+                          updated: "2025-08-13T15:45:00.000Z"
+        '400':
+          description: Invalid JQL query
+        '401':
+          description: Authentication required
+        '403':
+          description: Insufficient permissions
+
+components:
+  schemas: {}
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Use Jira credentials - username and API token for authentication

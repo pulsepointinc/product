@@ -1,0 +1,370 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Git Repository API - Working
+  description: |
+    Git repository API with complete schemas.
+    **26 repositories, 50,660 files, 64,058 functions**
+    
+  version: "1.0.0"
+
+servers:
+  - url: https://git-repository-api-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: getGitApiStatus
+      summary: Get API status
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                  current_stats:
+                    type: object
+                    properties:
+                      total_repositories:
+                        type: integer
+                      total_files:
+                        type: integer
+                      total_functions:
+                        type: integer
+
+  /repositories:
+    get:
+      operationId: listRepositories
+      summary: List repositories
+      parameters:
+        - name: repository_name
+          in: query
+          schema:
+            type: string
+        - name: language
+          in: query
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Repository list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        description:
+                          type: string
+                        main_language:
+                          type: string
+                        file_count:
+                          type: integer
+                        total_lines:
+                          type: integer
+
+  /files/search:
+    post:
+      operationId: filesSearch
+      summary: Search files
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search_content:
+                  type: string
+                  description: "Search in file content"
+                file_name:
+                  type: string
+                language:
+                  type: string
+                repository_name:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: File search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        file_name:
+                          type: string
+                        language:
+                          type: string
+                        content_preview:
+                          type: string
+
+  /functions/search:
+    post:
+      operationId: functionsSearch
+      summary: Search functions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                function_name:
+                  type: string
+                language:
+                  type: string
+                repository_name:
+                  type: string
+                class_name:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: Function search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  functions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        function_name:
+                          type: string
+                        language:
+                          type: string
+                        line_number:
+                          type: integer
+
+  /github_code_search:
+    post:
+      operationId: github_code_search
+      summary: Advanced code search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search terms (supports OR logic)"
+                repository_name:
+                  type: string
+                language:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 50
+              required:
+                - query
+      responses:
+        '200':
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  total_results:
+                    type: integer
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        result_type:
+                          type: string
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        content_preview:
+                          type: string
+
+  /correlations/ticket:
+    post:
+      operationId: getCorrelationsByQuery
+      summary: Find ticket correlations (WORKING ENDPOINT)
+      description: |
+        **THIS IS THE ONLY WORKING CORRELATION ENDPOINT**
+        Use this for all ticket correlation searches.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  description: "Jira ticket ID (e.g., ET-20392)"
+                  example: "ET-20392"
+                max_results:
+                  type: integer
+                  default: 50
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  correlations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        source_repository:
+                          type: string
+                        context:
+                          type: string
+                        processed_at:
+                          type: string
+                  ticket_summary:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        repository_count:
+                          type: integer
+                        repositories:
+                          type: string
+
+    put:
+      operationId: github_correlation_search
+      summary: Same correlation endpoint (alternative operation name)
+      description: |
+        **SAME AS POST - Use this if ChatGPT calls 'github_correlation_search'**
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  example: "ET-20392"
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Same as POST method
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  correlations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        source_repository:
+                          type: string
+                        context:
+                          type: string
+
+  /correlations/summary:
+    get:
+      operationId: correlationsSummary
+      summary: Get correlation summary
+      description: "Shows all 76 tickets with correlations"
+      responses:
+        '200':
+          description: Summary of all correlations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  top_tickets_by_repos:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        repository_count:
+                          type: integer
+                        repositories:
+                          type: string
+                  total_correlations:
+                    type: integer
+                  total_unique_tickets:
+                    type: integer

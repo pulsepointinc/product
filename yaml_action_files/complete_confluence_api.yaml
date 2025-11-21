@@ -1,0 +1,166 @@
+openapi: 3.1.0
+info:
+  title: pulsepoint-confluence-api-v1
+  description: Complete Confluence API with multiple endpoints for comprehensive content search
+  version: 1.0.0
+servers:
+  - url: https://pulsepoint-confluence-api-v1-420423430685.us-east4.run.app
+    description: Production Confluence API
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Check API health and status
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  version:
+                    type: string
+  
+  /search:
+    post:
+      operationId: searchContent
+      summary: General content search
+      description: Search all Confluence content with comprehensive results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              ao_factors:
+                summary: Search AO Factors
+                value:
+                  query: "AO factors adaptive optimization"
+                  max_results: 15
+              platform_features:
+                summary: Search platform features  
+                value:
+                  query: "Studio platform targeting capabilities"
+                  max_results: 12
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                  count:
+                    type: integer
+
+  /query:
+    post:
+      operationId: queryRAG
+      summary: RAG-based intelligent query
+      description: Advanced RAG query with context and reasoning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                context:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              strategic_query:
+                summary: Strategic roadmap query
+                value:
+                  query: "product roadmap 2025 strategic planning"
+                  context: "quarterly planning"
+                  max_results: 20
+      responses:
+        '200':
+          description: RAG query results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                  confidence:
+                    type: number
+
+  /search/confluence:
+    post:
+      operationId: searchConfluence
+      summary: Specific Confluence space search
+      description: Search specific Confluence spaces for targeted results
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                space:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              roadmap_search:
+                summary: Search product roadmap
+                value:
+                  query: "roadmap 2025"
+                  space: "product"
+                  max_results: 15
+              ao_documentation:
+                summary: Search AO documentation
+                value:
+                  query: "adaptive optimization factors"
+                  space: "engineering" 
+                  max_results: 20
+      responses:
+        '200':
+          description: Confluence search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                  count:
+                    type: integer
+                  space:
+                    type: string

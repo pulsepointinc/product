@@ -1,0 +1,114 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API
+  description: Intelligent knowledge layer API that provides comprehensive answers to natural language questions about PulsePoint products, roadmaps, and capabilities
+  version: 1.0.0
+servers:
+  - url: https://pulsepoint-knowledge-layer-api-v1-420423430685.us-east4.run.app/
+    description: Production Knowledge Layer API
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Check API health and status
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  version:
+                    type: string
+
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Ask natural language questions about PulsePoint products
+      description: Intelligent agent that analyzes questions, orchestrates searches, and synthesizes comprehensive answers with sources and confidence scores.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: The natural language question to ask
+                context:
+                  type: string
+                  description: Optional context for the question (e.g., "quarterly planning", "customer inquiry")
+              required: [question]
+            examples:
+              ao_roadmap:
+                summary: Ask about AO roadmap and factors
+                value:
+                  question: "Please provide a detailed AO Product roadmap including the factors"
+                  context: "quarterly planning"
+              enterprise_features:
+                summary: Ask about Enterprise AO capabilities
+                value:
+                  question: "What are the latest Enterprise AO features and which customers can use them?"
+                  context: "sales enablement"
+              factor_details:
+                summary: Ask about specific AO factors
+                value:
+                  question: "What AO factors are available and how do they work?"
+                  context: "product training"
+      responses:
+        '200':
+          description: Comprehensive answer with sources and strategy information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                    description: The original question asked
+                  answer:
+                    type: string
+                    description: Comprehensive, formatted answer with sections and source citations
+                  sources:
+                    type: array
+                    description: Array of source documents used to generate the answer
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        url:
+                          type: string
+                        confluence_space:
+                          type: string
+                        created_at:
+                          type: string
+                  strategy_used:
+                    type: string
+                    description: The analysis strategy used (e.g., "AO Product Roadmap and Future Development")
+                  queries_executed:
+                    type: array
+                    description: List of internal queries executed to gather information
+                  total_sources_found:
+                    type: integer
+                    description: Total number of unique source documents found
+                  confidence:
+                    type: number
+                    description: Confidence score (0.0 to 1.0) based on source quantity and relevance
+                  context:
+                    type: string
+                    description: The context provided with the question
+        '400':
+          description: Bad request (missing question parameter)
+        '500':
+          description: Internal server error

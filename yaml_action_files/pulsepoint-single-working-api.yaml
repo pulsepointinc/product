@@ -1,0 +1,132 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Confluence API (Working)
+  version: "1.0"
+  description: |
+    Search PulsePoint Confluence documentation. 
+    
+    **CRITICAL**: Use min_similarity: 0.01-0.05 for results.
+    
+    **Note**: Only Confluence search is currently working. JIRA and Git APIs are not available.
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+
+paths:
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence documentation
+      description: "Search PulsePoint Confluence docs. Always use min_similarity 0.01-0.05."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  description: "Search terms. For AO use 'Adaptive Optimization' not 'AO factors'"
+                  examples: 
+                    - "Adaptive Optimization"
+                    - "AO roadmap" 
+                    - "Studio API"
+                    - "security configuration"
+                min_similarity:
+                  type: number
+                  default: 0.01
+                  minimum: 0.01
+                  maximum: 1.0
+                  description: "REQUIRED: 0.01 for broad results, 0.05 for higher quality"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+            examples:
+              adaptive_optimization:
+                summary: "Find Adaptive Optimization content"
+                value:
+                  query: "Adaptive Optimization"
+                  min_similarity: 0.01
+                  max_results: 10
+              ao_roadmap:
+                summary: "AO roadmap and planning"
+                value:
+                  query: "AO roadmap Mock Plan"
+                  min_similarity: 0.01
+                  max_results: 5
+              studio_docs:
+                summary: "Studio API documentation"
+                value:
+                  query: "Studio API"
+                  min_similarity: 0.05
+                  max_results: 5
+      responses:
+        '200':
+          description: Search results with Confluence page links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    example: "Adaptive Optimization"
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          example: "AO-CP-Summary"
+                        content:
+                          type: string
+                          description: "Content preview"
+                        confluence_url:
+                          type: string
+                          format: uri
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3264708611"
+                        confluence_space:
+                          type: string
+                          example: "pt"
+                        page_id:
+                          type: string
+                          example: "3264708611"
+                        similarity_score:
+                          type: number
+                          example: 0.059
+                        created_at:
+                          type: string
+                          format: date-time
+                  count:
+                    type: integer
+                    example: 5
+                  min_similarity:
+                    type: number
+                    example: 0.01
+        '400':
+          description: Bad request
+        '500':
+          description: Server error
+
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Check if API is responding
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string

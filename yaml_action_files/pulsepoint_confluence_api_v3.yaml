@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: pulsepoint-confluence-api-v3
+  description: PulsePoint Confluence API with comprehensive search capabilities
+  version: 3.0.0
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+    description: Production Confluence RAG API
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Check API health and status
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  message:
+                    type: string
+  
+  /search:
+    post:
+      operationId: searchContent
+      summary: General content search
+      description: Search all Confluence content for AO factors, platform features, and documentation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                max_results:
+                  type: integer
+                  default: 10
+                  description: Maximum results to return
+                space_filter:
+                  type: string
+                  description: Filter by Confluence space
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  description: Minimum similarity threshold
+              required: [query]
+            examples:
+              ao_factors:
+                summary: Search AO Factors
+                value:
+                  query: "AO factors adaptive optimization"
+                  max_results: 15
+              platform_features:
+                summary: Search platform features  
+                value:
+                  query: "Studio platform targeting capabilities"
+                  max_results: 12
+              roadmap_search:
+                summary: Search product roadmap
+                value:
+                  query: "product roadmap 2025 strategic planning"
+                  max_results: 20
+              targeting_docs:
+                summary: Search targeting documentation
+                value:
+                  query: "targeting options audience segments"
+                  max_results: 18
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        source_url:
+                          type: string
+                        similarity_score:
+                          type: number
+                  count:
+                    type: integer
+                  space_filter:
+                    type: string
+                  min_similarity:
+                    type: number
+
+  /query:
+    post:
+      operationId: queryRAG
+      summary: RAG-based intelligent query
+      description: Advanced RAG query with context and reasoning for complex questions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Complex query requiring reasoning
+                context:
+                  type: string
+                  description: Additional context for the query
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              strategic_query:
+                summary: Strategic roadmap analysis
+                value:
+                  query: "What are the key strategic priorities for 2025?"
+                  context: "quarterly planning and roadmap review"
+                  max_results: 20
+              technical_query:
+                summary: Technical implementation query
+                value:
+                  query: "How do AO factors integrate with campaign optimization?"
+                  context: "platform architecture review"
+                  max_results: 15
+      responses:
+        '200':
+          description: RAG query results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                  confidence:
+                    type: number
+
+  /search/confluence:
+    post:
+      operationId: searchConfluence
+      summary: Confluence space-specific search
+      description: Search specific Confluence spaces for targeted documentation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query for Confluence content
+                space:
+                  type: string
+                  description: Specific Confluence space to search
+                max_results:
+                  type: integer
+                  default: 10
+                  description: Maximum results to return
+              required: [query]
+            examples:
+              roadmap_search:
+                summary: Search product roadmap
+                value:
+                  query: "roadmap 2025 strategic priorities"
+                  space: "product"
+                  max_results: 15
+              ao_documentation:
+                summary: Search AO documentation
+                value:
+                  query: "adaptive optimization factors implementation"
+                  space: "engineering"
+                  max_results: 20
+              platform_guides:
+                summary: Search platform user guides
+                value:
+                  query: "platform setup configuration guides"
+                  space: "documentation"
+                  max_results: 25
+      responses:
+        '200':
+          description: Confluence search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        source_url:
+                          type: string
+                        space:
+                          type: string
+                        similarity_score:
+                          type: number
+                  count:
+                    type: integer
+                  space:
+                    type: string

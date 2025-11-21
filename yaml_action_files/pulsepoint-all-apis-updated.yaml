@@ -1,0 +1,408 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Complete API Suite
+  version: "2.0"
+  description: |
+    Complete suite of PulsePoint APIs for comprehensive product information access.
+    
+    **🎉 ALL APIS NOW WORKING 🎉**
+    
+    **IMPORTANT FOR CONFLUENCE**: Use `min_similarity: 0.01` or `0.05` for reliable results.
+
+servers:
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+    description: "✅ Confluence Search API (WORKING)"
+  - url: https://pulsepoint-jira-tickets-420423430685.us-east4.run.app  
+    description: "✅ JIRA Tickets API (WORKING)"
+  - url: https://pulsepoint-git-repository-420423430685.us-east4.run.app
+    description: "✅ Git Repository API (WORKING)"
+
+paths:
+  # CONFLUENCE SEARCH API
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: "🔍 Search Confluence Documentation"
+      description: |
+        **PRIMARY API** - Search PulsePoint's Confluence knowledge base for documentation, processes, and technical information.
+        
+        **⚠️ CRITICAL**: Set `min_similarity` to 0.01 or 0.05 for reliable results. Default 0.3 is too high.
+        
+        **Server**: `https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app`
+        
+      servers:
+        - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  description: "Search terms for Confluence content"
+                  examples: ["Studio API", "AO factors", "security configuration", "DTC insights"]
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                min_similarity:
+                  type: number
+                  default: 0.05
+                  description: "**CRITICAL**: Use 0.01-0.05 for results. Default 0.3 returns nothing."
+                space_filter:
+                  type: string
+                  description: "Filter by space: 'pt' (Product & Tech), 'gs' (Genome Studio), 'pd' (Product Dev)"
+            examples:
+              studio_api:
+                summary: "Search Studio API documentation"
+                value:
+                  query: "Studio API"
+                  max_results: 5
+                  min_similarity: 0.05
+              ao_factors:
+                summary: "Search Adaptive Optimization factors"
+                value:
+                  query: "AO factors"
+                  max_results: 3
+                  min_similarity: 0.01
+              security_config:
+                summary: "Search security in Genome Studio"
+                value:
+                  query: "security configuration"
+                  space_filter: "gs"
+                  min_similarity: 0.05
+      responses:
+        '200':
+          description: "Confluence search results with direct links"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          example: "Studio_BE_API_v4"
+                        content:
+                          type: string
+                          description: "Content preview (truncated)"
+                        confluence_url:
+                          type: string
+                          format: uri
+                          example: "https://ppinc.atlassian.net/wiki/spaces/gs/pages/2799403012"
+                        confluence_space:
+                          type: string
+                          example: "gs"
+                        page_id:
+                          type: string
+                          example: "2799403012"
+                        similarity_score:
+                          type: number
+                          example: 0.085
+                  count:
+                    type: integer
+                  min_similarity:
+                    type: number
+
+  # JIRA TICKETS API
+  /tickets:
+    get:
+      operationId: getJiraTickets
+      summary: "🎫 Get JIRA Tickets & Sprint Information"
+      description: |
+        Get current and historical JIRA tickets with sprint planning information.
+        
+        **Server**: `https://pulsepoint-jira-tickets-420423430685.us-east4.run.app`
+        
+      servers:
+        - url: https://pulsepoint-jira-tickets-420423430685.us-east4.run.app
+      parameters:
+        - name: current_sprint
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: "Filter to current sprint tickets only"
+        - name: next_sprint  
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: "Filter to next sprint tickets only"
+        - name: team
+          in: query
+          schema:
+            type: string
+            enum: ["backend", "frontend", "mobile", "data", "devops", "qa"]
+          description: "Filter by team assignment"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: ["To Do", "In Progress", "Done", "Blocked"]
+          description: "Filter by ticket status"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+          description: "Maximum number of tickets to return"
+      responses:
+        '200':
+          description: "JIRA tickets with sprint information"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          example: "PROJ-123"
+                        summary:
+                          type: string
+                          example: "Implement AO factors API"
+                        status:
+                          type: string
+                          example: "In Progress"
+                        assignee:
+                          type: string
+                        team:
+                          type: string
+                          example: "backend"
+                        sprint_name:
+                          type: string
+                        sprint_date:
+                          type: string
+                          format: date
+                        jira_url:
+                          type: string
+                          format: uri
+                          example: "https://ppinc.atlassian.net/browse/PROJ-123"
+                  count:
+                    type: integer
+                  filters_applied:
+                    type: object
+
+  # GIT REPOSITORY API  
+  /repositories:
+    get:
+      operationId: getGitRepositories
+      summary: "📂 Get Git Repository Information"
+      description: |
+        Access Git repository information, file contents, and commit history.
+        
+        **Server**: `https://pulsepoint-git-repository-420423430685.us-east4.run.app`
+        
+      servers:
+        - url: https://pulsepoint-git-repository-420423430685.us-east4.run.app
+      parameters:
+        - name: repo_name
+          in: query
+          schema:
+            type: string
+          description: "Filter by repository name"
+        - name: file_path
+          in: query
+          schema:
+            type: string
+          description: "Get specific file content"
+        - name: branch
+          in: query
+          schema:
+            type: string
+            default: "main"
+          description: "Git branch to query"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: "Git repository information"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        url:
+                          type: string
+                          format: uri
+                        branch:
+                          type: string
+                        last_commit:
+                          type: string
+                          format: date-time
+                        file_content:
+                          type: string
+                          description: "Present if file_path parameter used"
+
+  /files:
+    get:
+      operationId: getGitFiles
+      summary: "📄 Get Git File Contents"
+      description: "Get specific file contents from Git repositories"
+      servers:
+        - url: https://pulsepoint-git-repository-420423430685.us-east4.run.app
+      parameters:
+        - name: repository
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "Repository name"
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "File path within repository"
+        - name: branch
+          in: query
+          schema:
+            type: string
+            default: "main"
+      responses:
+        '200':
+          description: "File contents and metadata"
+
+components:
+  schemas:
+    # Confluence Schemas
+    ConfluenceSearchRequest:
+      type: object
+      required: ["query"]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        min_similarity:
+          type: number
+          minimum: 0.01
+          maximum: 1.0
+          default: 0.05
+          description: "Use 0.01-0.05 for reliable results"
+        space_filter:
+          type: string
+          enum: ["pt", "gs", "pd"]
+
+    ConfluenceResult:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        confluence_url:
+          type: string
+          format: uri
+        confluence_space:
+          type: string
+        page_id:
+          type: string
+        similarity_score:
+          type: number
+        created_at:
+          type: string
+          format: date-time
+
+    # JIRA Schemas
+    JiraTicket:
+      type: object
+      properties:
+        key:
+          type: string
+        summary:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        assignee:
+          type: string
+        team:
+          type: string
+        sprint_name:
+          type: string
+        sprint_date:
+          type: string
+          format: date
+        jira_url:
+          type: string
+          format: uri
+
+    # Git Schemas
+    GitRepository:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+          format: uri
+        branch:
+          type: string
+        last_commit:
+          type: string
+          format: date-time
+
+# Usage Examples for ChatGPT Integration
+x-usage-examples:
+  confluence_searches:
+    - query: "Studio API documentation"
+      description: "Find Studio API specifications and usage"
+    - query: "AO factors" 
+      description: "Search for Adaptive Optimization factors and configuration"
+    - query: "security configuration"
+      space_filter: "gs"
+      description: "Find security docs in Genome Studio space"
+    - query: "DTC insights"
+      description: "Search for Direct-to-Consumer analytics information"
+      
+  jira_queries:
+    - current_sprint: true
+      team: "backend"
+      description: "Get current sprint backend tickets"
+    - status: "In Progress"  
+      description: "Find all in-progress tickets"
+    - next_sprint: true
+      description: "Get next sprint planning information"
+      
+  git_queries:
+    - repo_name: "studio-api"
+      description: "Get Studio API repository information"
+    - file_path: "api/config.py"
+      repository: "studio-api" 
+      description: "Get specific configuration file"

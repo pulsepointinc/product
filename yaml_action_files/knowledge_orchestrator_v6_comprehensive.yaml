@@ -1,0 +1,228 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer v7 - Comprehensive API Integration
+  description: Enhanced architecture with comprehensive API integration fixes. Fixed Confluence and Document360 parameter issues, removed hardwired fallbacks, comprehensive vector indexing support.
+  version: 7.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v7
+    description: Knowledge Layer v7 - Comprehensive API Integration
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check and comprehensive integration overview
+      description: Get API health status and comprehensive integration capabilities
+      responses:
+        '200':
+          description: Health status showing comprehensive integration features
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "7.0-COMPREHENSIVE-INTEGRATION"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v7 - Comprehensive API Integration"
+                  status:
+                    type: string
+                    example: "healthy"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Comprehensive API integration", "Fixed Confluence parameter issues", "Fixed Document360 parameter issues", "Removed hardwired fallbacks", "Vector indexing support", "Intelligent query routing"]
+
+    post:
+      operationId: searchComprehensiveKnowledge
+      summary: Search across all knowledge sources with comprehensive integration
+      description: Single-call approach with enhanced API integration. Returns comprehensive data from all sources with fixed parameter issues, no hardwired fallbacks, enhanced vector indexing, and JQL links.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question for comprehensive search across all data sources
+                  example: "What is the latest on Omnichannel Audiences?"
+                max_results:
+                  type: integer
+                  description: Maximum results from each data source
+                  default: 5
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive response with enhanced API integration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "7.0-COMPREHENSIVE-INTEGRATION"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v7 - Comprehensive API Integration"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Response generation timestamp
+                  question:
+                    type: string
+                    description: Original question
+                  jira_analysis:
+                    type: object
+                    description: JIRA analysis with JQL link generation
+                    properties:
+                      query_type:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                        example: "aggregation"
+                      summary:
+                        type: object
+                        description: Total metrics for aggregation queries
+                        properties:
+                          total_tickets:
+                            type: integer
+                          total_story_points:
+                            type: number
+                      breakdowns:
+                        type: object
+                        description: Grouped breakdowns for aggregation queries
+                      tickets:
+                        type: array
+                        description: Individual tickets for listing queries
+                        items:
+                          type: object
+                          properties:
+                            issue_key:
+                              type: string
+                              example: "PROD-12914"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            product_manager:
+                              type: string
+                            story_points:
+                              type: number
+                            jql_detail_link:
+                              type: string
+                              description: Direct JQL link for filtered ticket exploration
+                              example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%20%28ET-21495%2CET-21497%29"
+                      filters_applied:
+                        type: object
+                        description: Automatically extracted filters from natural language
+                      sql_optimized:
+                        type: boolean
+                        example: true
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis with fixed API integration
+                    properties:
+                      sources:
+                        type: array
+                        description: Relevant documentation sources
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            content:
+                              type: string
+                            similarity_score:
+                              type: number
+                  github_integration:
+                    type: object
+                    description: GitHub integration with authentic repository data
+                    properties:
+                      repositories:
+                        type: array
+                        description: Authentic repository data
+                        items:
+                          type: object
+                          properties:
+                            repository_name:
+                              type: string
+                            description:
+                              type: string
+                            main_language:
+                              type: string
+                            github_url:
+                              type: string
+                            mermaid_diagram:
+                              type: string
+                              description: Clean Mermaid syntax
+                            mermaid_hash_url:
+                              type: string
+                              description: Hash-based URL for Mermaid diagram viewing
+                              example: "https://pulsepointinc.github.io/product/mermaid/#a1b2c3d4"
+                  documentation:
+                    type: array
+                    description: Document360 technical documentation with fixed API integration
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        content:
+                          type: string
+                        article_id:
+                          type: string
+                  response_data:
+                    type: object
+                    description: Synthesized response with comprehensive data integration
+                    properties:
+                      synthesis:
+                        type: string
+                        description: AI-synthesized response from all data sources
+                      mermaid_diagram:
+                        type: string
+                        description: Technical diagram when applicable
+                      vertexai_model:
+                        type: string
+                        example: "gemini-2.5-flash"
+                      generated_at:
+                        type: string
+                        format: date-time
+                  intelligent_routing:
+                    type: object
+                    description: Intelligence metadata
+                    properties:
+                      detected_intent:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                      sql_optimized:
+                        type: boolean
+                  api_status:
+                    type: object
+                    description: Status of all integrated APIs with enhanced error handling
+                    properties:
+                      jira:
+                        type: string
+                        enum: ["success", "error"]
+                        description: JIRA API status with intelligent routing
+                      confluence:
+                        type: string
+                        enum: ["success", "error"]
+                        description: Confluence API status with fixed parameter integration
+                      git:
+                        type: string
+                        enum: ["success", "error"]
+                        description: GitHub API status without hardwired fallbacks
+                      document360:
+                        type: string
+                        enum: ["success", "error"]
+                        description: Document360 API status with fixed parameter integration

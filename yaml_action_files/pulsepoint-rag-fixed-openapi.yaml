@@ -1,0 +1,248 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Enhanced RAG API
+  description: |
+    Enhanced RAG system with access to comprehensive Confluence documentation and Jira data.
+    Includes AO Factors, roadmap information, and live development status.
+    
+    Key Features:
+    - Enhanced content search with semantic similarity
+    - AO Factors and Adaptive Optimization data
+    - Jira ticket integration with timeline information
+    - Strategic documentation and product roadmaps
+  version: 1.0.0
+  license:
+    name: "Proprietary"
+    identifier: "PulsePoint Internal Use"
+  contact:
+    name: PulsePoint Product Team
+    email: product@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: Production RAG API server with enhanced data
+
+tags:
+  - name: "Search"
+    description: "Content search and retrieval"
+  - name: "Query"
+    description: "Question answering with context"
+  - name: "System"
+    description: "Health and status endpoints"
+
+paths:
+  /health:
+    get:
+      tags:
+        - "System"
+      summary: Health check
+      description: Check the health status of the RAG system
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["healthy", "unhealthy"]
+                  components:
+                    type: object
+                  stats:
+                    type: object
+
+  /search:
+    post:
+      tags:
+        - "Search"
+      summary: Search for content
+      description: |
+        Search through Confluence documentation and Jira data using semantic similarity.
+        Returns ranked results with similarity scores.
+      operationId: searchContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                  examples:
+                    - "AO factors Adaptive Optimization"
+                    - "Studio workspace features roadmap"
+                    - "Platform development timeline"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum number of results
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: Minimum similarity threshold
+                space_filter:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                  description: Filter by Confluence space
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchResult'
+                  count:
+                    type: integer
+                  space_filter:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                  min_similarity:
+                    type: number
+
+  /query:
+    post:
+      tags:
+        - "Query"
+      summary: Answer questions with context
+      description: |
+        Ask questions about product features, roadmaps, and development status.
+        Returns comprehensive answers with source citations.
+      operationId: queryContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Question to answer
+                  examples:
+                    - "What are the AO factors and when will Adaptive Optimization be ready?"
+                    - "What's the roadmap timeline for Studio workspace features?"
+                    - "Show me the current status of Platform development"
+                max_chunks:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum context chunks to use
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: Minimum similarity for context
+                space_filter:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                  description: Filter by Confluence space
+      responses:
+        '200':
+          description: Comprehensive answer with sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+
+components:
+  schemas:
+    SearchResult:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+        content:
+          type: string
+        title:
+          type: string
+        source_type:
+          type: string
+          enum: ["confluence", "jira", "jira_enhanced"]
+        source_id:
+          type: string
+        source_url:
+          type: string
+        similarity_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        space:
+          anyOf:
+            - type: string
+            - type: "null"
+        page_id:
+          anyOf:
+            - type: string
+            - type: "null"
+        metadata:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+
+    QueryResponse:
+      type: object
+      properties:
+        question:
+          type: string
+          description: Original question
+        answer:
+          type: string
+          description: Comprehensive answer
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+          description: Source documents used
+        search_results_count:
+          type: integer
+          description: Number of relevant results found
+        context_used:
+          type: string
+          description: Context provided to the model
+        model_info:
+          type: object
+          properties:
+            provider:
+              type: string
+            model:
+              type: string
+        space_filter:
+          anyOf:
+            - type: string
+            - type: "null"
+        min_similarity:
+          type: number
+        timestamp:
+          type: string
+          format: date-time

@@ -1,0 +1,423 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint GPT Sources API
+  description: Direct access to PulsePoint knowledge base files, bypassing GitHub cache issues
+  version: 1.0.0
+  contact:
+    name: PulsePoint Product GPT
+    url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/gpt-sources-direct
+
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/gpt-sources-direct
+    description: Production GPT Sources API
+
+paths:
+  /:
+    get:
+      operationId: getSource
+      summary: Get knowledge base source files or API information
+      description: Returns specific knowledge base files when source parameter is provided, otherwise returns API information with available sources
+      parameters:
+        - name: source
+          in: query
+          required: false
+          description: Name of the knowledge base source to retrieve
+          schema:
+            type: string
+            enum:
+              - products
+              - document360
+              - ao_roadmap
+              - acronyms
+              - stream_leads
+              - official_sources
+              - workflows
+          examples:
+            products:
+              value: products
+              summary: Get product definitions including AO roadmap
+            document360:
+              value: document360
+              summary: Get Document360 knowledge base (494 articles)
+            ao_roadmap:
+              value: ao_roadmap
+              summary: Get Adaptive Optimization roadmap and technical details
+            acronyms:
+              value: acronyms
+              summary: Get acronyms and definitions
+      responses:
+        '200':
+          description: Successfully retrieved source data or API information
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/APIInfo'
+                  - $ref: '#/components/schemas/ProductsResponse'
+                  - $ref: '#/components/schemas/Document360Response'
+                  - $ref: '#/components/schemas/AORoadmapResponse'
+                  - $ref: '#/components/schemas/GenericResponse'
+              examples:
+                api_info:
+                  summary: API Information
+                  value:
+                    message: "PulsePoint GPT Sources API"
+                    purpose: "Direct access to knowledge base files bypassing GitHub cache"
+                    usage: "GET /?source={source_name}"
+                    available_sources:
+                      - name: "products"
+                        description: "products.json with AO roadmap"
+                        endpoint: "/?source=products"
+                        available: true
+                        type: "json"
+                products_example:
+                  summary: Products with AO
+                  value:
+                    products:
+                      Studio:
+                        definition: "PulsePoint's comprehensive audience strategy building and activation platform"
+                        capabilities: ["Audience strategy creation", "Multi-platform activation"]
+                      Adaptive_Optimization:
+                        definition: "AI-powered campaign optimization platform"
+                        roadmap_phases:
+                          phase_1:
+                            timeline: "Q3-Q4 2025"
+                            features: ["Basic bid optimization algorithms"]
+        '404':
+          description: Source not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Source 'invalid_source' not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to load source file"
+
+components:
+  schemas:
+    APIInfo:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "PulsePoint GPT Sources API"
+        purpose:
+          type: string
+          example: "Direct access to knowledge base files bypassing GitHub cache"
+        usage:
+          type: string
+          example: "GET /?source={source_name}"
+        available_sources:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              endpoint:
+                type: string
+              available:
+                type: boolean
+              type:
+                type: string
+        examples:
+          type: array
+          items:
+            type: string
+
+    ProductsResponse:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            purpose:
+              type: string
+            last_updated:
+              type: string
+            note:
+              type: string
+        products:
+          type: object
+          properties:
+            Studio:
+              $ref: '#/components/schemas/Product'
+            HCP365:
+              $ref: '#/components/schemas/Product'
+            Life:
+              $ref: '#/components/schemas/Product'
+            Signal:
+              $ref: '#/components/schemas/Product'
+            Adaptive_Optimization:
+              $ref: '#/components/schemas/AOProduct'
+
+    Product:
+      type: object
+      properties:
+        definition:
+          type: string
+        purpose:
+          type: string
+        stream:
+          type: string
+        stream_lead:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        platforms_supported:
+          type: array
+          items:
+            type: string
+        key_features:
+          type: object
+
+    AOProduct:
+      type: object
+      properties:
+        definition:
+          type: string
+        abbreviation:
+          type: string
+        purpose:
+          type: string
+        stream:
+          type: string
+        launch_status:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        key_factors:
+          type: array
+          items:
+            type: string
+        roadmap_phases:
+          type: object
+          properties:
+            phase_1:
+              $ref: '#/components/schemas/RoadmapPhase'
+            phase_2:
+              $ref: '#/components/schemas/RoadmapPhase'
+            phase_3:
+              $ref: '#/components/schemas/RoadmapPhase'
+
+    RoadmapPhase:
+      type: object
+      properties:
+        timeline:
+          type: string
+        status:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        success_criteria:
+          type: array
+          items:
+            type: string
+
+    Document360Response:
+      type: object
+      properties:
+        metadata:
+          type: object
+          properties:
+            extraction_timestamp:
+              type: string
+            project_id:
+              type: string
+            total_articles_found:
+              type: integer
+            successful_extractions:
+              type: integer
+        articles:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              content:
+                type: string
+              category:
+                type: string
+              tags:
+                type: array
+                items:
+                  type: string
+              last_updated:
+                type: string
+              author:
+                type: string
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              article_count:
+                type: integer
+        statistics:
+          type: object
+          properties:
+            total_articles:
+              type: integer
+            total_categories:
+              type: integer
+            success_rate:
+              type: number
+
+    AORoadmapResponse:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            purpose:
+              type: string
+            last_updated:
+              type: string
+            source:
+              type: string
+        Adaptive_Optimization:
+          type: object
+          properties:
+            definition:
+              type: string
+            abbreviation:
+              type: string
+            purpose:
+              type: string
+            stream:
+              type: string
+            launch_status:
+              type: string
+            capabilities:
+              type: array
+              items:
+                type: string
+            key_factors:
+              type: array
+              items:
+                type: string
+            optimization_levels:
+              type: array
+              items:
+                type: string
+            integration_points:
+              type: array
+              items:
+                type: string
+            roadmap_phases:
+              type: object
+              properties:
+                phase_1:
+                  $ref: '#/components/schemas/DetailedRoadmapPhase'
+                phase_2:
+                  $ref: '#/components/schemas/DetailedRoadmapPhase'
+                phase_3:
+                  $ref: '#/components/schemas/DetailedRoadmapPhase'
+            technical_architecture:
+              type: object
+              properties:
+                ml_models:
+                  type: array
+                  items:
+                    type: string
+                data_sources:
+                  type: array
+                  items:
+                    type: string
+                optimization_frequency:
+                  type: array
+                  items:
+                    type: string
+            success_metrics:
+              type: array
+              items:
+                type: string
+            competitive_advantages:
+              type: array
+              items:
+                type: string
+
+    DetailedRoadmapPhase:
+      type: object
+      properties:
+        timeline:
+          type: string
+        status:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        success_criteria:
+          type: array
+          items:
+            type: string
+
+    GenericResponse:
+      type: object
+      properties:
+        acronyms:
+          type: array
+          items:
+            type: object
+            properties:
+              term:
+                type: string
+              definition:
+                type: string
+        stream_leads:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              role:
+                type: string
+              stream:
+                type: string
+        official_sources:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                type: string
+              description:
+                type: string
+        content:
+          type: string
+          description: Text content for workflow files
+        type:
+          type: string
+          description: Content type indicator
+      additionalProperties: true
+      description: Generic response for other source types like acronyms, stream_leads, official_sources, workflows

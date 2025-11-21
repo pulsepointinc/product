@@ -1,0 +1,270 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer v9 - Vector Intelligence Hybrid
+  description: Revolutionary hybrid architecture combining comprehensive vector indexing with intelligent JIRA routing. Semantic search across all knowledge sources with preserved JIRA analytics capabilities.
+  version: 9.1.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v9
+    description: Knowledge Layer v9 - Vector Intelligence Hybrid
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check and vector intelligence overview
+      description: Get API health status and vector intelligence hybrid capabilities
+      responses:
+        '200':
+          description: Health status showing vector intelligence hybrid features
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "9.0-VECTOR-INTELLIGENCE-HYBRID"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v9 - Vector Intelligence Hybrid Search"
+                  status:
+                    type: string
+                    example: "healthy"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Comprehensive vector indexing across all sources", "Semantic search with cosine similarity", "Intelligent query intent detection", "Natural language filter extraction", "Automatic SQL aggregation routing", "Product team default filtering", "Single API call architecture"]
+
+    post:
+      operationId: searchVectorIntelligenceHybrid
+      summary: Search across all knowledge sources with vector intelligence hybrid
+      description: Revolutionary approach combining vector-based semantic search with intelligent JIRA routing. Returns comprehensive data with vector similarity scores, preserved JIRA analytics, and enhanced content discovery.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question for vector intelligence hybrid search across all data sources
+                  example: "What are the AO factors for adaptive optimization?"
+                max_results:
+                  type: integer
+                  description: Maximum results from each data source
+                  default: 5
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive response with vector intelligence hybrid search
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "9.0-VECTOR-INTELLIGENCE-HYBRID"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v9 - Vector Intelligence Hybrid Search"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Response generation timestamp
+                  question:
+                    type: string
+                    description: Original question
+                  jira_analysis:
+                    type: object
+                    description: JIRA analysis with intelligent routing (preserved capabilities)
+                    properties:
+                      query_type:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                        example: "aggregation"
+                      summary:
+                        type: object
+                        description: Total metrics for aggregation queries
+                        properties:
+                          total_tickets:
+                            type: integer
+                          total_story_points:
+                            type: number
+                      breakdowns:
+                        type: object
+                        description: Grouped breakdowns for aggregation queries
+                      tickets:
+                        type: array
+                        description: Individual tickets for listing queries
+                        items:
+                          type: object
+                          properties:
+                            issue_key:
+                              type: string
+                              example: "PROD-12914"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            product_manager:
+                              type: string
+                            story_points:
+                              type: number
+                            jql_detail_link:
+                              type: string
+                              description: Direct JQL link for filtered ticket exploration
+                              example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%20%28ET-21495%2CET-21497%29"
+                      filters_applied:
+                        type: object
+                        description: Automatically extracted filters from natural language
+                      sql_optimized:
+                        type: boolean
+                        example: true
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis
+                    properties:
+                      sources:
+                        type: array
+                        description: Relevant documentation sources
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            content:
+                              type: string
+                            similarity_score:
+                              type: number
+                  github_integration:
+                    type: object
+                    description: GitHub integration with authentic repository data
+                    properties:
+                      repositories:
+                        type: array
+                        description: Authentic repository data
+                        items:
+                          type: object
+                          properties:
+                            repository_name:
+                              type: string
+                            description:
+                              type: string
+                            main_language:
+                              type: string
+                            github_url:
+                              type: string
+                            mermaid_diagram:
+                              type: string
+                              description: Clean Mermaid syntax
+                            mermaid_hash_url:
+                              type: string
+                              description: Hash-based URL for Mermaid diagram viewing
+                              example: "https://pulsepointinc.github.io/product/mermaid/index.html#abc123"
+                  documentation:
+                    type: array
+                    description: Document360 technical documentation
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        content:
+                          type: string
+                        article_id:
+                          type: string
+                  semantic_search:
+                    type: object
+                    description: Vector-based semantic search results (v9 enhancement)
+                    properties:
+                      results:
+                        type: array
+                        description: Semantically similar content ranked by cosine similarity
+                        items:
+                          type: object
+                          properties:
+                            similarity:
+                              type: number
+                              description: Cosine similarity score (0-1)
+                              example: 0.85
+                            content:
+                              type: object
+                              description: Original content object from source API
+                            source:
+                              type: string
+                              enum: ["confluence", "document360", "jira", "github"]
+                              description: Source of the content
+                            text_preview:
+                              type: string
+                              description: Preview of searchable text used for embedding
+                      query:
+                        type: string
+                        description: Original search query
+                      total_found:
+                        type: integer
+                        description: Total number of semantically relevant items found
+                      indexing_stats:
+                        type: object
+                        description: Vector indexing statistics
+                        properties:
+                          confluence_indexed:
+                            type: integer
+                          document360_indexed:
+                            type: integer
+                          jira_indexed:
+                            type: integer
+                          github_indexed:
+                            type: integer
+                  response_data:
+                    type: object
+                    description: Synthesized response with comprehensive data integration
+                    properties:
+                      synthesis:
+                        type: string
+                        description: AI-synthesized response from all data sources including semantic matches
+                      mermaid_diagram:
+                        type: string
+                        description: Technical diagram when applicable
+                      vertexai_model:
+                        type: string
+                        example: "gemini-2.5-flash"
+                      generated_at:
+                        type: string
+                        format: date-time
+                  intelligent_routing:
+                    type: object
+                    description: Intelligence metadata
+                    properties:
+                      detected_intent:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                      sql_optimized:
+                        type: boolean
+                  api_status:
+                    type: object
+                    description: Status of all integrated APIs
+                    properties:
+                      jira:
+                        type: string
+                        enum: ["success", "error"]
+                        description: JIRA API status with intelligent routing
+                      confluence:
+                        type: string
+                        enum: ["success", "error"]
+                        description: Confluence API status
+                      git:
+                        type: string
+                        enum: ["success", "error"]
+                        description: GitHub API status
+                      document360:
+                        type: string
+                        enum: ["success", "error"]
+                        description: Document360 API status

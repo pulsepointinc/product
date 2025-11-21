@@ -1,0 +1,339 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint BigQuery Tickets API - Improved Multi-Project Version
+  description: Enhanced BigQuery API with multi-project support, team classification, and comprehensive ticket analysis
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-improved-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: bigquery_health_check
+      summary: Health check and service capabilities
+      description: Get service information and available capabilities
+      responses:
+        '200':
+          description: Service health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                  version:
+                    type: string
+
+  /tickets:
+    get:
+      operationId: bigquery_get_tickets
+      summary: Get tickets with multi-project support and pagination
+      description: Search tickets across all project types (ET, DPD, BI, Stud, RR, DS) with team classification
+      parameters:
+        - name: sprint
+          in: query
+          description: Sprint name (e.g., "August 2025", "Portal/Cluster August 2025")
+          schema:
+            type: string
+        - name: project_key
+          in: query
+          description: Project key filter (ET, DPD, BI, Stud, RR, DS)
+          schema:
+            type: string
+        - name: team_category
+          in: query
+          description: Team filter (front_end, cluster, backend, data_product, bi_engineering, data_analytics, data_science)
+          schema:
+            type: string
+        - name: issue_type
+          in: query
+          description: Issue type filter (Epic, Story, Task, Sub-task)
+          schema:
+            type: string
+        - name: exclude_subtasks
+          in: query
+          description: Exclude subtasks for product work focus (default true)
+          schema:
+            type: boolean
+            default: true
+        - name: status
+          in: query
+          description: Status filter
+          schema:
+            type: string
+        - name: product
+          in: query
+          description: Product filter
+          schema:
+            type: string
+        - name: stream
+          in: query
+          description: Stream filter
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of results (default 100, max 1000)
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: offset
+          in: query
+          description: Offset for pagination (default 0)
+          schema:
+            type: integer
+            default: 0
+        - name: include_all_dates
+          in: query
+          description: Include all date fields (default true)
+          schema:
+            type: boolean
+            default: true
+        - name: include_assignee_history
+          in: query
+          description: Include historical assignee analysis (default true)
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Paginated ticket results with team classification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        issue_type:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        project_key:
+                          type: string
+                        team_category:
+                          type: string
+                        product:
+                          type: string
+                        stream:
+                          type: string
+                        sprint:
+                          type: string
+                        epic_key:
+                          type: string
+                        priority:
+                          type: string
+                        story_points:
+                          type: number
+                        created:
+                          type: string
+                        updated:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      count:
+                        type: integer
+                      has_next:
+                        type: boolean
+                      has_prev:
+                        type: boolean
+                  filters_applied:
+                    type: object
+                  team_classification:
+                    type: object
+
+  /sprints:
+    get:
+      operationId: bigquery_get_sprints
+      summary: Get available sprints with project and type breakdowns
+      description: List all sprints with ticket counts by project type and issue type
+      parameters:
+        - name: year
+          in: query
+          description: Year filter (default 2025)
+          schema:
+            type: string
+            default: "2025"
+      responses:
+        '200':
+          description: Sprint list with project breakdowns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sprints:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        sprint:
+                          type: string
+                        ticket_count:
+                          type: integer
+                        by_project:
+                          type: object
+                          properties:
+                            et_ticket_count:
+                              type: integer
+                            dpd_ticket_count:
+                              type: integer
+                            bi_ticket_count:
+                              type: integer
+                            rr_ticket_count:
+                              type: integer
+                            ds_ticket_count:
+                              type: integer
+                        by_type:
+                          type: object
+                          properties:
+                            epic_count:
+                              type: integer
+                            story_count:
+                              type: integer
+                            subtask_count:
+                              type: integer
+
+  /teams:
+    get:
+      operationId: bigquery_get_teams
+      summary: Get team classification analysis
+      description: Analyze work distribution across different teams with completion rates
+      parameters:
+        - name: sprint
+          in: query
+          description: Sprint name filter
+          schema:
+            type: string
+        - name: months_back
+          in: query
+          description: Number of months to analyze (default 3)
+          schema:
+            type: integer
+            default: 3
+      responses:
+        '200':
+          description: Team analysis with work distribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        project_key:
+                          type: string
+                        team_category:
+                          type: string
+                        ticket_count:
+                          type: integer
+                        epic_count:
+                          type: integer
+                        story_count:
+                          type: integer
+                        completion_rate:
+                          type: number
+
+  /assignee-history:
+    get:
+      operationId: bigquery_get_assignee_history
+      summary: Get historical assignee patterns for team classification
+      description: Analyze historical assignee data to understand team classification patterns
+      parameters:
+        - name: assignee_name
+          in: query
+          description: Specific assignee to analyze
+          schema:
+            type: string
+        - name: project_key
+          in: query
+          description: Project key filter (default ET)
+          schema:
+            type: string
+            default: "ET"
+        - name: limit
+          in: query
+          description: Number of tickets to analyze (max 200)
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+      responses:
+        '200':
+          description: Historical assignee analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                  assignee_patterns:
+                    type: object
+                  analysis:
+                    type: object
+
+  /release-planning:
+    get:
+      operationId: bigquery_get_release_planning
+      summary: Get release planning with dev/prod date calculations
+      description: Release planning with epic fix_version = dev ready, ET fix_version = client release + 2 month buffer
+      parameters:
+        - name: epic_fix_version
+          in: query
+          description: Epic fix version filter
+          schema:
+            type: string
+        - name: et_fix_version
+          in: query
+          description: ET fix version filter
+          schema:
+            type: string
+        - name: months_ahead
+          in: query
+          description: Months ahead to plan (default 6)
+          schema:
+            type: integer
+            default: 6
+      responses:
+        '200':
+          description: Release planning data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  release_planning:
+                    type: array
+                  explanation:
+                    type: object
+                  total_items:
+                    type: integer

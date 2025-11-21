@@ -1,0 +1,155 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Git Repository API
+  version: "1.0"
+  description: |
+    Access PulsePoint's Git repository metadata and statistics.
+    
+    **Available Data:**
+    - 26 repositories with metadata
+    - 50,660+ files across all repos  
+    - 64,058+ functions extracted from code
+    - Language statistics and complexity metrics
+
+servers:
+  - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: getGitApiHealth
+      summary: Get Git API health and statistics
+      description: Returns API status and repository statistics
+      responses:
+        '200':
+          description: API health status with repository statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PulsePoint Git Repository API"
+                  status:
+                    type: string
+                    example: "healthy"
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                  statistics:
+                    type: object
+                    properties:
+                      total_repositories:
+                        type: integer
+                      total_files:
+                        type: integer
+                      total_functions:
+                        type: integer
+
+  /repositories:
+    get:
+      operationId: listRepositories
+      summary: List Git repositories with metadata
+      description: Get repository information with optional filtering
+      parameters:
+        - name: repository_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by repository name (partial matching)
+          examples:
+            ad_search:
+              summary: Find Ad platform repos
+              value: "Ad"
+            api_search:
+              summary: Find API repos
+              value: "API"
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by programming language
+          examples:
+            java_filter:
+              summary: Java repositories
+              value: "Java"
+            js_filter:
+              summary: JavaScript repositories  
+              value: "JavaScript"
+      responses:
+        '200':
+          description: List of repositories with metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "repositories"
+                  total_results:
+                    type: integer
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                          example: "Ad Serving Platform"
+                        is_private:
+                          type: boolean
+                        file_count:
+                          type: integer
+                          example: 11107
+                        total_lines_of_code:
+                          type: integer
+                          example: 1452043
+                        languages:
+                          type: object
+                          example: {"Java": 9356, "JavaScript": 8234}
+                        processed_at:
+                          type: string
+                          format: date-time
+              examples:
+                all_repos:
+                  summary: All repositories
+                  value:
+                    query_type: "repositories"
+                    total_results: 26
+                    repositories: [
+                      {
+                        "repository_name": "Ad Serving Platform",
+                        "is_private": true,
+                        "file_count": 11107,
+                        "total_lines_of_code": 1452043,
+                        "languages": {"Java": 9356, "JavaScript": 8234}
+                      }
+                    ]
+
+  /health:
+    get:
+      operationId: getDetailedHealth
+      summary: Get detailed API health status
+      description: Returns detailed health information with timestamp
+      responses:
+        '200':
+          description: Detailed health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    example: "ok"

@@ -1,0 +1,45 @@
+openapi: 3.1.0
+info:
+  title: Jira Test Agent - Pre Git Version
+  description: Testing ChatGPT Actions behavior with original working configuration  
+  version: 0.9.0
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+    description: Production Jira BigQuery API
+paths:
+  /sprint:
+    post:
+      operationId: testSprint
+      summary: Test sprint endpoint - pre Git work
+      description: Same endpoint as before, testing if hanging issue is related to recent changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint:
+                  type: string
+                  description: Sprint name to search for
+                  example: "Portal/Cluster August 2025"
+                project:
+                  type: string
+                  description: Project key filter
+                  example: "ET"
+              required:
+                - sprint
+      responses:
+        '200':
+          description: Sprint tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+components:
+  schemas: {}

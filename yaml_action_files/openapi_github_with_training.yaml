@@ -1,0 +1,287 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint GitHub Repository API with Training Data
+  description: Search Git repositories, functions, and ticket correlations, plus access official training definitions
+  version: 1.0.1
+
+servers:
+  - url: https://git-repository-api-420423430685.us-east4.run.app
+  - url: https://api.github.com
+
+paths:
+  /repositories:
+    post:
+      operationId: github_repository_search
+      summary: Search for GitHub repositories by name or description
+      description: Find Git repositories that match search criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query for repository names or descriptions
+              required:
+                - query
+      responses:
+        '200':
+          description: List of matching repositories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        github_url:
+                          type: string
+
+  /correlations:
+    post:
+      operationId: github_correlation_search
+      summary: Find Git correlations for tickets
+      description: Search for commits and branches related to specific ticket IDs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  description: Ticket ID to search for (e.g., ET-20284)
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        commit_sha:
+                          type: string
+                        commit_message:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+                  branches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        branch_name:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+
+  /functions/search:
+    post:
+      operationId: github_function_search
+      summary: Search for function definitions across repositories
+      description: Find function definitions that match search criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Function name or pattern to search for
+              required:
+                - query
+      responses:
+        '200':
+          description: List of matching functions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  functions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        function_name:
+                          type: string
+                        file_path:
+                          type: string
+                        line_number:
+                          type: integer
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+
+  /code/search:
+    post:
+      operationId: github_code_search
+      summary: Search for code patterns across repositories
+      description: Find code snippets, classes, or patterns that match search criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Code pattern or snippet to search for
+              required:
+                - query
+      responses:
+        '200':
+          description: List of matching code snippets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        file_path:
+                          type: string
+                        line_number:
+                          type: integer
+                        code_snippet:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+
+  /files/search:
+    post:
+      operationId: github_file_search
+      summary: Search for files by name or path
+      description: Find files that match name or path criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: File name or path pattern to search for
+              required:
+                - query
+      responses:
+        '200':
+          description: List of matching files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        file_path:
+                          type: string
+                        file_name:
+                          type: string
+                        file_extension:
+                          type: string
+                        file_size:
+                          type: integer
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+
+  /branches/search:
+    post:
+      operationId: github_branch_search
+      summary: Search for branches by ticket ID
+      description: Find Git branches that match ticket patterns (e.g., ET-20284)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  description: Ticket ID to search branches for
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: List of matching branches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  branches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        branch_name:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+
+  # Training Data Access
+  /repos/pulsepointinc/product/contents/GPT/{filename}:
+    get:
+      operationId: get_training_definition
+      summary: Access official training definitions
+      description: Get official definitions for acronyms, products, stream leads, etc.
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [acronyms.json, products.json, stream_leads.json, official_sources.json, workflow_instructions.json, meeting_formats.json]
+      responses:
+        '200':
+          description: Training file content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                    description: Base64 encoded file content
+                  encoding:
+                    type: string
+                    enum: [base64]

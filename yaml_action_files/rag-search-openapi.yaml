@@ -1,0 +1,162 @@
+openapi: 3.1.1
+info:
+  title: PulsePoint RAG Search API
+  description: RAG system with comprehensive Confluence documentation and Jira data for product intelligence
+  version: 1.0.0
+  contact:
+    name: PulsePoint Engineering
+    email: bweinstein@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: Production RAG Search API
+
+paths:
+  /search:
+    post:
+      operationId: searchContent
+      summary: Search content with semantic similarity
+      description: Search through Confluence and Jira content using semantic similarity matching
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query text
+                  examples:
+                    - "AO roadmap Adaptive Optimization factors"
+                    - "Omnichannel Audiences features timeline"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 20
+                  description: Maximum number of results to return
+                min_similarity:
+                  type: number
+                  default: 0.25
+                  minimum: 0.1
+                  maximum: 1.0
+                  description: Minimum similarity score threshold
+            examples:
+              aoQuery:
+                summary: Search for AO roadmap information
+                value:
+                  query: "AO roadmap Adaptive Optimization factors development timeline"
+                  max_results: 10
+                  min_similarity: 0.25
+              omnichannelQuery:
+                summary: Search for Omnichannel features
+                value:
+                  query: "Omnichannel Audiences features capabilities"
+                  max_results: 8
+                  min_similarity: 0.3
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The original search query
+                  results:
+                    type: array
+                    description: Array of matching content chunks
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                          description: Unique identifier for the content chunk
+                        content:
+                          type: string
+                          description: The actual content text
+                        title:
+                          type: string
+                          description: Title of the source document
+                        source_type:
+                          type: string
+                          description: Type of source (confluence, jira_enhanced, etc.)
+                        source_id:
+                          type: string
+                          description: Source document ID
+                        source_url:
+                          type: string
+                          description: URL to the original source
+                        doc_type:
+                          type: string
+                          description: Document type (confluence_page, jira_epic, etc.)
+                        similarity_score:
+                          type: number
+                          description: Similarity score (0.0 to 1.0)
+                        ranking_score:
+                          type: number
+                          description: Final ranking score
+                        metadata:
+                          type: object
+                          description: Additional metadata about the content
+                  count:
+                    type: integer
+                    description: Number of results returned
+                  source_breakdown:
+                    type: object
+                    description: Count of results by source type
+                  min_similarity:
+                    type: number
+                    description: Minimum similarity threshold used
+              examples:
+                aoResults:
+                  summary: Example AO search results
+                  value:
+                    query: "AO roadmap Adaptive Optimization factors"
+                    results:
+                      - chunk_id: "35ab13974072e6cf"
+                        content: "Packages are arbitrary groupings of factors. Factors are configurable elements that users can select within various packages..."
+                        title: "AO Factors"
+                        source_type: "confluence"
+                        source_id: "3098836997"
+                        source_url: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3098836997/AO+Factors"
+                        doc_type: "confluence_page"
+                        similarity_score: 0.8795
+                        ranking_score: 0.9295
+                        metadata:
+                          confluence_space: "PM1"
+                          page_id: "3098836997"
+                    count: 8
+                    source_breakdown:
+                      confluence: 5
+                      jira_enhanced: 3
+                    min_similarity: 0.25
+        '400':
+          description: Bad request - invalid parameters
+        '500':
+          description: Internal server error
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Check API health status
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  message:
+                    type: string
+                    example: "RAG Search API is operational"

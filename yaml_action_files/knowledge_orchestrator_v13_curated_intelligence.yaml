@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v13 - Gemini Curated Intelligence (CustomGPT Optimized)
+  description: AI-powered knowledge orchestration with Gemini curation and CustomGPT response size optimization. Provides executive summaries and conversation context management.
+  version: 13.2.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v13-2:
+    get:
+      operationId: health_check_curated
+      summary: Health check for curated intelligence endpoint
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+                  features:
+                    type: array
+                    items:
+                      type: string
+    post:
+      operationId: orchestrate_curated_knowledge
+      summary: Query comprehensive knowledge with AI curation and conversation context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language query or follow-up question
+                max_results:
+                  type: integer
+                  description: Maximum results to return
+                  default: 50
+                session_id:
+                  type: string
+                  description: Session ID for conversation context (optional, auto-generated if not provided)
+                raw_data:
+                  type: boolean
+                  description: Include full raw data in response (default false, optimized for CustomGPT)
+                  default: false
+              required:
+                - question
+      responses:
+        '200':
+          description: Curated intelligence response with executive insights
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  session_id:
+                    type: string
+                  conversation_type:
+                    type: string
+                    enum: ["initial", "follow_up"]
+                  curated_intelligence:
+                    type: object
+                    properties:
+                      executive_summary:
+                        type: string
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                      data_highlights:
+                        type: object
+                      strategic_themes:
+                        type: array
+                        items:
+                          type: string
+                      risk_areas:
+                        type: array
+                        items:
+                          type: string
+                      detailed_analysis:
+                        type: string
+                      actionable_next_steps:
+                        type: array
+                        items:
+                          type: string
+                      sources:
+                        type: array
+                        items:
+                          type: string
+                  raw_data:
+                    type: object
+                    properties:
+                      jira_analysis:
+                        type: object
+                      confluence_analysis:
+                        type: object
+                      github_integration:
+                        type: object
+                      documentation:
+                        type: array
+                      semantic_search:
+                        type: object
+                  conversation_metadata:
+                    type: object
+                    properties:
+                      turn_number:
+                        type: integer
+                      has_context:
+                        type: boolean
+                      context_turns:
+                        type: integer

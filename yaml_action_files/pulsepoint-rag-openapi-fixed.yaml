@@ -1,0 +1,330 @@
+openapi: 3.0.0
+info:
+  title: PulsePoint RAG API
+  description: |
+    Internal product discovery API for searching PulsePoint's Confluence documentation.
+    This API provides semantic search and RAG (Retrieval-Augmented Generation) capabilities
+    across product documentation, security policies, and technical specifications.
+    
+    IMPORTANT: All PDF files are served through this API's /pdf/{filename} endpoint.
+    Never create external URLs or guess PDF locations - only use the URLs returned by this API.
+  version: 1.1.0
+  contact:
+    name: PulsePoint Product Team
+    email: bweinstein@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+    description: Production RAG API Server
+
+paths:
+  /search:
+    post:
+      summary: Search Confluence Documentation
+      description: |
+        Perform semantic search across PulsePoint's Confluence documentation.
+        Returns relevant document chunks with similarity scores and direct links to Confluence pages.
+      operationId: searchDocuments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query or question about PulsePoint products/policies
+                  example: "What is Studio?"
+                min_similarity:
+                  type: number
+                  format: float
+                  minimum: 0.1
+                  maximum: 1.0
+                  default: 0.5
+                  description: Minimum similarity threshold (0.1-1.0, higher = more precise)
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 20
+                  default: 5
+                  description: Maximum number of results to return
+                space_filter:
+                  type: string
+                  enum: ["pt", "gs", "pd"]
+                  description: |
+                    Filter by Confluence space:
+                    - pt: Product & Technology
+                    - gs: General Space  
+                    - pd: Product Development
+              required:
+                - query
+      responses:
+        '200':
+          description: Search results returned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                        content:
+                          type: string
+                        title:
+                          type: string
+                        confluence_space:
+                          type: string
+                        page_id:
+                          type: string
+                        source_url:
+                          type: string
+                          format: uri
+                        pdf_url:
+                          type: string
+                          nullable: true
+                          description: Direct link to download the PDF file (if available)
+                        similarity_score:
+                          type: number
+                          format: float
+                        created_at:
+                          type: string
+                          format: date-time
+                  count:
+                    type: integer
+                  timestamp:
+                    type: string
+                    format: date-time
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+
+  /query:
+    post:
+      summary: Ask Questions with RAG
+      description: |
+        Ask natural language questions about PulsePoint products and get AI-generated answers
+        based on the most relevant documentation.
+      operationId: askQuestion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question about PulsePoint
+                  example: "How do I set up access control for Studio users?"
+                min_similarity:
+                  type: number
+                  format: float
+                  minimum: 0.1
+                  maximum: 1.0
+                  default: 0.7
+                max_results:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+                  default: 5
+                space_filter:
+                  type: string
+                  enum: ["pt", "gs", "pd"]
+              required:
+                - question
+      responses:
+        '200':
+          description: AI-generated answer with sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        source_url:
+                          type: string
+                          format: uri
+                        pdf_url:
+                          type: string
+                          nullable: true
+                        similarity_score:
+                          type: number
+                          format: float
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /stats:
+    get:
+      summary: Get Knowledge Base Statistics
+      description: |
+        Get statistics about the knowledge base including total documents,
+        pages, and spaces indexed.
+      operationId: getStats
+      responses:
+        '200':
+          description: Knowledge base statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  index_stats:
+                    type: object
+                    properties:
+                      total_chunks:
+                        type: integer
+                      total_pages:
+                        type: integer
+                      total_spaces:
+                        type: integer
+                      total_documents:
+                        type: integer
+                      last_updated:
+                        type: string
+                        format: date-time
+                  model_provider:
+                    type: string
+                  available_spaces:
+                    type: array
+                    items:
+                      type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /pdfs:
+    get:
+      summary: List Available PDFs
+      description: |
+        Get a list of all available PDF files that can be downloaded.
+        Useful for ChatGPT to discover which PDFs are available.
+      operationId: listPdfs
+      responses:
+        '200':
+          description: List of available PDF files
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pdfs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        filename:
+                          type: string
+                        page_id:
+                          type: string
+                          nullable: true
+                        size_bytes:
+                          type: integer
+                        modified:
+                          type: string
+                          format: date-time
+                        download_url:
+                          type: string
+                  count:
+                    type: integer
+                  total_size_mb:
+                    type: number
+                    format: float
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /pdf/{filename}:
+    get:
+      summary: Download PDF File
+      description: |
+        Download PDF file by filename. Contains original Confluence documentation.
+        Use GET method only. If download fails, try /test-pdf/{filename} for debugging.
+      operationId: downloadPdf
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[^/]+\.pdf$'
+          description: Name of the PDF file to download
+          example: "AO_Summary_2596634625.pdf"
+      responses:
+        '200':
+          description: PDF file content
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: PDF file not found
+        '400':
+          description: Invalid filename (must be a PDF)
+
+  /test-pdf/{filename}:
+    get:
+      summary: Debug PDF Access
+      description: |
+        Debug PDF access issues. Returns file info, size, and request headers.
+      operationId: debugPdfAccess
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+          description: PDF filename to test
+          example: "AO_Summary_2596634625.pdf"
+      responses:
+        '200':
+          description: Debug information about PDF file and request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  filename:
+                    type: string
+                  file_exists:
+                    type: boolean
+                  file_size:
+                    type: integer
+                  file_readable:
+                    type: boolean
+                  user_agent:
+                    type: string
+                  request_headers:
+                    type: object
+
+security: []
+
+tags:
+  - name: search
+    description: Document search operations
+  - name: rag
+    description: Retrieval-Augmented Generation
+  - name: stats
+    description: Knowledge base statistics
+  - name: pdfs
+    description: PDF file operations

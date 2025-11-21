@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint BigQuery Tickets API - Working Version
+  description: Working BigQuery API for Jira ticket analysis
+  version: 2.1.0
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-kpwy2mbv7a-uk.a.run.app
+
+paths:
+  /:
+    get:
+      operationId: bigquery_health_check
+      summary: Health check and service info
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /sprint-tickets:
+    get:
+      operationId: bigquery_get_sprint_tickets
+      summary: Get tickets for a specific sprint
+      parameters:
+        - name: sprint
+          in: query
+          required: true
+          description: Sprint name (e.g., "Portal/Cluster August 2025")
+          schema:
+            type: string
+        - name: project_key
+          in: query
+          description: Project key filter (ET, DPD, BI, etc.)
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of results (default 100)
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Sprint ticket data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                  total_count:
+                    type: integer
+                  sprint:
+                    type: string

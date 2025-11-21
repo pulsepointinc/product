@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint BigQuery Tickets API
+  description: BigQuery API for Jira ticket analysis with reporter filtering
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: bigquery_health_check
+      summary: Health check and service info
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  version:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+
+  /sprint:
+    post:
+      operationId: bigquery_get_sprint_tickets
+      summary: Sprint analysis with reporter filtering
+      description: Get comprehensive sprint analysis with optional reporter filtering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint_date:
+                  type: string
+                  description: Sprint date (e.g., "August 2025")
+                  example: "August 2025"
+                release_date:
+                  type: string
+                  description: Release date (e.g., "August 2025")
+                  example: "August 2025"
+                project_key:
+                  type: string
+                  description: Project key filter
+                  default: "ET"
+                reporter:
+                  type: string
+                  description: Filter by ticket reporter
+                  example: "Donovan"
+      responses:
+        '200':
+          description: Complete sprint analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tickets:
+                    type: integer
+                  total_story_points:
+                    type: number
+                  sprint_names_found:
+                    type: array
+                    items:
+                      type: string
+                  status_summary:
+                    type: object
+                  assignee_summary:
+                    type: object
+                  team_summary:
+                    type: object
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        reporter_name:
+                          type: string
+                        sprint:
+                          type: string
+                        story_points:
+                          type: number
+                        team:
+                          type: string
+
+  /ao-analysis:
+    post:
+      operationId: bigquery_get_ao_analysis
+      summary: AO (Adaptive Optimization) ticket analysis
+      description: Get tickets related to bid optimization, filtering out audience targeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint_date:
+                  type: string
+                  example: "August 2025"
+                project_key:
+                  type: string
+                  default: "ET"
+      responses:
+        '200':
+          description: AO ticket analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      type: object

@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v2
+  description: Enhanced Knowledge Layer API with working JIRA integration
+  version: 2.2.0
+servers:
+  - url: https://pulsepoint-knowledge-layer-api-v2-420423430685.us-east4.run.app
+    description: Production Knowledge Layer API v2
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Get API health status and capabilities
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  version:
+                    type: string
+                  jira_integration:
+                    type: string
+                  enhancements:
+                    type: array
+                    items:
+                      type: string
+                  data_source:
+                    type: string
+                required:
+                  - message
+                  - status
+                  - version
+
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Ask comprehensive product question
+      description: Ask product questions and get Confluence + JIRA analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Your product question
+                context:
+                  type: string
+                  description: Additional context
+                max_results:
+                  type: integer
+                  default: 10
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  context:
+                    type: string
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      answer:
+                        type: string
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                      confidence:
+                        type: number
+                      total_sources_found:
+                        type: integer
+                  jira_analysis:
+                    type: object
+                    properties:
+                      filtering_applied:
+                        type: string
+                      search_terms:
+                        type: array
+                        items:
+                          type: string
+                      tickets_found:
+                        type: integer
+                      tickets_relevant:
+                        type: integer
+                      project_key_used:
+                        type: string
+                      filters_applied:
+                        type: object
+                      filter_breakdown:
+                        type: object
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                            summary:
+                              type: string
+                            stream:
+                              type: string
+                            product:
+                              type: string
+                            assignee:
+                              type: string
+                            sprint_date:
+                              type: string
+                            release_date:
+                              type: string
+                            url:
+                              type: string
+                            relevance_reason:
+                              type: string
+                  synthesis:
+                    type: string
+                  version:
+                    type: string
+                required:
+                  - question
+                  - confluence_analysis
+                  - jira_analysis
+                  - synthesis
+
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence only
+      description: Search Confluence documentation using vector similarity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required:
+                - query
+      responses:
+        '200':
+          description: Confluence search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                        content:
+                          type: string
+                        title:
+                          type: string
+                        source_url:
+                          type: string
+                        similarity_score:
+                          type: number
+                  total_results:
+                    type: integer
+                  confidence:
+                    type: number
+                required:
+                  - results

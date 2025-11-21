@@ -1,0 +1,64 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API
+  description: Query JIRA tickets and Confluence docs for capacity planning
+  version: 3.0.0
+servers:
+  - url: https://comprehensive-api-v29-final-kpwy2mbv7a-uk.a.run.app
+
+paths:
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Query JIRA tickets and Confluence documentation
+      description: Get JIRA tickets and Confluence docs with team filtering and capacity planning data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Question about JIRA tickets, roadmaps, or capacity planning
+                max_results:
+                  type: integer
+                  description: Maximum number of tickets to return (1-150)
+                  default: 50
+                  minimum: 1
+                  maximum: 150
+              required:
+                - question
+      responses:
+        '200':
+          description: Successful response with JIRA tickets and Confluence docs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      total_sources_found:
+                        type: integer
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                  team_breakdown:
+                    type: object
+                  stream_breakdown:
+                    type: object
+                  version:
+                    type: string

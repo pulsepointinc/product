@@ -1,0 +1,352 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Git Repository API
+  description: |
+    Search code implementations and find connections between tickets and repositories.
+    
+  version: "1.0.0"
+
+servers:
+  - url: https://git-api-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: getGitApiStatus
+      summary: Get Git API status and information
+      responses:
+        '200':
+          description: API status information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+
+  /repositories:
+    get:
+      operationId: listRepositories
+      summary: Get repository information
+      parameters:
+        - name: repository_name
+          in: query
+          description: "Filter by repository name"
+          schema:
+            type: string
+        - name: language
+          in: query
+          description: "Filter by primary language"
+          schema:
+            type: string
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Repository list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_results:
+                    type: integer
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+
+  /files/search:
+    post:
+      operationId: filesSearch
+      summary: Search for files across repositories
+      description: |
+        Search for files by name, extension, language, or content preview.
+        Use this for searching code files and their content.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repository_name:
+                  type: string
+                  description: "Filter by repository name"
+                file_name:
+                  type: string
+                  description: "Filter by file name"
+                file_extension:
+                  type: string
+                  description: "Filter by file extension"
+                language:
+                  type: string
+                  description: "Filter by programming language"
+                search_content:
+                  type: string
+                  description: "Search within file content"
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: File search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  language_summary:
+                    type: object
+                  repository_summary:
+                    type: object
+                  extension_summary:
+                    type: object
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        file_name:
+                          type: string
+                        file_extension:
+                          type: string
+                        language:
+                          type: string
+                        file_size:
+                          type: integer
+                        line_count:
+                          type: integer
+                        contains_todo:
+                          type: boolean
+                        contains_test:
+                          type: boolean
+                        content_preview:
+                          type: string
+
+  /functions/search:
+    post:
+      operationId: functionsSearch
+      summary: Search for functions across repositories
+      description: |
+        Search for functions by name, language, class, or documentation.
+        Use this to find specific function implementations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                repository_name:
+                  type: string
+                  description: "Filter by repository name"
+                function_name:
+                  type: string
+                  description: "Filter by function name"
+                language:
+                  type: string
+                  description: "Filter by programming language"
+                class_name:
+                  type: string
+                  description: "Filter by class name"
+                max_results:
+                  type: integer
+                  default: 100
+      responses:
+        '200':
+          description: Function search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  functions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        function_name:
+                          type: string
+                        function_type:
+                          type: string
+                        line_number:
+                          type: integer
+                        language:
+                          type: string
+                        docstring:
+                          type: string
+                        class_name:
+                          type: string
+                        processed_at:
+                          type: string
+
+  /correlations:
+    get:
+      operationId: getCorrelationsByQuery
+      summary: Find Git-Jira ticket correlations by query parameter
+      description: |
+        Find connections between Jira tickets and code repositories.
+        Use to understand what code changes are related to specific tickets.
+      parameters:
+        - name: ticket_id
+          in: query
+          required: true
+          description: "Jira ticket ID (e.g., ET-20284)"
+          schema:
+            type: string
+          example: "ET-20284"
+      responses:
+        '200':
+          description: Ticket correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id:
+                    type: string
+                  commits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        commit_sha:
+                          type: string
+                        commit_message:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+                  total_correlations:
+                    type: integer
+
+    post:
+      operationId: github_correlation_search
+      summary: Find Git-Jira ticket correlations (POST method)
+      description: |
+        Alternative POST method for finding ticket-code correlations.
+        This matches the operation name that ChatGPT expects.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  description: "Jira ticket ID"
+                  example: "ET-20284"
+              required:
+                - ticket_id
+      responses:
+        '200':
+          description: Ticket correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id:
+                    type: string
+                  commits:
+                    type: array
+                    items:
+                      type: object
+                  total_correlations:
+                    type: integer
+
+  /correlations/ticket:
+    post:
+      operationId: correlationsTicket
+      summary: Search ticket correlations with advanced filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                repository_name:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 50
+      responses:
+        '200':
+          description: Correlation search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  correlations:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        source_repository:
+                          type: string
+                        reference_type:
+                          type: string
+                        context:
+                          type: string
+                        processed_at:
+                          type: string
+                  ticket_summary:
+                    type: array
+                    items:
+                      type: object
+
+  /correlations/summary:
+    get:
+      operationId: correlationsSummary
+      summary: Get summary of all Git-Jira correlations
+      responses:
+        '200':
+          description: Correlation summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  top_tickets_by_repos:
+                    type: array
+                  repository_activity:
+                    type: array

@@ -1,0 +1,201 @@
+openapi: 3.1.1
+info:
+  title: PulsePoint Direct Jira API
+  description: Direct access to Jira REST API for comprehensive sprint and release data
+  version: 1.0.0
+  contact:
+    name: PulsePoint Engineering
+    email: bweinstein@pulsepoint.com
+
+servers:
+  - url: https://ppinc.atlassian.net/rest/api/3
+    description: PulsePoint Jira Instance
+
+security:
+  - apiKeyAuth: []
+
+paths:
+  /search:
+    post:
+      operationId: searchJiraTickets
+      summary: Search Jira tickets with JQL
+      description: Search for tickets using JQL. For ET current sprint use Portal/Cluster August 2025 (returns 61 tickets).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - jql
+              properties:
+                jql:
+                  type: string
+                  description: JQL query string
+                  examples:
+                    - 'project = ET AND sprint = "Portal/Cluster August 2025"'
+                    - 'project = ET AND fixVersion = "July 2025 - Portal"'
+                maxResults:
+                  type: integer
+                  default: 100
+                  maximum: 1000
+                  description: Maximum number of results to return
+                fields:
+                  type: array
+                  items:
+                    type: string
+                  default: ["key", "summary", "status", "assignee", "priority", "issuetype", "created", "updated"]
+                  description: Fields to include in the response
+            examples:
+              currentSprint:
+                summary: Get current ET sprint tickets (61 total)
+                description: Complete list of tickets in current ET sprint
+                value:
+                  jql: 'project = ET AND sprint = "Portal/Cluster August 2025"'
+                  maxResults: 100
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "created", "updated"]
+              romanTickets:
+                summary: Get Roman's assigned tickets
+                description: Find tickets assigned to Roman Vorobchak
+                value:
+                  jql: 'assignee = "Roman Vorobchak" AND project = ET AND status != Done'
+                  maxResults: 50
+                  fields: ["key", "summary", "status", "assignee", "priority", "sprint", "updated"]
+              etOpenTickets:
+                summary: Get all open ET tickets
+                description: Find all open ET tickets for sprint planning
+                value:
+                  jql: 'project = ET AND status = "Open" ORDER BY priority DESC'
+                  maxResults: 100
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "created"]
+              studioTickets:
+                summary: Get Studio (STUD) project tickets
+                description: Current Studio platform development tickets
+                value:
+                  jql: 'project = STUD AND status != Done ORDER BY updated DESC'
+                  maxResults: 75
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "updated"]
+              julyRelease:
+                summary: Get July 2025 release tickets (24 total)
+                description: July 2025 Portal release ticket breakdown
+                value:
+                  jql: 'project = ET AND fixVersion = "July 2025 - Portal"'
+                  maxResults: 50
+                  fields: ["key", "summary", "status", "assignee", "priority", "issuetype", "fixVersions"]
+              highPriorityBugs:
+                summary: Get critical and high priority bugs
+                description: Urgent bugs requiring immediate attention
+                value:
+                  jql: 'project = ET AND issuetype = Bug AND priority in (Critical, High) AND status != Done'
+                  maxResults: 25
+                  fields: ["key", "summary", "status", "assignee", "priority", "created", "updated"]
+              inProgressWork:
+                summary: Get work in progress across projects
+                description: Currently active development work
+                value:
+                  jql: 'project in (ET, STUD, PROD) AND status = "In Progress" ORDER BY updated DESC'
+                  maxResults: 50
+                  fields: ["key", "summary", "status", "assignee", "project", "updated"]
+              recentlyUpdated:
+                summary: Get recently updated tickets
+                description: Tickets updated in the last 7 days
+                value:
+                  jql: 'project = ET AND updated >= -7d ORDER BY updated DESC'
+                  maxResults: 30
+                  fields: ["key", "summary", "status", "assignee", "priority", "updated"]
+              unassignedTickets:
+                summary: Get unassigned tickets
+                description: Tickets available for assignment
+                value:
+                  jql: 'project = ET AND assignee is EMPTY AND status = "Open" ORDER BY priority DESC'
+                  maxResults: 40
+                  fields: ["key", "summary", "status", "priority", "issuetype", "created"]
+              teamWorkload:
+                summary: Get team workload analysis
+                description: Active tickets per team member
+                value:
+                  jql: 'project = ET AND status in ("In Progress", "In Code Review", "Open") AND assignee is not EMPTY ORDER BY assignee'
+                  maxResults: 100
+                  fields: ["key", "summary", "status", "assignee", "priority", "sprint"]
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: integer
+                    description: Total number of tickets matching query
+                    example: 61
+                  maxResults:
+                    type: integer
+                    description: Maximum results requested
+                  startAt:
+                    type: integer
+                    description: Starting index of results
+                  issues:
+                    type: array
+                    description: Array of Jira tickets
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                          description: Jira ticket key
+                          example: "ET-21261"
+                        fields:
+                          type: object
+                          properties:
+                            summary:
+                              type: string
+                              description: Ticket summary/title
+                              example: "Allow Multiple Users to be Notified via Email"
+                            status:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "Open"
+                            assignee:
+                              anyOf:
+                                - type: object
+                                  properties:
+                                    displayName:
+                                      type: string
+                                      example: "Himanshu Gupte"
+                                    emailAddress:
+                                      type: string
+                                - type: "null"
+                            priority:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "Normal"
+                            issuetype:
+                              type: object
+                              properties:
+                                name:
+                                  type: string
+                                  example: "Story"
+                            created:
+                              type: string
+                              format: date-time
+                            updated:
+                              type: string
+                              format: date-time
+        '400':
+          description: Invalid JQL query
+        '401':
+          description: Authentication required
+
+components:
+  schemas: {}
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Use format "Basic <base64_encoded_credentials>"

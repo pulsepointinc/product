@@ -1,0 +1,579 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Hybrid Search API
+  description: |
+    Hybrid search system that combines RAG content search with direct BigQuery queries 
+    for comprehensive roadmap intelligence. Automatically detects roadmap-related queries 
+    and provides enhanced responses with timeline data and predictions.
+    
+    Key Features:
+    - Intelligent query routing (roadmap vs content)
+    - Combined RAG + BigQuery timeline intelligence
+    - Real-time Jira data integration
+    - Sprint and release predictions
+    - Dependency analysis and risk assessment
+  version: 1.0.0
+  license:
+    name: "Proprietary"
+    identifier: "PulsePoint Internal Use"
+  contact:
+    name: PulsePoint Product Team
+    email: product@pulsepoint.com
+    url: https://pulsepoint.com
+  termsOfService: "https://pulsepoint.com/terms"
+
+servers:
+  - url: https://pulsepoint-hybrid-search-420423430685.us-east4.run.app
+    description: Production hybrid search server
+
+tags:
+  - name: "System Health"
+    description: "Health check and system status endpoints"
+  - name: "Hybrid Search"
+    description: "Intelligent search endpoints with automatic query routing"
+  - name: "Roadmap Intelligence"
+    description: "Specialized roadmap and timeline analysis endpoints"
+  - name: "Timeline Data"
+    description: "Direct access to timeline and scheduling data"
+
+paths:
+  /health:
+    get:
+      tags:
+        - "System Health"
+      summary: Health check endpoint
+      description: Check the health status of the hybrid search system
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["healthy", "unhealthy"]
+                  components:
+                    type: object
+                    properties:
+                      hybrid_system:
+                        type: string
+                      unified_searcher:
+                        type: string
+                      bigquery:
+                        type: string
+                      rag_generator:
+                        type: string
+
+  /search/hybrid:
+    post:
+      tags:
+        - "Hybrid Search"
+      summary: Intelligent hybrid search
+      description: |
+        Automatically detects roadmap-related queries and uses appropriate search strategy.
+        For roadmap queries, combines RAG search with BigQuery timeline data.
+        For content queries, uses standard RAG search.
+      operationId: hybridSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query or question
+                  examples:
+                    - "What's the development timeline for Studio workspace features?"
+                    - "When will Adaptive Optimization be ready for GA release?"
+                    - "What are the AO factors and current implementation status?"
+                include_timeline:
+                  type: boolean
+                  default: true
+                  description: Include timeline data for roadmap queries
+                include_dependencies:
+                  type: boolean
+                  default: true
+                  description: Include dependency analysis
+                time_horizon_months:
+                  type: integer
+                  default: 12
+                  minimum: 1
+                  maximum: 24
+                  description: Time horizon for timeline predictions (months)
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: Minimum similarity threshold for content matching
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum number of results to return
+      responses:
+        '200':
+          description: Successful search response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HybridSearchResponse'
+              examples:
+                roadmap_query:
+                  summary: "Roadmap query response"
+                  value:
+                    query: "AO roadmap timeline"
+                    is_roadmap_query: true
+                    search_strategy: "hybrid_roadmap"
+                    total_results: 8
+                    processing_time_ms: 1250
+                content_query:
+                  summary: "Content query response"
+                  value:
+                    query: "Studio features documentation"
+                    is_roadmap_query: false
+                    search_strategy: "standard_rag"
+                    total_results: 12
+                    processing_time_ms: 850
+        '400':
+          description: Invalid request parameters
+        '500':
+          description: Internal server error
+
+  /search/roadmap:
+    post:
+      tags:
+        - "Roadmap Intelligence"
+      summary: Dedicated roadmap search
+      description: |
+        Specialized endpoint for roadmap queries that always uses hybrid approach.
+        Provides comprehensive roadmap intelligence with timeline predictions.
+      operationId: roadmapSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Roadmap-related question
+                  examples:
+                    - "When will the Studio HCP workspace be released?"
+                    - "What's the Q1 2025 product roadmap for Platform features?"
+                    - "Show me the development timeline for Adaptive Optimization"
+                focus_area:
+                  type: string
+                  description: Focus area for the roadmap query
+                  enum: ["product", "engineering", "release", "platform", "data"]
+                  example: "product"
+                time_horizon_months:
+                  type: integer
+                  default: 12
+                  minimum: 1
+                  maximum: 24
+                  description: Time horizon for roadmap analysis
+                include_predictions:
+                  type: boolean
+                  default: true
+                  description: Include timeline predictions and risk analysis
+                max_results:
+                  type: integer
+                  default: 15
+                  minimum: 1
+                  maximum: 50
+      responses:
+        '200':
+          description: Comprehensive roadmap response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapQueryResponse'
+
+  /timeline/releases:
+    get:
+      tags:
+        - "Timeline Data"
+      summary: Get release timeline
+      description: Get upcoming release timeline from Jira fix versions
+      operationId: getReleaseTimeline
+      responses:
+        '200':
+          description: Release timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  releases:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/ReleaseInfo'
+                  predictions:
+                    $ref: '#/components/schemas/TimelinePredictions'
+                  query_time:
+                    type: string
+                    format: date-time
+
+  /timeline/sprints:
+    get:
+      tags:
+        - "Timeline Data"
+      summary: Get sprint timeline
+      description: Get active sprint timeline and capacity analysis
+      operationId: getSprintTimeline
+      responses:
+        '200':
+          description: Sprint timeline data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sprints:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/SprintInfo'
+                  capacity_analysis:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/CapacityAnalysis'
+                  query_time:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    HybridSearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Original search query
+        is_roadmap_query:
+          type: boolean
+          description: Whether query was detected as roadmap-related
+        search_strategy:
+          type: string
+          enum: ["hybrid_roadmap", "standard_rag"]
+          description: Search strategy used
+        content_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentResult'
+        timeline_data:
+          anyOf:
+            - $ref: '#/components/schemas/TimelineData'
+            - type: "null"
+        roadmap_intelligence:
+          anyOf:
+            - $ref: '#/components/schemas/RoadmapIntelligence'
+            - type: "null"
+        total_results:
+          type: integer
+        processing_time_ms:
+          type: integer
+
+    RoadmapQueryResponse:
+      type: object
+      properties:
+        question:
+          type: string
+        roadmap_answer:
+          type: string
+          description: Comprehensive roadmap answer with timeline context
+        strategic_context:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContentResult'
+        timeline_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        predictions:
+          $ref: '#/components/schemas/TimelinePredictions'
+        confidence_score:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+        processing_time_ms:
+          type: integer
+
+    ContentResult:
+      type: object
+      properties:
+        chunk_id:
+          type: string
+        content:
+          type: string
+        title:
+          type: string
+        source_type:
+          type: string
+          enum: ["confluence", "jira", "jira_enhanced"]
+        source_id:
+          type: string
+        source_url:
+          type: string
+        similarity_score:
+          type: number
+        ranking_score:
+          type: number
+        metadata:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    TimelineData:
+      type: object
+      properties:
+        timeline_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineItem'
+        releases:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ReleaseInfo'
+        sprints:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SprintInfo'
+        dependencies:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        predictions:
+          $ref: '#/components/schemas/TimelinePredictions'
+        total_items:
+          type: integer
+
+    TimelineItem:
+      type: object
+      properties:
+        issue_key:
+          type: string
+        summary:
+          type: string
+        issue_type:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        assignee:
+          anyOf:
+            - type: string
+            - type: "null"
+        product:
+          anyOf:
+            - type: string
+            - type: "null"
+        stream:
+          anyOf:
+            - type: string
+            - type: "null"
+        epic_key:
+          anyOf:
+            - type: string
+            - type: "null"
+        story_points:
+          anyOf:
+            - type: integer
+            - type: "null"
+        due_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        sprint:
+          anyOf:
+            - $ref: '#/components/schemas/SprintInfo'
+            - type: "null"
+        fix_version:
+          anyOf:
+            - $ref: '#/components/schemas/VersionInfo'
+            - type: "null"
+
+    ReleaseInfo:
+      type: object
+      properties:
+        planned_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        description:
+          anyOf:
+            - type: string
+            - type: "null"
+        issues:
+          type: array
+          items:
+            type: string
+
+    SprintInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        start_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        end_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        state:
+          type: string
+        issues:
+          type: array
+          items:
+            type: string
+
+    VersionInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        planned_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        description:
+          anyOf:
+            - type: string
+            - type: "null"
+
+    CapacityAnalysis:
+      type: object
+      properties:
+        issue_count:
+          type: integer
+        end_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        capacity_status:
+          type: string
+          enum: ["normal", "high", "overloaded"]
+
+    TimelinePredictions:
+      type: object
+      properties:
+        release_predictions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              planned_date:
+                type: string
+                format: date-time
+              predicted_date:
+                type: string
+                format: date-time
+              confidence:
+                type: number
+              risk_level:
+                type: string
+                enum: ["low", "medium", "high"]
+              issue_count:
+                type: integer
+              days_remaining:
+                type: integer
+        risk_factors:
+          type: array
+          items:
+            type: string
+        dependency_risks:
+          type: array
+          items:
+            type: object
+            properties:
+              epic:
+                type: string
+              dependent_stories:
+                type: integer
+              risk:
+                type: string
+
+    RoadmapIntelligence:
+      type: object
+      properties:
+        strategic_alignment:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+              url:
+                type: string
+              relevance:
+                type: number
+        timeline_insights:
+          type: array
+          items:
+            type: object
+            properties:
+              issue:
+                type: string
+              summary:
+                type: string
+              timeline:
+                anyOf:
+                  - type: string
+                    format: date-time
+                  - type: "null"
+              priority:
+                type: string
+        risk_assessment:
+          type: array
+          items:
+            type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+        key_stakeholders:
+          type: array
+          items:
+            type: string
+        related_products:
+          type: array
+          items:
+            type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+# Optional security for production
+# security:
+#   - bearerAuth: []

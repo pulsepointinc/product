@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v13-10 API
+  description: Enhanced knowledge retrieval with JIRA integration, intelligent response summarization, and query intent detection for optimal CustomGPT compatibility
+  version: 13.10.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v13-10
+paths:
+  /:
+    post:
+      operationId: queryKnowledge
+      summary: Query knowledge base with intelligent response optimization
+      description: Retrieve and synthesize information with automatic summarization for "working on" queries and detailed responses for "list" queries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Natural language question - use "working on" for summaries, "list" for detailed views
+                max_results:
+                  type: integer
+                  default: 50
+                  description: Maximum number of results to return
+            examples:
+              summary_query:
+                summary: Summary queries (gets intelligent summary)
+                value:
+                  question: "What is Donovan working on this sprint?"
+                  max_results: 50
+              detailed_query:
+                summary: Detailed listing queries (gets individual tickets)
+                value:
+                  question: "List all of Donovan's tickets in the current sprint"
+                  max_results: 50
+              person_analysis:
+                summary: Person-specific analysis
+                value:
+                  question: "Summarize Kenan's work this sprint"
+                  max_results: 50
+      responses:
+        '200':
+          description: Successful knowledge retrieval with intelligent optimization
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "13.10-INTELLIGENT-SUMMARY"
+                  ai_analysis:
+                    type: object
+                    properties:
+                      query_intent:
+                        type: string
+                        example: "person_tickets"
+                      date_extracted:
+                        type: string
+                        example: "September 2025"
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                        example: 50
+                      tickets_displayed:
+                        type: integer
+                        example: 1
+                      response_optimized:
+                        type: boolean
+                        example: true
+                      jql_link:
+                        type: string
+                        example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%28BI-719,BI-606%29"
+                  size_optimization:
+                    type: object
+                    properties:
+                      optimization_type:
+                        type: string
+                        example: "intelligent_summary"
+                      message:
+                        type: string
+                        example: "Summarized 50 tickets. Use JQL link for individual ticket details."
+                  curated_intelligence:
+                    type: object
+                    properties:
+                      executive_summary:
+                        type: string
+                        example: "Analysis of 50 tickets reveals active development across Clinical Insights..."
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                      actionable_next_steps:
+                        type: array
+                        items:
+                          type: string
+        '400':
+          description: Bad request - missing or invalid parameters
+        '500':
+          description: Internal server error

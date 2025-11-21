@@ -1,0 +1,419 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API
+  description: Enhanced knowledge layer with GitHub code integration, Mermaid diagrams, and technical process flows
+  version: 3.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/comprehensive-api-v3-final
+    description: Production Knowledge Layer API v3 with GitHub Integration
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check and API status
+      description: Get API health status and available features
+      responses:
+        '200':
+          description: API health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  version:
+                    type: string
+                    example: "3.0.0-COMPLETE-FIX"
+                  message:
+                    type: string
+                    example: "Knowledge Layer API v3.0 - COMPLETE WITH ALL INTEGRATIONS"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                  github_integration:
+                    type: object
+                    properties:
+                      products:
+                        type: integer
+                      stream_leads:
+                        type: integer
+
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Query the knowledge layer for JIRA tickets and Confluence documentation
+      description: Query JIRA tickets, Confluence docs, and capacity planning data with team filtering and ChatGPT ResponseTooLargeError fix.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: The question or query about JIRA tickets, roadmaps, or capacity planning
+                  example: "Front End Portal Development tickets in September 2025 sprint"
+                max_results:
+                  type: integer
+                  description: Maximum number of tickets to return (1-150)
+                  default: 50
+                  minimum: 1
+                  maximum: 150
+                  example: 150
+              required:
+                - question
+            examples:
+              teamSpecificQuery:
+                summary: Team-specific query (filtered response)
+                value:
+                  question: "Front End Portal Development tickets in September 2025 sprint"
+                  max_results: 150
+              breakdownQuery:
+                summary: Breakdown query (all teams for capacity planning)
+                value:
+                  question: "breakdown of tickets in September 2025 sprint by team and stream"
+                  max_results: 150
+              aoRoadmapQuery:
+                summary: AO roadmap query
+                value:
+                  question: "detailed AO Product roadmap including the factors"
+                  max_results: 50
+              confluenceQuery:
+                summary: Documentation query
+                value:
+                  question: "adaptive optimization roadmap and factors"
+                  max_results: 50
+      responses:
+        '200':
+          description: Successful query response with JIRA tickets and Confluence documentation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                        description: Number of tickets found
+                      tickets:
+                        type: array
+                        description: Array of JIRA tickets
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                              example: "ET-18282"
+                            summary:
+                              type: string
+                              example: "techdebt-update GEO table"
+                            assignee:
+                              type: string
+                              example: "Jifei Lin"
+                            story_points:
+                              type: number
+                              nullable: true
+                              example: 5.0
+                            issue_type:
+                              type: string
+                              example: "Story"
+                            team:
+                              type: string
+                              example: "Front End Portal Development"
+                            stream:
+                              type: string
+                              example: "Omnichannel"
+                            project_key:
+                              type: string
+                              example: "ET"
+                            product:
+                              type: string
+                              nullable: true
+                              example: "Clinical Insights"
+                            product_manager:
+                              type: string
+                              nullable: true
+                              example: "Josh Stewart"
+                            sprint_date:
+                              type: string
+                              example: "September 2025"
+                            release_date:
+                              type: string
+                              nullable: true
+                              example: "September 2025"
+                            number_of_sprint_slips:
+                              type: integer
+                              example: 0
+                            url:
+                              type: string
+                              example: "https://ppinc.atlassian.net/browse/ET-18282"
+                      filter_details:
+                        type: object
+                        properties:
+                          detected_team:
+                            type: string
+                            nullable: true
+                            description: Team detected from the query (null if breakdown query)
+                          team_filtering_applied:
+                            type: boolean
+                            description: Whether team filtering was applied to prevent ResponseTooLargeError
+                          data_source:
+                            type: string
+                            example: "pulsepoint-dataproducts.jira.jira_team_tickets"
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      answer:
+                        type: string
+                        description: Formatted Confluence search results
+                      confidence:
+                        type: number
+                        example: 0.8
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            confluence_space:
+                              type: string
+                            excerpt:
+                              type: string
+                            relevance_score:
+                              type: number
+                      total_sources_found:
+                        type: integer
+                  team_breakdown:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    description: Number of tickets per team
+                    example:
+                      "Front End Portal Development": 50
+                      "Business Intelligence Development": 42
+                      "Back End Development": 35
+                  stream_breakdown:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    description: Number of tickets per stream
+                    example:
+                      "Omnichannel": 48
+                      "Analytics_Platform_Workspaces": 25
+                      "Media_Effectiveness": 20
+                  product_breakdown:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    description: Number of tickets per product
+                    example:
+                      "Clinical Insights": 15
+                      "Adaptive Optimization": 8
+                  manager_breakdown:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                    description: Number of tickets per product manager
+                  data_sources:
+                    type: array
+                    items:
+                      type: string
+                    example: ["jira", "confluence"]
+                  github_integration:
+                    type: string
+                    example: "✅ Using official mappings from repository"
+                  version:
+                    type: string
+                    example: "3.0.0-COMPLETE-FIX"
+                  synthesis:
+                    type: string
+                    description: AI-generated summary of the results
+              examples:
+                teamSpecificResponse:
+                  summary: Team-specific response (filtered, ChatGPT-optimized)
+                  value:
+                    jira_analysis:
+                      tickets_found: 50
+                      filter_details:
+                        detected_team: "Front End Portal Development"
+                        team_filtering_applied: true
+                        data_source: "pulsepoint-dataproducts.jira.jira_team_tickets"
+                    team_breakdown:
+                      "Front End Portal Development": 50
+                    stream_breakdown:
+                      "Omnichannel": 48
+                      "Platform Administration": 2
+                    confluence_analysis:
+                      total_sources_found: 3
+                    version: "3.0.0-COMPLETE-FIX"
+                breakdownResponse:
+                  summary: Complete breakdown response (all teams for capacity planning)
+                  value:
+                    jira_analysis:
+                      tickets_found: 150
+                      filter_details:
+                        detected_team: null
+                        team_filtering_applied: false
+                        data_source: "pulsepoint-dataproducts.jira.jira_team_tickets"
+                    team_breakdown:
+                      "Business Intelligence Development": 42
+                      "Front End Portal Development": 50
+                      "Back End Development": 35
+                      "Data Analytics": 23
+                    stream_breakdown:
+                      "Omnichannel": 48
+                      "Analytics_Platform_Workspaces": 35
+                      "Media_Effectiveness": 25
+                      "Platform_Administration": 20
+                      "Campaign_Management": 15
+                      "Optimization": 7
+                    confluence_analysis:
+                      total_sources_found: 3
+                    version: "3.0.0-COMPLETE-FIX"
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Missing required parameter: question"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  version:
+                    type: string
+
+components:
+  schemas:
+    JiraTicket:
+      type: object
+      properties:
+        key:
+          type: string
+          description: JIRA ticket key
+        summary:
+          type: string
+          description: Ticket summary/title
+        assignee:
+          type: string
+          description: Person assigned to the ticket
+        story_points:
+          type: number
+          nullable: true
+          description: Story points for the ticket
+        issue_type:
+          type: string
+          description: Type of issue (Story, Epic, Bug, etc.)
+        team:
+          type: string
+          description: Development team responsible
+        stream:
+          type: string
+          description: Business stream (Omnichannel, Analytics, etc.)
+        project_key:
+          type: string
+          description: JIRA project key
+        url:
+          type: string
+          description: Direct link to JIRA ticket
+
+# Test scenarios for validation
+x-test-scenarios:
+  - name: "Team-specific query test"
+    description: "Test team filtering for ChatGPT ResponseTooLargeError fix"
+    request:
+      method: POST
+      path: /ask
+      body:
+        question: "Front End Portal Development tickets in September 2025 sprint"
+        max_results: 150
+    expected:
+      status: 200
+      properties:
+        - "jira_analysis.filter_details.detected_team should equal 'Front End Portal Development'"
+        - "jira_analysis.filter_details.team_filtering_applied should be true"
+        - "team_breakdown should contain only 'Front End Portal Development'"
+        - "response size should be under 100KB"
+
+  - name: "Breakdown query test"
+    description: "Test complete breakdown for capacity planning"
+    request:
+      method: POST
+      path: /ask
+      body:
+        question: "breakdown of tickets in September 2025 sprint by team and stream"
+        max_results: 150
+    expected:
+      status: 200
+      properties:
+        - "jira_analysis.filter_details.detected_team should be null"
+        - "jira_analysis.filter_details.team_filtering_applied should be false"
+        - "team_breakdown should contain multiple teams"
+        - "stream_breakdown should contain multiple streams"
+
+  - name: "AO roadmap test"
+    description: "Test AO-specific queries with Confluence integration"
+    request:
+      method: POST
+      path: /ask
+      body:
+        question: "adaptive optimization roadmap and factors"
+        max_results: 50
+    expected:
+      status: 200
+      properties:
+        - "confluence_analysis.total_sources_found should be >= 1"
+        - "jira_analysis.tickets should contain AO-related tickets"
+
+  - name: "Health check test"
+    description: "Test API health and status"
+    request:
+      method: GET
+      path: /
+    expected:
+      status: 200
+      properties:
+        - "status should equal 'healthy'"
+        - "version should contain '3.0.0'"
+        - "features should be an array"
+
+# Usage examples for ChatGPT integration
+x-chatgpt-examples:
+  team_queries:
+    - "Front End Portal Development tickets September 2025"
+    - "Business Intelligence Development roadmap Q4 2025"
+    - "Back End Development sprint capacity"
+  
+  capacity_planning:
+    - "breakdown of tickets in September 2025 sprint by team and stream"
+    - "capacity analysis for Q4 2025 by product manager"
+    - "sprint planning breakdown by team and stream"
+  
+  roadmap_queries:
+    - "AO product roadmap including factors"
+    - "Clinical Insights roadmap September 2025"
+    - "Omnichannel platform roadmap Q4 2025"
+  
+  confluence_queries:
+    - "adaptive optimization factors and documentation"
+    - "roadmap documentation for AO launch"
+    - "product strategy and planning docs"

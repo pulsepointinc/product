@@ -1,0 +1,259 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint RAG API v3 - CORRECTED
+  description: |
+    WORKING CONFLUENCE SEARCH API - Provides full content access to Confluence pages and Jira tickets.
+    
+    This API returns detailed content chunks with source URLs that can be linked directly.
+    All responses include full metadata and source attribution for proper citation.
+    
+    TESTED AND VERIFIED - All endpoints working with proper content access.
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-420423430685.us-east4.run.app
+    description: Production RAG API - VERIFIED WORKING
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: API health check
+      description: Returns API status and available sources (confluence, jira)
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: string
+
+  /search:
+    post:
+      operationId: searchContent
+      summary: Search Confluence and Jira content
+      description: Search across Confluence pages and Jira tickets. Returns full content chunks with source URLs for attribution and linking. Supports multi-term queries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query - can include multiple terms
+                  example: "AO Factors"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum number of results to return
+                min_similarity:
+                  type: number
+                  default: 0.25
+                  minimum: 0.0
+                  maximum: 1.0
+                  description: Minimum similarity score for results
+              required:
+                - query
+      responses:
+        '200':
+          description: Search results with full content and source attribution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The search query used
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                          description: Unique identifier for this content chunk
+                        content:
+                          type: string
+                          description: FULL CONTENT TEXT from the source
+                        title:
+                          type: string
+                          description: Title of the source document/page
+                        source_type:
+                          type: string
+                          enum: ["confluence", "jira_enhanced"]
+                          description: Type of source
+                        source_id:
+                          type: string
+                          description: Source identifier (page ID, ticket key)
+                        source_url:
+                          type: string
+                          format: uri
+                          description: DIRECT LINK to source - use for attribution
+                        doc_type:
+                          type: string
+                          description: Document type (confluence_page, jira_story, etc)
+                        similarity_score:
+                          type: number
+                          description: Relevance score for the query
+                        ranking_score:
+                          type: number
+                          description: Overall ranking score
+                        metadata:
+                          type: object
+                          description: Additional metadata (space, version, etc)
+                        confluence_space:
+                          type: string
+                          description: Confluence space key if applicable
+                        page_id:
+                          type: string
+                          description: Page ID for direct access
+                  count:
+                    type: integer
+                    description: Number of results returned
+                  min_similarity:
+                    type: number
+                    description: Minimum similarity threshold used
+        '422':
+          description: Invalid request parameters
+
+  /query:
+    post:
+      operationId: queryRAG
+      summary: AI-powered query with full content access
+      description: |
+        Use AI to query and synthesize information from Confluence and Jira.
+        Returns detailed responses with source citations and links.
+        
+        This endpoint provides intelligent answers with proper source attribution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question or query
+                  example: "What are the AO factors and how are they used?"
+                max_results:
+                  type: integer
+                  default: 5
+                  description: Maximum number of sources to consider
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  description: Minimum similarity threshold
+              required:
+                - question
+      responses:
+        '200':
+          description: AI-generated response with source citations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  answer:
+                    type: string
+                    description: AI-generated answer with context
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        source_url:
+                          type: string
+                          format: uri
+                        title:
+                          type: string
+                        content_preview:
+                          type: string
+                        source_type:
+                          type: string
+
+  /search/confluence:
+    post:
+      operationId: searchConfluence
+      summary: Search only Confluence content
+      description: Search specifically within Confluence pages with full content access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "Stream Leads roadmap"
+                max_results:
+                  type: integer
+                  default: 10
+              required:
+                - query
+      responses:
+        '200':
+          description: Confluence search results with full page content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+
+  /search/jira:
+    post:
+      operationId: searchJira
+      summary: Search only Jira tickets
+      description: Search specifically within Jira tickets with full context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "Roman Kuzmych AO tickets"
+                max_results:
+                  type: integer
+                  default: 10
+              required:
+                - query
+      responses:
+        '200':
+          description: Jira search results with ticket details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object

@@ -1,0 +1,160 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v13.17
+  description: Comprehensive multi-source knowledge integration across Confluence, JIRA, GitHub, and Document360 for PulsePoint products, team workload, technical docs, and roadmaps with intelligent synthesis
+  version: 13.17.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v13-17:
+    post:
+      operationId: queryKnowledgeLayer
+      summary: Query PulsePoint comprehensive knowledge base
+      description: Search across all four knowledge sources with intelligent synthesis and source attribution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language query for multi-source knowledge search
+                  example: "What is Studio?"
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive multi-source knowledge response with synthesis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  curated_intelligence:
+                    type: object
+                    description: Synthesized insights combining all four knowledge sources
+                    properties:
+                      executive_summary:
+                        type: string
+                        description: High-level synthesis of findings from all sources
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                        description: Key findings and patterns from multi-source analysis
+                      actionable_next_steps:
+                        type: array
+                        items:
+                          type: string
+                        description: Recommended actions based on synthesized information
+                  jira_analysis:
+                    type: object
+                    description: JIRA tickets, sprint work, team assignments, and development progress
+                    properties:
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            key:
+                              type: string
+                            status:
+                              type: string
+                        description: Relevant development tickets with details
+                      jql_link:
+                        type: string
+                        description: Direct link to JIRA query results
+                  confluence_analysis:
+                    type: object
+                    description: Internal documentation, product specs, and wiki pages
+                    properties:
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                        description: Relevant Confluence pages and documentation
+                      total_sources_found:
+                        type: integer
+                        description: Number of matching Confluence pages
+                  github_integration:
+                    type: object
+                    description: Code repositories, technical implementations, and product definitions
+                    properties:
+                      repositories:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            url:
+                              type: string
+                        description: Relevant GitHub repositories and technical documentation
+                      total_repos_found:
+                        type: integer
+                        description: Number of matching repositories
+                  document360_analysis:
+                    type: object
+                    description: Client-facing user guides, API documentation, and external resources
+                    properties:
+                      articles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                        description: Relevant Document360 articles and guides
+                      total_articles_found:
+                        type: integer
+                        description: Number of matching articles
+                  api_status:
+                    type: object
+                    description: Status and success metrics for all four knowledge source APIs
+                    properties:
+                      data_sources_successful:
+                        type: integer
+                        description: Number of successfully queried data sources
+                      confluence_api_success:
+                        type: boolean
+                        description: Confluence API query success status
+                      jira_query_success:
+                        type: boolean
+                        description: JIRA API query success status
+                      github_api_success:
+                        type: boolean
+                        description: GitHub API query success status
+                      document360_api_success:
+                        type: boolean
+                        description: Document360 API query success status
+        '400':
+          description: Bad request - invalid query format
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message describing the issue
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message describing the server issue

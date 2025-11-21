@@ -1,0 +1,746 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Product GPT APIs
+  description: |
+    Comprehensive API suite for PulsePoint's Product GPT system, providing access to:
+    - Document360 Knowledge Base (platform features, user guides)
+    - BigQuery Tickets System (development status, sprint planning)  
+    - Git Repository Search (code implementation, technical details)
+    
+    ## Usage Strategy
+    Use these APIs in combination for comprehensive answers:
+    1. **Platform questions**: Document360 + current development status from BigQuery
+    2. **Sprint planning**: BigQuery tickets with correct parameters (assigned, next_sprint, has_points)
+    3. **Technical questions**: Git repository search + platform documentation
+    4. **Complex queries**: Combine all sources for complete context
+    
+  version: "1.0.0"
+  contact:
+    name: PulsePoint Product Team
+    email: productgpt@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-improved-420423430685.us-east4.run.app
+    description: BigQuery Tickets & Development API
+  - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+    description: Git Repository Search API
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+    description: Confluence Content Search API  
+  - url: https://raw.githubusercontent.com/pulsepointinc/product/main/GPT
+    description: Document360 Knowledge Base (Static Files)
+
+paths:
+  # BigQuery Tickets API
+  /tickets:
+    get:
+      servers:
+        - url: https://pulsepoint-bigquery-tickets-improved-420423430685.us-east4.run.app
+      summary: Search PulsePoint tickets and development items
+      description: |
+        Search tickets with filters for sprint planning, team workload, and development status.
+        
+        **Key Parameters for Common Queries:**
+        - `assigned=john` - Find tickets assigned to John (NOT reporter)
+        - `next_sprint=true` - Get tickets for September 2025 sprint
+        - `status=Open` - Filter by ticket status  
+        - `has_points=true` - Find estimated tickets for sprint planning
+        
+      parameters:
+        - name: query
+          in: query
+          description: General search term
+          schema:
+            type: string
+          examples:
+            platform_search:
+              value: "Studio targeting features"
+              description: "Search for Studio platform targeting features"
+            bug_search:
+              value: "ET social integration bugs"
+              description: "Search for ET social integration issues"
+        - name: assigned
+          in: query
+          description: "Filter by assignee name (use for 'assigned to X' queries)"
+          schema:
+            type: string
+          examples:
+            roman_tickets:
+              value: "Roman Vorobchak"
+              description: "Find tickets assigned to Roman"
+            john_tickets:
+              value: "john"
+              description: "Find tickets assigned to John"
+        - name: next_sprint
+          in: query
+          description: "Get tickets for next sprint (September 2025)"
+          schema:
+            type: boolean
+          example: true
+        - name: status
+          in: query
+          description: "Filter by ticket status"
+          schema:
+            type: string
+            enum: [Open, "In Progress", Done, "To Do", Closed]
+          examples:
+            open_status:
+              value: "Open"
+              description: "Find open tickets for sprint planning"
+            in_progress:
+              value: "In Progress"
+              description: "Find tickets currently being worked on"
+        - name: has_points
+          in: query
+          description: "Filter tickets with/without story points"
+          schema:
+            type: boolean
+          example: true
+        - name: sprint
+          in: query
+          description: "Filter by specific sprint name"
+          schema:
+            type: string
+          examples:
+            current_sprint:
+              value: "Portal/Cluster August 2025"
+              description: "Current ET sprint tickets"
+            july_sprint:
+              value: "Portal/Cluster July 2025"
+              description: "July sprint historical data"
+        - name: limit
+          in: query
+          description: "Maximum results to return"
+          schema:
+            type: integer
+            default: 50
+          examples:
+            small_batch:
+              value: 10
+              description: "Quick overview with limited results"
+            full_sprint:
+              value: 100
+              description: "Complete sprint ticket list"
+      responses:
+        '200':
+          description: Ticket search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_results:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+
+  /tickets/search:
+    post:
+      servers:
+        - url: https://pulsepoint-bigquery-tickets-improved-420423430685.us-east4.run.app
+      summary: Advanced ticket search with complex filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  example: "ET social integration"
+                assigned:
+                  type: string
+                  description: "Assignee name (for 'assigned to X' queries)"
+                  example: "Roman Vorobchak"
+                status:
+                  type: string
+                  example: "Open"
+                next_sprint:
+                  type: boolean
+                  description: "Get September 2025 sprint tickets"
+                  example: true
+                has_points:
+                  type: boolean
+                  example: true
+                limit:
+                  type: integer
+                  default: 50
+                  example: 25
+              examples:
+                roman_tickets:
+                  summary: Find Roman's assigned tickets
+                  description: Get all tickets assigned to Roman Vorobchak
+                  value:
+                    assigned: "Roman Vorobchak"
+                    status: "Open"
+                    limit: 20
+                et_sprint_tickets:
+                  summary: Get current ET sprint tickets
+                  description: Find all tickets in current ET sprint
+                  value:
+                    query: "ET"
+                    next_sprint: true
+                    has_points: true
+                    limit: 50
+                studio_development:
+                  summary: Find Studio development tickets
+                  description: Get Studio platform development tickets
+                  value:
+                    query: "Studio platform"
+                    status: "In Progress"
+                    limit: 30
+      responses:
+        '200':
+          description: Advanced search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_results:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+
+  # Git Repository API  
+  /github_code_search:
+    post:
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      summary: Search code across PulsePoint repositories
+      description: |
+        Search for code patterns, functions, and implementations across all repositories.
+        Supports OR logic: "function OR class OR method"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search terms (supports OR logic)"
+                  example: "targeting OR campaign OR bid"
+                repository_name:
+                  type: string
+                  description: "Filter by repository name"
+                  example: "Ad Serving Platform"
+                language:
+                  type: string
+                  description: "Filter by programming language"
+                  example: "python"
+                max_results:
+                  type: integer
+                  default: 50
+                  example: 25
+              required:
+                - query
+              examples:
+                targeting_algorithms:
+                  summary: Search targeting algorithm implementations
+                  description: Find code related to audience targeting algorithms
+                  value:
+                    query: "targeting OR audience OR segment"
+                    language: "python"
+                    max_results: 30
+                optimization_code:
+                  summary: Search optimization implementations
+                  description: Find adaptive optimization and ML algorithm code
+                  value:
+                    query: "optimization OR adaptive OR machine learning"
+                    repository_name: "Ad Serving Platform"
+                    max_results: 25
+                campaign_management:
+                  summary: Search campaign management code
+                  description: Find campaign setup and management implementations
+                  value:
+                    query: "campaign OR bid OR auction"
+                    language: "java"
+                    max_results: 35
+                database_queries:
+                  summary: Search database-related code
+                  description: Find database connection and query implementations
+                  value:
+                    query: "database OR sql OR query"
+                    max_results: 40
+      responses:
+        '200':
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  total_results:
+                    type: integer
+                  matches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CodeMatch'
+
+  /correlations:
+    get:
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      summary: Find Git-Jira ticket correlations
+      description: |
+        Find connections between Jira tickets and code repositories.
+        Use to understand what code changes are related to specific tickets.
+      parameters:
+        - name: ticket_id
+          in: query
+          required: true
+          description: "Jira ticket ID (e.g., ET-20284)"
+          schema:
+            type: string
+          examples:
+            et_ticket:
+              value: "ET-20284"
+              description: "ET project ticket correlation"
+            prod_ticket:
+              value: "PROD-12537"
+              description: "Production ticket correlation"
+            studio_ticket:
+              value: "STUD-2024"
+              description: "Studio platform ticket correlation"
+      responses:
+        '200':
+          description: Ticket correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id:
+                    type: string
+                  commits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommitCorrelation'
+                  total_correlations:
+                    type: integer
+
+    post:
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      summary: Find ticket correlations (alternative format)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ticket_id:
+                  type: string
+                  examples:
+                    - "ET-20284"
+                    - "ET-21213"
+                    - "PROD-12537"
+                    - "STUD-2024"
+              required:
+                - ticket_id
+              examples:
+                et_correlation:
+                  summary: Find ET ticket code correlations
+                  description: Search for code changes related to ET-20284
+                  value:
+                    ticket_id: "ET-20284"
+                prod_correlation:
+                  summary: Find PROD ticket correlations
+                  description: Search for production ticket implementations
+                  value:
+                    ticket_id: "PROD-12537"
+                studio_correlation:
+                  summary: Find Studio ticket correlations
+                  description: Search for Studio platform ticket code
+                  value:
+                    ticket_id: "STUD-2024"
+      responses:
+        '200':
+          description: Ticket correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id:
+                    type: string
+                  commits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CommitCorrelation'
+
+  /repositories:
+    get:
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      summary: Get repository information
+      parameters:
+        - name: repository_name
+          in: query
+          description: "Filter by repository name"
+          schema:
+            type: string
+          examples:
+            ad_serving:
+              value: "Ad Serving Platform"
+              description: "Main ad serving platform repository"
+            data_science:
+              value: "Data Science Projects"
+              description: "Data science and ML projects repository"
+        - name: language
+          in: query
+          description: "Filter by primary language"
+          schema:
+            type: string
+          examples:
+            python_repos:
+              value: "python"
+              description: "Python-based repositories"
+            java_repos:
+              value: "java"
+              description: "Java-based repositories"
+        - name: max_results
+          in: query
+          schema:
+            type: integer
+            default: 50
+          example: 25
+      responses:
+        '200':
+          description: Repository list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_results:
+                    type: integer
+                  repositories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Repository'
+
+  # Document360 Knowledge Base (Static Files)
+  /document360_knowledge_base.json:
+    get:
+      servers:
+        - url: https://raw.githubusercontent.com/pulsepointinc/product/main/GPT
+      summary: Get complete Document360 knowledge base
+      description: |
+        Complete PulsePoint platform knowledge base with 500+ articles covering:
+        - Targeting types and options
+        - Campaign management workflows  
+        - Platform features and functionality
+        - User guides and technical documentation
+        
+        **Updated weekly** (Mondays at 2 AM)
+        
+        **Article Links**: Use format `https://pulse-point.document360.io/docs/[article-slug]`
+      responses:
+        '200':
+          description: Complete knowledge base
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metadata:
+                    $ref: '#/components/schemas/KnowledgeBaseMetadata'
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Article'
+                  categories:
+                    type: object
+                    description: "Articles grouped by category"
+                  search_index:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SearchIndex'
+
+  # Confluence Content Search API
+  /search:
+    post:
+      servers:
+        - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+      summary: Search Confluence content for AO factors and platform information
+      description: |
+        Search PulsePoint's Confluence knowledge base for:
+        - AO (Adaptive Optimization) factors and implementation
+        - Platform features and technical documentation
+        - Development processes and guidelines
+        - Campaign management best practices
+        
+        **Key Use Cases:**
+        - "AO factors" - Get adaptive optimization factors and implementation details
+        - "targeting" - Find targeting options and platform capabilities  
+        - "campaign setup" - Get campaign management workflows
+        - "API documentation" - Find technical implementation guides
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search term for Confluence content"
+                max_results:
+                  type: integer
+                  default: 5
+                  description: "Maximum number of results to return"
+                space_filter:
+                  type: string
+                  description: "Filter by Confluence space (optional)"
+                min_similarity:
+                  type: number
+                  default: 0.3
+                  description: "Minimum similarity threshold"
+              required:
+                - query
+              examples:
+                ao_factors_search:
+                  summary: Search for AO factors
+                  description: Find Adaptive Optimization factors and implementation
+                  value:
+                    query: "AO factors"
+                    max_results: 10
+                targeting_search:
+                  summary: Search for targeting options
+                  description: Find targeting types and platform capabilities
+                  value:
+                    query: "targeting options"
+                    max_results: 8
+                campaign_setup:
+                  summary: Search campaign management
+                  description: Find campaign setup and management workflows  
+                  value:
+                    query: "campaign setup workflow"
+                    max_results: 6
+                platform_features:
+                  summary: Search platform features
+                  description: Find Studio platform features and capabilities
+                  value:
+                    query: "Studio platform features"
+                    space_filter: "platform"
+                    max_results: 12
+      responses:
+        '200':
+          description: Confluence search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConfluenceResult'
+                  count:
+                    type: integer
+                  space_filter:
+                    type: string
+                  min_similarity:
+                    type: number
+
+components:
+  schemas:
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: string
+        summary:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        assignee:
+          type: string
+        reporter:
+          type: string
+        sprint:
+          type: string
+        story_points:
+          type: number
+        created:
+          type: string
+          format: date-time
+        updated:
+          type: string
+          format: date-time
+
+    CodeMatch:
+      type: object
+      properties:
+        result_type:
+          type: string
+          enum: [file, function]
+        repository_name:
+          type: string
+        file_path:
+          type: string
+        file_name:
+          type: string
+        language:
+          type: string
+        content_preview:
+          type: string
+        function_name:
+          type: string
+        line_number:
+          type: integer
+
+    CommitCorrelation:
+      type: object
+      properties:
+        commit_sha:
+          type: string
+        commit_message:
+          type: string
+        repository_name:
+          type: string
+        github_url:
+          type: string
+
+    Repository:
+      type: object
+      properties:
+        repository_name:
+          type: string
+        description:
+          type: string
+        main_language:
+          type: string
+        is_private:
+          type: boolean
+        file_count:
+          type: integer
+        total_lines:
+          type: integer
+
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+          description: "Full article content (HTML converted to text)"
+        category:
+          type: string
+        url:
+          type: string
+          description: "Direct link: https://pulse-point.document360.io/docs/[slug]"
+        authors:
+          type: array
+          items:
+            type: string
+        modified_at:
+          type: string
+          format: date-time
+        word_count:
+          type: integer
+
+    KnowledgeBaseMetadata:
+      type: object
+      properties:
+        source:
+          type: string
+          example: "PulsePoint Document360 Knowledge Base"
+        total_articles_processed:
+          type: integer
+        extracted_at:
+          type: string
+          format: date-time
+        success_rate:
+          type: string
+
+    SearchIndex:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        url:
+          type: string
+
+    ConfluenceResult:
+      type: object
+      properties:
+        title:
+          type: string
+          description: "Page title from Confluence"
+        content:
+          type: string
+          description: "Relevant content excerpt"
+        source_url:
+          type: string
+          description: "Direct link to Confluence page"
+        similarity_score:
+          type: number
+          description: "Content relevance score (0.0-1.0)"
+        ranking_score:
+          type: number
+          description: "Search ranking score (0.0-1.0)"
+        space:
+          type: string
+          description: "Confluence space name"
+
+# Operation IDs for ChatGPT function calling
+x-operation-mappings:
+  sprint_planning_search:
+    operation: "GET /tickets"
+    description: "Search for sprint planning and team workload information"
+    parameters:
+      assigned: "Use for 'assigned to X' queries"
+      next_sprint: "Use for 'next sprint' queries (September 2025)"
+      has_points: "Use for story point estimation queries"
+      status: "Use for ticket status queries"
+
+  github_correlation_search:
+    operation: "GET /correlations"
+    description: "Find connections between tickets and code changes"
+    parameters:
+      ticket_id: "Jira ticket ID to search for correlations"
+
+  confluence_content_search:
+    operation: "POST /search"
+    description: "Search Confluence for AO factors, platform features, and documentation"
+    parameters:
+      query: "Use for searching AO factors, targeting, platform features"
+      max_results: "Use for limiting search results"
+      space_filter: "Use for filtering by Confluence space"
+    
+  platform_documentation_search:
+    operation: "GET /document360_knowledge_base.json"
+    description: "Get platform features, targeting types, and user guides"
+    
+  code_implementation_search:
+    operation: "POST /github_code_search"
+    description: "Search for code implementations and technical details"

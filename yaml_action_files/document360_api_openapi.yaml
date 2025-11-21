@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Document360 Knowledge Base API
+  description: |
+    Access to PulsePoint's Document360 knowledge base containing platform documentation,
+    user guides, feature specifications, and technical documentation.
+    
+    **Knowledge Base Contents:**
+    - 500+ articles covering platform features
+    - User guides and tutorials
+    - Technical specifications
+    - Targeting options and capabilities
+    - Campaign management workflows
+    - API documentation and integration guides
+    
+    **Updated weekly** (Mondays at 2 AM EST)
+  version: 1.0.0
+  contact:
+    name: PulsePoint Product Documentation Team
+    email: docs@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-document360-api-v1-420423430685.us-east4.run.app
+    description: PulsePoint Document360 API (if deployed)
+  - url: https://raw.githubusercontent.com/pulsepointinc/product/main/GPT
+    description: Static Document360 Knowledge Base Files
+
+paths:
+  /search:
+    post:
+      operationId: searchKnowledgeBase
+      summary: Search Document360 knowledge base
+      description: |
+        Semantic search across PulsePoint's complete knowledge base.
+        Returns relevant articles with full content, categories, and direct links.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search terms for knowledge base articles
+                  example: "targeting options audience segments"
+                max_results:
+                  type: integer
+                  default: 10
+                  minimum: 1
+                  maximum: 50
+                  description: Maximum number of articles to return
+                category:
+                  type: string
+                  description: Filter by article category
+                  example: "Platform Features"
+                include_content:
+                  type: boolean
+                  default: true
+                  description: Include full article content in response
+              required:
+                - query
+              examples:
+                targeting_search:
+                  summary: Search targeting capabilities
+                  description: Find articles about audience targeting and segmentation
+                  value:
+                    query: "targeting options audience segments demographics"
+                    max_results: 15
+                    category: "Platform Features"
+                    include_content: true
+                campaign_setup:
+                  summary: Search campaign management guides
+                  description: Find step-by-step campaign setup documentation
+                  value:
+                    query: "campaign setup management optimization"
+                    max_results: 12
+                    include_content: true
+                api_documentation:
+                  summary: Search API integration guides
+                  description: Find API documentation and integration examples
+                  value:
+                    query: "API integration REST endpoints authentication"
+                    max_results: 20
+                    category: "Technical Documentation"
+                    include_content: false
+                platform_features:
+                  summary: Search platform feature documentation
+                  description: Find comprehensive platform feature descriptions
+                  value:
+                    query: "platform features Studio HCP workspace"
+                    max_results: 25
+                    include_content: true
+                troubleshooting:
+                  summary: Search troubleshooting guides
+                  description: Find problem resolution and troubleshooting articles
+                  value:
+                    query: "troubleshooting error resolution debugging"
+                    max_results: 18
+                    category: "Support"
+                    include_content: true
+                compliance_docs:
+                  summary: Search compliance documentation
+                  description: Find HIPAA, privacy, and compliance articles
+                  value:
+                    query: "HIPAA compliance privacy data protection"
+                    max_results: 8
+                    category: "Compliance"
+                    include_content: true
+                user_guides:
+                  summary: Search user guides and tutorials
+                  description: Find step-by-step user instructions
+                  value:
+                    query: "user guide tutorial how-to setup"
+                    max_results: 30
+                    category: "User Guides"
+                    include_content: false
+                advanced_features:
+                  summary: Search advanced platform features
+                  description: Find documentation on advanced platform capabilities
+                  value:
+                    query: "advanced features machine learning optimization algorithms"
+                    max_results: 22
+                    include_content: true
+      responses:
+        '200':
+          description: Knowledge base search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: Original search query
+                  total_results:
+                    type: integer
+                    description: Total number of matching articles
+                  articles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Article'
+                  categories:
+                    type: object
+                    description: Results grouped by category
+                    additionalProperties:
+                      type: integer
+                  search_metadata:
+                    type: object
+                    properties:
+                      search_time_ms:
+                        type: integer
+                      knowledge_base_version:
+                        type: string
+                      last_updated:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid search parameters
+        '500':
+          description: Search service error
+
+  /categories:
+    get:
+      operationId: getKnowledgeBaseCategories
+      summary: Get all knowledge base categories
+      description: Returns list of all available article categories with article counts
+      responses:
+        '200':
+          description: Knowledge base categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                          example: "Platform Features"
+                        article_count:
+                          type: integer
+                          example: 127
+                        description:
+                          type: string
+                        last_updated:
+                          type: string
+                          format: date-time
+                  total_articles:
+                    type: integer
+                    example: 523
+
+  /articles/{article_id}:
+    get:
+      operationId: getArticleById
+      summary: Get specific article by ID
+      description: Returns full article content, metadata, and direct link
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article ID from search results
+          schema:
+            type: string
+          examples:
+            targeting_article:
+              value: "targeting-options-overview"
+              description: "Targeting options overview article"
+            studio_guide:
+              value: "studio-workspace-guide"
+              description: "Studio workspace user guide"
+            api_reference:
+              value: "api-integration-reference"
+              description: "API integration reference"
+      responses:
+        '200':
+          description: Article details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: Article not found
+
+  /health:
+    get:
+      operationId: getKnowledgeBaseHealth
+      summary: Check knowledge base health and statistics
+      description: Returns system health and knowledge base statistics
+      responses:
+        '200':
+          description: System health and statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  knowledge_base_version:
+                    type: string
+                  last_updated:
+                    type: string
+                    format: date-time
+                  statistics:
+                    type: object
+                    properties:
+                      total_articles:
+                        type: integer
+                      total_categories:
+                        type: integer
+                      average_article_length:
+                        type: integer
+                      search_index_size:
+                        type: integer
+
+components:
+  schemas:
+    Article:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Article identifier
+          example: "targeting-options-overview"
+        title:
+          type: string
+          description: Article title
+          example: "Targeting Options Overview"
+        content:
+          type: string
+          description: Full article content (HTML converted to text)
+        category:
+          type: string
+          description: Article category
+          example: "Platform Features"
+        subcategory:
+          type: string
+          description: Article subcategory
+          example: "Audience Targeting"
+        url:
+          type: string
+          description: Direct link to article
+          example: "https://pulse-point.document360.io/docs/targeting-options-overview"
+        authors:
+          type: array
+          items:
+            type: string
+          description: Article authors
+          example: ["Product Team", "Documentation Team"]
+        tags:
+          type: array
+          items:
+            type: string
+          description: Article tags for categorization
+          example: ["targeting", "audience", "demographics", "behavioral"]
+        word_count:
+          type: integer
+          description: Article word count
+          example: 1247
+        reading_time_minutes:
+          type: integer
+          description: Estimated reading time in minutes
+          example: 5
+        created_at:
+          type: string
+          format: date-time
+          description: Article creation date
+        modified_at:
+          type: string
+          format: date-time
+          description: Last modification date
+        version:
+          type: string
+          description: Article version
+          example: "2.1"
+        related_articles:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              url:
+                type: string
+        search_score:
+          type: number
+          description: Relevance score (only in search results)
+          minimum: 0.0
+          maximum: 1.0

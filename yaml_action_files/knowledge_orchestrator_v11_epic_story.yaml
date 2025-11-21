@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer v11.1 - Epic+Story Support + Mermaid Fixes
+  description: Enhanced hybrid architecture with proper Epic+Story filtering for person queries AND fixed Mermaid viewer URL + subgraph parsing. Complete solution.
+  version: 11.1.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v11
+    description: Knowledge Layer v11 - Epic+Story Support (ACTIVE)
+
+paths:
+  /:
+    get:
+      operationId: healthCheckV11
+      summary: Health check for v11 Epic+Story architecture
+      description: Get API health status and Epic+Story capabilities
+      responses:
+        '200':
+          description: Health status showing v11 Epic+Story features
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "11.1-HYBRID-JQL-LINKS-EPIC-STORY-MERMAID-FIXES"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v11 - Epic+Story Support"
+                  status:
+                    type: string
+                    example: "healthy"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Epic+Story filtering for person queries", "Hybrid JQL links for aggregation queries", "Comprehensive vector indexing across all sources", "Semantic search with cosine similarity"]
+
+    post:
+      operationId: searchWithEpicStorySupport
+      summary: Search with v11 Epic+Story support
+      description: Enhanced search supporting both Epic and Story issue types for person-specific queries like "Kenan's tickets". Fixes the filtering logic to match SQL behavior.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question with Epic+Story support
+                  example: "List all of Kenan's tickets in the current sprint including both epics and stories"
+                max_results:
+                  type: integer
+                  description: Maximum results from each data source
+                  default: 50
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive response with v11 Epic+Story support
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "11.1-HYBRID-JQL-LINKS-EPIC-STORY-MERMAID-FIXES"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v11 - Epic+Story Support"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Response generation timestamp
+                  question:
+                    type: string
+                    description: Original question
+                  jira_analysis:
+                    type: object
+                    description: JIRA analysis with v11 Epic+Story support
+                    properties:
+                      query_type:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                        example: "tickets"
+                      tickets:
+                        type: array
+                        description: Individual tickets including both Epics and Stories
+                        items:
+                          type: object
+                          properties:
+                            issue_key:
+                              type: string
+                              example: "PROD-12426"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            product_manager:
+                              type: string
+                            story_points:
+                              type: number
+                            issue_type_name:
+                              type: string
+                              enum: ["Epic", "Story"]
+                              description: V11 ENHANCEMENT - Now includes both Epic and Story types
+                      jql_detail_link:
+                        type: string
+                        description: V11 ENHANCEMENT - JQL link including both Epic and Story tickets
+                        example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%20%28PROD-12426%2CET-21522%2CQA-329%29"
+                      total_tickets_in_link:
+                        type: integer
+                        description: Number of tickets (Epics + Stories) in JQL link
+                      filters_applied:
+                        type: object
+                        description: Automatically extracted filters from natural language
+                      sql_optimized:
+                        type: boolean
+                        example: true
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis
+                  github_integration:
+                    type: object
+                    description: GitHub integration with authentic repository data
+                  documentation:
+                    type: array
+                    description: Document360 technical documentation
+                  semantic_search:
+                    type: object
+                    description: Vector-based semantic search results
+                  response_data:
+                    type: object
+                    description: Synthesized response with comprehensive data integration
+                  intelligent_routing:
+                    type: object
+                    description: Intelligence metadata
+                  api_status:
+                    type: object
+                    description: Status of all integrated APIs

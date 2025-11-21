@@ -1,0 +1,443 @@
+openapi: 3.1.1
+info:
+  title: PulsePoint BigQuery Tickets API
+  description: Comprehensive Jira ticket data from BigQuery warehouse for ChatGPT integration
+  version: 1.0.0
+  contact:
+    name: PulsePoint Engineering
+    email: bweinstein@pulsepoint.com
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-kpwy2mbv7a-uk.a.run.app
+    description: Production BigQuery Tickets API
+
+paths:
+  /sprint:
+    post:
+      operationId: getSprintTickets
+      summary: Get all tickets for a specific sprint
+      description: |
+        Returns comprehensive ticket data for a sprint. 
+        For current ET sprint use "Portal/Cluster August 2025" (returns all 61 tickets).
+        Includes status summaries, assignee breakdowns, and complete ticket details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint:
+                  type: string
+                  description: Sprint name to query
+                  examples:
+                    - "Portal/Cluster August 2025"
+                    - "Portal/Cluster July 2025"
+                project:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                  description: Filter by project key (optional)
+                  examples:
+                    - "ET"
+                    - null
+                max_results:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  description: Maximum number of tickets to return
+            examples:
+              currentETSprint:
+                summary: Get current ET sprint (61 tickets)
+                description: Returns all tickets in the current ET sprint with full details
+                value:
+                  sprint: "Portal/Cluster August 2025"
+                  project: "ET"
+                  max_results: 100
+              romanTickets:
+                summary: Get Roman's assigned tickets in current sprint
+                description: Find tickets assigned to Roman Vorobchak in current ET sprint
+                value:
+                  sprint: "Portal/Cluster August 2025"
+                  project: "ET"
+                  max_results: 50
+              julyETSprint:
+                summary: Get July ET sprint tickets
+                description: Historical data for July 2025 sprint
+                value:
+                  sprint: "Portal/Cluster July 2025"
+                  project: "ET"
+                  max_results: 100
+              allProjects:
+                summary: Get sprint across all projects
+                description: Cross-project view of sprint tickets
+                value:
+                  sprint: "Portal/Cluster August 2025"
+                  max_results: 100
+              smallBatch:
+                summary: Get limited results for quick overview
+                description: Quick sprint overview with limited results
+                value:
+                  sprint: "Portal/Cluster August 2025"
+                  project: "ET"
+                  max_results: 10
+      responses:
+        '200':
+          description: Sprint tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "sprint"
+                  sprint:
+                    type: string
+                    example: "Portal/Cluster August 2025"
+                  project_filter:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                    example: "ET"
+                  total_tickets:
+                    type: integer
+                    description: Total number of tickets found
+                    example: 61
+                  status_summary:
+                    type: object
+                    description: Breakdown of tickets by status
+                    additionalProperties:
+                      type: integer
+                    example:
+                      "Open": 48
+                      "In Progress": 9
+                      "In Code Review": 3
+                      "Closed": 1
+                  assignee_summary:
+                    type: object
+                    description: Breakdown of tickets by assignee
+                    additionalProperties:
+                      type: integer
+                  product_summary:
+                    type: object
+                    description: Breakdown of tickets by product
+                    additionalProperties:
+                      type: integer
+                  stream_summary:
+                    type: object
+                    description: Breakdown of tickets by stream
+                    additionalProperties:
+                      type: integer
+                  tickets:
+                    type: array
+                    description: Complete list of tickets
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  query_time:
+                    type: string
+                    format: date-time
+                    description: Timestamp when query was executed
+        '500':
+          description: BigQuery error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /status:
+    post:
+      operationId: getTicketsByStatus
+      summary: Get all tickets by project and status
+      description: |
+        Returns all tickets for a specific project and status combination.
+        Useful for finding tickets in specific workflow states like "Needs Grooming", "In Progress", etc.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                project:
+                  type: string
+                  description: Project key to filter by
+                  examples:
+                    - "PROD"
+                    - "ET"
+                status:
+                  type: string
+                  description: Status to filter by
+                  examples:
+                    - "Needs Grooming"
+                    - "In Progress"
+                    - "Open"
+                    - "Closed"
+                max_results:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  description: Maximum number of tickets to return
+            examples:
+              needsGrooming:
+                summary: Get PROD tickets needing grooming
+                description: Find all PROD tickets that need requirements clarification
+                value:
+                  project: "PROD"
+                  status: "Needs Grooming"
+                  max_results: 100
+              etInProgress:
+                summary: Get ET tickets in progress
+                description: Find all ET tickets currently being worked on
+                value:
+                  project: "ET"
+                  status: "In Progress"
+                  max_results: 50
+              openTickets:
+                summary: Get all open tickets for triage
+                description: Find open tickets across all projects for planning
+                value:
+                  project: "ET"
+                  status: "Open"
+                  max_results: 100
+              studioTickets:
+                summary: Get STUD project tickets
+                description: Find Studio platform tickets by status
+                value:
+                  project: "STUD"
+                  status: "Open"
+                  max_results: 75
+              closedTickets:
+                summary: Get recently closed tickets
+                description: Review completed work for retrospective
+                value:
+                  project: "ET"
+                  status: "Closed"
+                  max_results: 25
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "status"
+                  project:
+                    type: string
+                    example: "PROD"
+                  status:
+                    type: string
+                    example: "Needs Grooming"
+                  total_tickets:
+                    type: integer
+                    description: Total number of tickets found
+                    example: 44
+                  tickets:
+                    type: array
+                    description: Complete list of tickets
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  query_time:
+                    type: string
+                    format: date-time
+
+  /release:
+    post:
+      operationId: getReleaseTickets
+      summary: Get all tickets for a specific release/fix version
+      description: |
+        Returns comprehensive ticket data for a release. 
+        For July 2025 Portal release use "July-2025-portal" (returns 24 tickets).
+        Includes complete ticket details and summaries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fix_version:
+                  type: string
+                  description: Fix version/release name to query
+                  examples:
+                    - "July-2025-portal"
+                    - "August-2025-portal"
+                project:
+                  anyOf:
+                    - type: string
+                    - type: "null"
+                  description: Filter by project key (optional)
+                  examples:
+                    - "ET"
+                    - null
+                max_results:
+                  type: integer
+                  default: 100
+                  minimum: 1
+                  maximum: 1000
+                  description: Maximum number of tickets to return
+            examples:
+              julyRelease:
+                summary: Get July 2025 Portal release (24 tickets)
+                description: Complete July 2025 Portal release ticket list
+                value:
+                  fix_version: "July-2025-portal"
+                  project: "ET"
+                  max_results: 100
+              augustRelease:
+                summary: Get August 2025 Portal release
+                description: Current August 2025 Portal release planning
+                value:
+                  fix_version: "August-2025-portal"
+                  project: "ET"
+                  max_results: 100
+              studioRelease:
+                summary: Get Studio Q3 2025 release
+                description: Studio platform Q3 2025 release tickets
+                value:
+                  fix_version: "Q3-2025-Studio"
+                  project: "STUD"
+                  max_results: 50
+              crossProjectRelease:
+                summary: Get release across all projects
+                description: Multi-project release view for coordination
+                value:
+                  fix_version: "July-2025-portal"
+                  max_results: 150
+              upcomingRelease:
+                summary: Get September 2025 release planning
+                description: Next release planning and scope
+                value:
+                  fix_version: "September-2025-portal"
+                  project: "ET"
+                  max_results: 75
+      responses:
+        '200':
+          description: Release tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "release"
+                  fix_version:
+                    type: string
+                    example: "July-2025-portal"
+                  project_filter:
+                    anyOf:
+                      - type: string
+                      - type: "null"
+                    example: "ET"
+                  total_tickets:
+                    type: integer
+                    description: Total number of tickets found
+                    example: 24
+                  tickets:
+                    type: array
+                    description: Complete list of tickets
+                    items:
+                      $ref: '#/components/schemas/Ticket'
+                  query_time:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    Ticket:
+      type: object
+      properties:
+        issue_key:
+          type: string
+          description: Jira ticket key
+          example: "ET-21261"
+        summary:
+          type: string
+          description: Ticket title/summary
+          example: "Allow Multiple Users to be Notified via Email"
+        status:
+          type: string
+          description: Current ticket status
+          example: "Open"
+        assignee:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Current assignee name
+          example: "Himanshu Gupte"
+        reporter:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Ticket reporter name
+          example: "Rebecca Spigner"
+        priority:
+          type: string
+          description: Ticket priority
+          example: "Normal"
+        issue_type:
+          type: string
+          description: Type of issue (Story, Bug, etc.)
+          example: "Story"
+        product:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Product area
+          example: "Curated Markets"
+        stream:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Development stream
+          example: "Omnichannel"
+        sprint:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Current sprint
+          example: "Portal/Cluster August 2025"
+        fix_version:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Target release version
+          example: "July-2025-portal"
+        created:
+          type: string
+          format: date-time
+          description: Ticket creation date
+        updated:
+          type: string
+          format: date-time
+          description: Last update date
+        resolution_date:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          description: Resolution date if completed
+        project_key:
+          type: string
+          description: Jira project key
+          example: "ET"
+        epic_key:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Parent epic key
+          example: "PROD-12537"
+        epic_name:
+          anyOf:
+            - type: string
+            - type: "null"
+          description: Parent epic name

@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Orchestrator v16.1
+  version: '1.0.0'
+  description: |
+    Public HTTP API for multi-source synthesis over Jira + Confluence.
+    Accepts a natural-language question and optional conversation history.
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v16-1:
+    post:
+      operationId: synthesize
+      summary: Synthesize a curated response for CustomGPT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural-language user question
+                max_results:
+                  type: integer
+                  default: 50
+                conversation_history:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum: [user, assistant]
+                      content:
+                        type: string
+                session_id:
+                  type: string
+              required: [question]
+            examples:
+              ao_frontend_team:
+                summary: AO tickets for Front End Portal team
+                value:
+                  question: Can you tell me the details of all the AO tickets i have in the current sprint for the Front End Portal Development team?
+                  max_results: 100
+              comparison_question:
+                summary: Comparison between Medscape and WebMD Moments
+                value:
+                  question: What is the difference between Medscape Moments and WebMD Moments?
+                  max_results: 50
+      responses:
+        '200':
+          description: Synthesis response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  synthesis_response:
+                    type: object
+                    properties:
+                      query:
+                        type: string
+                      response_metadata:
+                        type: object
+                      executive_summary:
+                        type: object
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            ticket_id: { type: string }
+                            title: { type: string }
+                            story_points: { type: number }
+                            assignee: { type: string }
+                            epic: { type: string }
+                      epics_summary:
+                        type: object
+                      comparison_matrix:
+                        type: object
+                      key_differences:
+                        type: array
+                        items:
+                          type: object
+                      actionable_recommendations:
+                        type: array
+                        items:
+                          type: object
+                      links:
+                        type: object
+                      api_status:
+                        type: object
+                      session_id:
+                        type: string
+                      version:
+                        type: string
+        '400':
+          description: Bad request
+        '500':
+          description: Server error

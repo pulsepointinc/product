@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v13-9 API
+  description: Enhanced knowledge retrieval with JIRA integration, intelligent synthesis, date detection fixes, and response size management for CustomGPT compatibility
+  version: 13.9.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v13-9
+paths:
+  /:
+    post:
+      operationId: queryKnowledge
+      summary: Query knowledge base with intelligent synthesis
+      description: Retrieve and synthesize information from JIRA, Confluence, GitHub, and Document360 with fixed date detection and response size management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Natural language question about tickets, sprints, releases, or team work
+                max_results:
+                  type: integer
+                  default: 50
+                  description: Maximum number of results to return
+            examples:
+              current_sprint:
+                summary: Current sprint analysis
+                value:
+                  question: "What issues from product are in the current sprint?"
+                  max_results: 50
+              person_specific:
+                summary: Person-specific queries
+                value:
+                  question: "What is Kenan working on in the current sprint?"
+                  max_results: 50
+              release_tracking:
+                summary: Release analysis
+                value:
+                  question: "What was released this month?"
+                  max_results: 50
+      responses:
+        '200':
+          description: Successful knowledge retrieval with intelligent synthesis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "13.9-FINAL-FIXES"
+                  ai_analysis:
+                    type: object
+                    properties:
+                      query_intent:
+                        type: string
+                        example: "current_sprint"
+                      date_extracted:
+                        type: string
+                        example: "September 2025"
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                        example: 12
+                      jql_link:
+                        type: string
+                        example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%28QA-400,BI-607%29"
+                      response_optimized:
+                        type: boolean
+                        example: false
+                  curated_intelligence:
+                    type: object
+                    properties:
+                      executive_summary:
+                        type: string
+                        example: "Analysis of 12 tickets reveals active development across Clinical Insights..."
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                      actionable_next_steps:
+                        type: array
+                        items:
+                          type: string
+        '400':
+          description: Bad request - missing or invalid parameters
+        '500':
+          description: Internal server error

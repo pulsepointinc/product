@@ -1,0 +1,157 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Orchestrator v17-1 - AO & Medscape/WebMD Comparison
+  description: Enhanced knowledge orchestrator with proper AO ticket filtering and multi-search Confluence comparison capabilities for WebMD vs Medscape analysis. Fixed JIRA API v4 integration.
+  version: 17.1.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v17-1:
+    get:
+      operationId: health_check_v17_1
+      summary: Health check for v17-1 endpoint
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+    post:
+      operationId: orchestrate_knowledge_v17_1
+      summary: Query comprehensive knowledge with AO filtering and comparison analysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language query (e.g., "show me current AO tickets", "compare WebMD vs Medscape")
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive knowledge synthesis response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executive_summary:
+                    type: string
+                    description: Executive summary of findings with key metrics
+                  tickets:
+                    type: array
+                    description: JIRA tickets with confluence context
+                    items:
+                      type: object
+                      properties:
+                        ticket_id:
+                          type: string
+                        summary:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        epic_key:
+                          type: string
+                        epic_name:
+                          type: string
+                        confluence_context:
+                          type: array
+                          items:
+                            type: object
+                  epics_summary:
+                    type: array
+                    description: Summary of epics with cross-referenced data
+                    items:
+                      type: object
+                  confluence_insights:
+                    type: object
+                    description: Confluence documentation insights
+                    properties:
+                      total_documents:
+                        type: integer
+                      relevant_documents:
+                        type: array
+                        items:
+                          type: object
+                      key_themes:
+                        type: array
+                        items:
+                          type: string
+                  actionable_recommendations:
+                    type: array
+                    description: AI-generated actionable recommendations
+                    items:
+                      type: string
+                  comparison_matrix:
+                    type: object
+                    description: Comparison analysis for vs/comparison queries
+                    properties:
+                      comparison_type:
+                        type: string
+                      items_compared:
+                        type: array
+                        items:
+                          type: string
+                      dimensions:
+                        type: array
+                        items:
+                          type: string
+                      matrix:
+                        type: object
+                  data_sources:
+                    type: object
+                    description: Data source statistics and links
+                    properties:
+                      jira:
+                        type: object
+                        properties:
+                          total_tickets:
+                            type: integer
+                          jql_link:
+                            type: string
+                      confluence:
+                        type: object
+                        properties:
+                          total_documents:
+                            type: integer
+                      github:
+                        type: object
+                        properties:
+                          total_results:
+                            type: integer
+                      document360:
+                        type: object
+                        properties:
+                          total_articles:
+                            type: integer
+                  query_metadata:
+                    type: object
+                    properties:
+                      question:
+                        type: string
+                      keywords_used:
+                        type: array
+                        items:
+                          type: string
+                      timestamp:
+                        type: string
+                      response_type:
+                        type: string
+        '400':
+          description: Bad request - missing question parameter
+        '500':
+          description: Internal server error

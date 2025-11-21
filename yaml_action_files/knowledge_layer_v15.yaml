@@ -1,0 +1,317 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v15
+  description: Enhanced multi-source knowledge integration with working Confluence API, intelligent synthesis, and comprehensive analysis across JIRA, Confluence, GitHub, and Document360. Ready for future Gemini AI-powered synthesis.
+  version: 15.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v15:
+    post:
+      operationId: queryKnowledgeLayerV15
+      summary: Query enhanced knowledge base with comprehensive multi-source integration
+      description: Search across JIRA, Confluence, GitHub, and Document360 with intelligent keyword extraction, enhanced comparison analysis, person detection, and intelligent synthesis for optimal CustomGPT responses.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language query supporting comparison questions, person queries, and context analysis
+                  example: "What is the difference between Medscape and WebMD Moments?" or "What is Roman working on in the current sprint?"
+                max_results:
+                  type: integer
+                  description: Maximum number of results to return (default 50)
+                  default: 50
+                  example: 10
+              required:
+                - question
+    get:
+      operationId: healthCheckV15
+      summary: Health check and API information
+      description: Get API version, status, and feature information
+      responses:
+        '200':
+          description: API health status and feature list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "15.0-BASE-DEPLOYMENT"
+                  status:
+                    type: string
+                    example: "healthy"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v15 - Multi-Source Integration with Session Management"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    description: List of API features and capabilities
+      responses:
+        '200':
+          description: Enhanced multi-source knowledge response with comprehensive synthesis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "15.0-BASE-DEPLOYMENT"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v15 - Base Deployment with Working Multi-Source"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Response timestamp
+                  question:
+                    type: string
+                    description: Original query
+                  session_id:
+                    type: string
+                    description: Session identifier for tracking
+                  curated_intelligence:
+                    type: object
+                    description: Enhanced synthesis combining all four knowledge sources with intelligent analysis
+                    properties:
+                      executive_summary:
+                        type: string
+                        description: Comprehensive summary from all available sources optimized for CustomGPT
+                      comprehensive_synthesis:
+                        type: object
+                        description: Detailed content synthesis from multiple sources
+                        properties:
+                          comprehensive_summary:
+                            type: string
+                            description: Intelligent summary combining content from all sources
+                          focus_type:
+                            type: string
+                            enum: ["person_work", "comparison_analysis", "general_inquiry"]
+                            description: Type of analysis performed
+                          synthesis_method:
+                            type: string
+                            example: "comprehensive_content_analysis"
+                          source_links:
+                            type: array
+                            items:
+                              type: string
+                            description: Direct links to source materials
+                          content_sources:
+                            type: object
+                            description: Count of sources analyzed
+                            properties:
+                              jira_tickets_analyzed:
+                                type: integer
+                              confluence_pages_analyzed:
+                                type: integer
+                              github_repos_analyzed:
+                                type: integer
+                              doc360_articles_analyzed:
+                                type: integer
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                        description: Key findings from multi-source analysis
+                      actionable_next_steps:
+                        type: array
+                        items:
+                          type: string
+                        description: Recommended actions based on analysis
+                      pattern_analysis:
+                        type: object
+                        description: Intelligent pattern recognition from data
+                        properties:
+                          assignees:
+                            type: array
+                            items:
+                              type: string
+                          teams:
+                            type: array
+                            items:
+                              type: string
+                          products:
+                            type: array
+                            items:
+                              type: string
+                          technology_keywords:
+                            type: array
+                            items:
+                              type: string
+                          story_points_total:
+                            type: number
+                          epic_breakdown:
+                            type: object
+                            description: Analysis by epic with story points and ticket counts
+                      data_highlights:
+                        type: object
+                        description: Summary metrics and highlights
+                        properties:
+                          total_tickets:
+                            type: integer
+                          confluence_pages:
+                            type: integer
+                          github_repos:
+                            type: integer
+                          doc360_articles:
+                            type: integer
+                          teams_involved:
+                            type: integer
+                          products_involved:
+                            type: integer
+                          total_sources_with_content:
+                            type: integer
+                          ai_synthesis:
+                            type: string
+                            example: "comprehensive_multi_source_content_synthesis"
+                  ai_analysis:
+                    type: object
+                    description: AI-powered query analysis and parameter extraction
+                    properties:
+                      query_intent:
+                        type: string
+                        enum: ["person_query", "comparison_query", "documentation_search", "development_status"]
+                      query_type:
+                        type: string
+                        enum: ["person", "comparison", "documentation", "development", "general"]
+                      ai_model_used:
+                        type: string
+                        example: "comprehensive_multi_source_content_synthesis_v15"
+                      keywords_extracted:
+                        type: array
+                        items:
+                          type: string
+                        description: Intelligent keyword extraction for enhanced search
+                      date_extracted:
+                        type: string
+                        description: Automatically detected date/sprint information
+                  jira_analysis:
+                    type: object
+                    description: JIRA ticket analysis with enhanced filtering
+                    properties:
+                      tickets_found:
+                        type: integer
+                        description: Number of tickets found
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          description: Detailed JIRA ticket information
+                        description: Array of relevant JIRA tickets (limited for response size)
+                      summary:
+                        type: array
+                        items:
+                          type: object
+                        description: Summary statistics and aggregations
+                      jql_link:
+                        type: string
+                        description: Direct link to JIRA query for all found tickets
+                      sql_executed:
+                        type: string
+                        description: SQL query executed against JIRA data
+                  confluence_analysis:
+                    type: object
+                    description: Confluence content analysis with fixed API integration
+                    properties:
+                      total_sources_found:
+                        type: integer
+                        description: Number of Confluence pages found
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                          description: Confluence page details with content excerpts
+                      search_query:
+                        type: string
+                        description: Search query used for Confluence
+                      api_success:
+                        type: boolean
+                        description: Whether Confluence API call succeeded
+                  github_integration:
+                    type: object
+                    description: GitHub repository and code analysis
+                    properties:
+                      total_repos_found:
+                        type: integer
+                        description: Number of GitHub repositories found
+                      repositories:
+                        type: array
+                        items:
+                          type: object
+                          description: GitHub repository details and relevant code
+                      api_success:
+                        type: boolean
+                        description: Whether GitHub API call succeeded
+                  document360_analysis:
+                    type: object
+                    description: Document360 documentation analysis
+                    properties:
+                      total_articles_found:
+                        type: integer
+                        description: Number of Document360 articles found
+                      articles:
+                        type: array
+                        items:
+                          type: object
+                          description: Document360 article details and content
+                      api_success:
+                        type: boolean
+                        description: Whether Document360 API call succeeded
+                  api_status:
+                    type: object
+                    description: Multi-source API call status and metrics
+                    properties:
+                      jira_query_success:
+                        type: boolean
+                      confluence_api_success:
+                        type: boolean
+                      github_api_success:
+                        type: boolean
+                      document360_api_success:
+                        type: boolean
+                      data_sources_queried:
+                        type: integer
+                        example: 4
+                      data_sources_successful:
+                        type: integer
+                        description: Number of APIs that returned data successfully
+                      confluence_sources:
+                        type: integer
+                      github_repos:
+                        type: integer
+                      document360_articles:
+                        type: integer
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "No question provided"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error: [details]"
+                  version:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time

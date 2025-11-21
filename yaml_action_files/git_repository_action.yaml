@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Git Repository API
+  description: |
+    Search code implementations and find connections between tickets and repositories.
+    
+  version: "1.0.0"
+
+servers:
+  - url: https://git-api-420423430685.us-east4.run.app
+
+paths:
+  /github_code_search:
+    post:
+      operationId: search_github_code
+      summary: Search code across PulsePoint repositories
+      description: |
+        Search for code patterns, functions, and implementations across all repositories.
+        Supports OR logic: "function OR class OR method"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search terms (supports OR logic)"
+                  example: "targeting OR campaign OR bid"
+                repository_name:
+                  type: string
+                  description: "Filter by repository name"
+                language:
+                  type: string
+                  description: "Filter by programming language"
+                max_results:
+                  type: integer
+                  default: 50
+              required:
+                - query
+      responses:
+        '200':
+          description: Code search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  total_results:
+                    type: integer
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        result_type:
+                          type: string
+                          enum: [file, function]
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        file_name:
+                          type: string
+                        language:
+                          type: string
+                        content_preview:
+                          type: string
+                        function_name:
+                          type: string
+                        line_number:
+                          type: integer
+
+  /correlations:
+    get:
+      operationId: get_ticket_correlations
+      summary: Find Git-Jira ticket correlations
+      description: |
+        Find connections between Jira tickets and code repositories.
+        Use to understand what code changes are related to specific tickets.
+      parameters:
+        - name: ticket_id
+          in: query
+          required: true
+          description: "Jira ticket ID (e.g., ET-20284)"
+          schema:
+            type: string
+          example: "ET-20284"
+      responses:
+        '200':
+          description: Ticket correlation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket_id:
+                    type: string
+                  commits:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        commit_sha:
+                          type: string
+                        commit_message:
+                          type: string
+                        repository_name:
+                          type: string
+                        github_url:
+                          type: string
+                  total_correlations:
+                    type: integer

@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v2 - WORKING VERSION
+  description: |
+    Enhanced Knowledge Layer API with JIRA + Confluence integration. 
+    Use this for comprehensive product questions including roadmaps.
+  version: 2.2.0
+servers:
+  - url: https://pulsepoint-knowledge-layer-api-v2-420423430685.us-east4.run.app
+    description: Production Knowledge Layer API v2 - WORKING
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      description: Get API health status and capabilities
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  version:
+                    type: string
+                required:
+                  - message
+                  - status
+
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Ask comprehensive product questions with JIRA + Confluence analysis
+      description: Ask product questions and get comprehensive analysis from both Confluence and JIRA. Use specific dates and products.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Your product question (be specific about dates and products)
+                  example: "what stories are in the September 2025 release"
+                max_results:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive analysis with Confluence + JIRA data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      answer:
+                        type: string
+                      sources:
+                        type: array
+                      confidence:
+                        type: number
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                      tickets_relevant:
+                        type: integer
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                              example: "PROD-14016"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            status:
+                              type: string
+                            release_date:
+                              type: string
+                            url:
+                              type: string
+                  synthesis:
+                    type: string
+                    description: Combined analysis with inline links
+
+components:
+  schemas: {}

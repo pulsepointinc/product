@@ -1,0 +1,59 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Confluence API
+  version: "1.0"
+  description: Search Confluence docs. Use min_similarity 0.01-0.05.
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+
+paths:
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence
+      description: "Search docs. Use min_similarity 0.01-0.05 for results."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  example: "AO factors"
+                min_similarity:
+                  type: number
+                  default: 0.01
+                max_results:
+                  type: integer
+                  default: 10
+            examples:
+              ao_search:
+                value:
+                  query: "AO factors"
+                  min_similarity: 0.01
+                  max_results: 5
+      responses:
+        '200':
+          description: Results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        confluence_url:
+                          type: string
+                  count:
+                    type: integer

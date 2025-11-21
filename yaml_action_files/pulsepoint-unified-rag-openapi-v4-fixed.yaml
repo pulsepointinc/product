@@ -1,0 +1,416 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Advanced Unified RAG API
+  description: |
+    Advanced multi-source RAG system with intelligent routing, cross-source search, and enhanced performance.
+    
+    **Key Features:**
+    - **Multi-source search**: Confluence documentation + Jira issues (when available)
+    - **Intelligent routing**: Automatically detects if query needs documentation vs issue tracking
+    - **Cross-source referencing**: Finds related content across different sources
+    - **Advanced filtering**: Priority, status, space-specific filters
+    - **Performance optimized**: 4-5 second response times
+    
+    **Query Types:**
+    - Documentation: "How do I use the API?", "Setup guide for AO"
+    - Issue tracking: "What bugs are affecting Studio?", "Show me high priority issues"
+    - Product unified: "AO platform optimization", "Healthcare targeting features"
+    
+  version: 4.0.0
+servers:
+  - url: https://rag-api-v3-420423430685.us-east4.run.app
+    description: Advanced Unified RAG API v4
+
+paths:
+  /search/advanced:
+    post:
+      operationId: advancedSearch
+      summary: Advanced multi-source search with intelligent routing
+      description: "Advanced search with intelligent routing, cross-referencing, and filtering. Supports multi-term queries, boolean operators, and automatic source detection for documentation vs issue tracking."
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search query - supports multi-term and boolean operators"
+                  example: "AO platform optimization"
+                source_filter:
+                  type: string
+                  enum: [confluence, jira]
+                  description: "Filter by specific source (optional - intelligent routing used if not specified)"
+                space_filter:
+                  type: string
+                  description: "Filter by Confluence space (gs, pt, pd)"
+                  example: "gs"
+                priority_filter:
+                  type: string
+                  enum: [high, medium, low, highest, lowest]
+                  description: "Filter Jira issues by priority"
+                status_filter:
+                  type: string
+                  enum: [open, in_progress, resolved, closed, "in progress", "code review"]
+                  description: "Filter Jira issues by status"
+                min_similarity:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1.0
+                  default: 0.15
+                  description: "Minimum similarity threshold (0.15 optimized default)"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 50
+                  default: 10
+                  description: "Maximum number of results"
+                cross_reference:
+                  type: boolean
+                  default: true
+                  description: "Enable cross-source referencing"
+              required: [query]
+            examples:
+              documentation:
+                summary: Documentation Query
+                value:
+                  query: "How do I use the Studio API?"
+                  limit: 5
+              issue_tracking:
+                summary: Issue Tracking Query
+                value:
+                  query: "What bugs are affecting AO platform?"
+                  priority_filter: "high"
+                  status_filter: "open"
+              multi_term:
+                summary: Multi-term Search
+                value:
+                  query: "AO, Adaptive Optimization, healthcare"
+                  limit: 10
+                  cross_reference: true
+      responses:
+        "200":
+          description: Advanced search results with intelligent routing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        chunk_id:
+                          type: string
+                        content:
+                          type: string
+                        title:
+                          type: string
+                        source_type:
+                          type: string
+                          enum: [confluence, jira]
+                        source_id:
+                          type: string
+                        source_url:
+                          type: string
+                          description: "Direct link to source content"
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3297935361"
+                        similarity_score:
+                          type: number
+                        ranking_score:
+                          type: number
+                        metadata:
+                          type: object
+                        created_at:
+                          type: string
+                          format: date-time
+                  count:
+                    type: integer
+                  source_breakdown:
+                    type: object
+                    description: "Count of results by source type"
+                  intelligent_routing:
+                    type: object
+                    properties:
+                      strategy:
+                        type: string
+                        enum: [unified, confluence_preferred, jira_preferred]
+                      confidence:
+                        type: number
+                      reasoning:
+                        type: array
+                        items:
+                          type: string
+                  cross_references:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        source_type:
+                          type: string
+                        similarity:
+                          type: number
+                        url:
+                          type: string
+                  performance_metrics:
+                    type: object
+                    properties:
+                      search_time:
+                        type: number
+                      results_per_second:
+                        type: number
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /query/advanced:
+    post:
+      operationId: advancedQuery
+      summary: Advanced RAG query with intelligent routing and enhanced context
+      description: "Generate comprehensive answers using multi-source RAG with intelligent routing. Combines documentation and issue data with confidence scoring. Best for complex questions and troubleshooting."
+        
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: "Question to answer using RAG"
+                  example: "How does AO platform handle healthcare audience targeting and what issues should I be aware of?"
+                source_filter:
+                  type: string
+                  enum: [confluence, jira]
+                  description: "Filter sources (optional - intelligent routing used otherwise)"
+                space_filter:
+                  type: string
+                  description: "Confluence space filter"
+                priority_filter:
+                  type: string
+                  enum: [high, medium, low]
+                  description: "Jira priority filter"
+                status_filter:
+                  type: string
+                  enum: [open, in_progress, resolved, closed]
+                  description: "Jira status filter"
+                min_similarity:
+                  type: number
+                  minimum: 0.1
+                  maximum: 1.0
+                  default: 0.15
+                max_results:
+                  type: integer
+                  minimum: 1
+                  maximum: 20
+                  default: 5
+                intelligent_routing:
+                  type: boolean
+                  default: true
+                  description: "Use AI to determine optimal sources"
+                include_metadata:
+                  type: boolean
+                  default: true
+              required: [question]
+            examples:
+              comprehensive:
+                summary: Comprehensive Product Question
+                value:
+                  question: "How does AO platform optimization work and what are the current known issues?"
+                  intelligent_routing: true
+                  max_results: 7
+              troubleshooting:
+                summary: Troubleshooting Query
+                value:
+                  question: "Studio API is returning errors - what documentation and recent issues should I check?"
+                  priority_filter: "high"
+                  status_filter: "open"
+      responses:
+        "200":
+          description: Advanced RAG response with enhanced context
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  answer:
+                    type: string
+                    description: "Generated answer with enhanced multi-source context"
+                  sources:
+                    type: array
+                    description: "Source documents used for answer generation"
+                    items:
+                      type: object
+                  search_results_count:
+                    type: integer
+                  source_breakdown:
+                    type: object
+                    description: "Breakdown of sources used (confluence: X, jira: Y)"
+                  routing_info:
+                    type: object
+                    properties:
+                      strategy:
+                        type: string
+                      confidence:
+                        type: number
+                      reasoning:
+                        type: array
+                        items:
+                          type: string
+                  cross_references:
+                    type: array
+                    description: "Related content from other sources"
+                    items:
+                      type: object
+                  confidence_score:
+                    type: number
+                    minimum: 0.0
+                    maximum: 1.0
+                    description: "Answer confidence based on source relevance"
+                  response_time:
+                    type: number
+                    description: "Response time in seconds"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # Backward compatibility endpoints
+  /search:
+    post:
+      operationId: search
+      summary: Search (backward compatible)
+      description: "Backward compatible search endpoint - uses advanced search internally"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                limit:
+                  type: integer
+                  default: 10
+                min_similarity:
+                  type: number
+                  default: 0.15
+                space_filter:
+                  type: string
+              required: [query]
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /query:
+    post:
+      operationId: query
+      summary: RAG Query (backward compatible)
+      description: "Backward compatible RAG query - uses advanced query internally"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 5
+                min_similarity:
+                  type: number
+                  default: 0.15
+              required: [question]
+      responses:
+        "200":
+          description: RAG response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  question:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Advanced system health check
+      description: "Comprehensive health check with system metrics and feature status"
+      responses:
+        "200":
+          description: System health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  version:
+                    type: string
+                  components:
+                    type: object
+                  stats:
+                    type: object
+                  performance:
+                    type: object
+                  features:
+                    type: object
+                    properties:
+                      intelligent_routing:
+                        type: boolean
+                      cross_referencing:
+                        type: boolean
+                      multi_source_ranking:
+                        type: boolean
+                      performance_optimization:
+                        type: boolean
+
+  /stats:
+    get:
+      operationId: getStats
+      summary: Comprehensive system statistics
+      description: "Detailed system statistics including content counts, performance metrics, and capabilities"
+      responses:
+        "200":
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  unified_index_stats:
+                    type: object
+                  system_info:
+                    type: object
+                  capabilities:
+                    type: object

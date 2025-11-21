@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: Jira Agent
+  description: Access live Jira ticket data for sprint planning, release tracking, and development intelligence
+  version: 1.0.0
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+    description: Production Jira BigQuery API
+
+paths:
+  /sprint:
+    post:
+      operationId: sprint
+      summary: Get tickets by sprint
+      description: Retrieve tickets from specific sprints with full metadata including PM priority and story points
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint:
+                  type: string
+                  description: Sprint name to search for
+                  example: "Portal/Cluster August 2025"
+                project:
+                  type: string
+                  description: Project key filter (optional)
+                  example: "ET"
+                include_description:
+                  type: boolean
+                  default: false
+                  description: Include description field for Figma links
+              required:
+                - sprint
+      responses:
+        '200':
+          description: Sprint tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "sprint_search"
+                  filters:
+                    type: object
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+
+  /release:
+    post:
+      operationId: release
+      summary: Get tickets by release/fix version
+      description: Retrieve tickets from specific releases for delivery tracking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fix_version:
+                  type: string
+                  description: Release/fix version to search for
+                  example: "July-2025-portal"
+                project:
+                  type: string
+                  description: Project key filter (optional)
+                  example: "PROD"
+                include_description:
+                  type: boolean
+                  default: false
+                  description: Include description field for Figma links
+              required:
+                - fix_version
+      responses:
+        '200':
+          description: Release tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "release_search"
+                  filters:
+                    type: object
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+
+  /status:
+    post:
+      operationId: status
+      summary: Get tickets by project and status
+      description: Retrieve tickets filtered by project and status for pip

@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v13-5 - Fixed JIRA Integration
+  description: Enhanced Knowledge Layer with direct JIRA v4 integration, release queries, person-specific filtering, and proper JQL links with issue IDs. Supports CustomGPT product management queries.
+  version: 1.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v13_5:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Returns API status and version information
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  features:
+                    type: array
+                    items:
+                      type: string
+    post:
+      operationId: queryKnowledgeLayer
+      summary: Query comprehensive knowledge across JIRA, Confluence, and GitHub
+      description: Analyzes product management questions and returns comprehensive data from JIRA (tickets, releases, status), Confluence (documentation), and GitHub (repositories). Supports release queries, person-specific filtering, team-specific queries, and issue status analysis with proper JQL links.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Natural language question about product management, releases, tickets, team status, or specific person's work
+                  examples:
+                    - "What was released this month?"
+                    - "Show me Kenan's tickets"
+                    - "What is the status of issues in the current sprint?"
+                    - "What is the Front End team working on?"
+                max_results:
+                  type: integer
+                  description: Maximum number of results to return
+                  default: 50
+                  minimum: 1
+                  maximum: 100
+      responses:
+        '200':
+          description: Comprehensive knowledge response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: API version identifier
+                  message:
+                    type: string
+                    description: API description
+                  timestamp:
+                    type: string
+                    description: Response timestamp
+                  question:
+                    type: string
+                    description: Original question
+                  session_id:
+                    type: string
+                    description: Session tracking ID
+                  jira_analysis:
+                    type: object
+                    description: JIRA ticket analysis with direct v4 integration
+                    properties:
+                      query_type:
+                        type: string
+                        description: Detected query type (release, person_specific, team_specific, issue_status, standard)
+                      tickets_found:
+                        type: integer
+                        description: Number of tickets retrieved
+                      tickets:
+                        type: array
+                        description: Individual JIRA tickets with full details
+                        items:
+                          type: object
+                      summary:
+                        type: array
+                        description: Summary data for aggregated queries
+                        items:
+                          type: object
+                      api_used:
+                        type: string
+                        description: JIRA API version used
+                      sql_executed:
+                        type: string
+                        description: SQL query executed
+                      jql_link:
+                        type: string
+                        description: JIRA Query Language link with issue IDs for viewing tickets
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis
+                    properties:
+                      sources:
+                        type: array
+                        description: Confluence sources found
+                        items:
+                          type: string
+                      total_sources_found:
+                        type: integer
+                        description: Total Confluence sources
+                  github_integration:
+                    type: object
+                    description: GitHub repository integration
+                    properties:
+                      repositories:
+                        type: array
+                        description: GitHub repositories found
+                        items:
+                          type: string
+                      total_repos_found:
+                        type: integer
+                        description: Total GitHub repositories
+                  api_status:
+                    type: object
+                    description: API execution status
+                    properties:
+                      jira_query_success:
+                        type: boolean
+                        description: JIRA query success status
+                      data_sources_queried:
+                        type: integer
+                        description: Number of data sources queried
+                      confluence_sources:
+                        type: integer
+                        description: Confluence sources found
+                      github_repos:
+                        type: integer
+                        description: GitHub repositories found
+                      response_optimized:
+                        type: boolean
+                        description: Response optimization status
+                  curated_intelligence:
+                    type: object
+                    description: AI-curated insights and analysis
+                    properties:
+                      executive_summary:
+                        type: string
+                        description: Executive summary of findings
+                      key_insights:
+                        type: array
+                        description: Key insights from the analysis
+                        items:
+                          type: string
+                      data_highlights:
+                        type: object
+                        description: Highlighted data points
+                      sources:
+                        type: array
+                        description: Source links for verification
+                        items:
+                          type: string
+                      actionable_next_steps:
+                        type: array
+                        description: Recommended next actions
+                        items:
+                          type: string
+                      conversation_type:
+                        type: string
+                        description: Conversation context type
+        '400':
+          description: Bad request - missing or invalid parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                  version:
+                    type: string
+                    description: API version
+                  timestamp:
+                    type: string
+                    description: Error timestamp

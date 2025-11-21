@@ -1,0 +1,83 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v12-3 - Stable JIRA v4 Integration
+  description: Orchestrates JIRA tickets, Confluence docs, GitHub repos, and Document360 articles with stable v4 API integration for comprehensive product insights
+  version: 12.3.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net
+paths:
+  /knowledge-orchestrator-v12-3:
+    get:
+      operationId: health_check
+      summary: Health check endpoint
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+    post:
+      operationId: orchestrate_knowledge
+      summary: Query comprehensive knowledge across all data sources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language query
+                max_results:
+                  type: integer
+                  description: Maximum results to return
+                  default: 50
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive knowledge response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  jira_analysis:
+                    type: object
+                    properties:
+                      summary:
+                        type: object
+                      breakdowns:
+                        type: object
+                      query_type:
+                        type: string
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      sources:
+                        type: array
+                  github_integration:
+                    type: object
+                    properties:
+                      repositories:
+                        type: array
+                  documentation:
+                    type: array
+                    items:
+                      type: object
+                  semantic_search:
+                    type: object
+                    properties:
+                      relevant_items:
+                        type: array

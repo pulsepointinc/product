@@ -1,0 +1,385 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Complete API Suite
+  description: |
+    Complete API suite with proper domain standards and source links:
+    - pulsepoint-confluence-api-v3 (Confluence search with links)
+    - pulsepoint-git-api-v1 (Code search with GitHub links) 
+    - pulsepoint-jira-api-v2 (Ticket search with Jira links)
+    - Document360 Knowledge Base (with direct article links)
+  version: "3.0.0"
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+    description: Confluence API v3 (using existing RAG endpoint)
+  - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app  
+    description: Git API v1
+  - url: https://pulsepoint-bigquery-tickets-improved-420423430685.us-east4.run.app
+    description: Jira/BigQuery API v2
+  - url: https://raw.githubusercontent.com/pulsepointinc/product/main/GPT
+    description: Document360 Knowledge Base
+
+paths:
+  # Health Check Endpoints
+  /:
+    get:
+      operationId: healthCheck
+      summary: Health check endpoint
+      description: Check API health and status for all services
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  service:
+                    type: string
+                  version:
+                    type: string
+
+  # Confluence Search API v3
+  /search:
+    post:
+      operationId: searchContent
+      summary: Search Confluence content with source links
+      description: |
+        Search PulsePoint Confluence for AO factors, platform features, documentation.
+        Returns results with direct Confluence page links.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                max_results:
+                  type: integer
+                  default: 10
+                space_filter:
+                  type: string
+                  description: Filter by Confluence space
+              required: [query]
+            examples:
+              ao_factors:
+                summary: Search AO Factors
+                value:
+                  query: "AO factors adaptive optimization"
+                  max_results: 15
+              targeting_options:
+                summary: Search targeting capabilities
+                value:
+                  query: "targeting options audience segments"
+                  max_results: 12
+              platform_features:
+                summary: Search Studio platform features
+                value:
+                  query: "Studio platform capabilities"
+                  space_filter: "platform"
+                  max_results: 20
+              roadmap_search:
+                summary: Search product roadmap
+                value:
+                  query: "product roadmap 2025"
+                  max_results: 18
+      responses:
+        '200':
+          description: Confluence search results with source links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        source_url:
+                          type: string
+                          description: "Direct Confluence page link"
+                        confluence_url:
+                          type: string
+                          description: "https://ppinc.atlassian.net/wiki/..."
+                        similarity_score:
+                          type: number
+                  count:
+                    type: integer
+
+  # RAG Query Endpoint
+  /query:
+    post:
+      operationId: queryRAG
+      summary: Advanced RAG query with reasoning
+      description: Intelligent query processing with context and source attribution
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                context:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              strategic_analysis:
+                summary: Strategic roadmap analysis
+                value:
+                  query: "What are the key AO factors for 2025 roadmap?"
+                  context: "quarterly planning review"
+                  max_results: 15
+      responses:
+        '200':
+          description: RAG analysis with sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  answer:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        url:
+                          type: string
+                        type:
+                          type: string
+
+  # Confluence Space Search
+  /search/confluence:
+    post:
+      operationId: searchConfluence
+      summary: Search specific Confluence spaces
+      description: Targeted search within specific Confluence spaces with direct page links
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                space:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 10
+              required: [query]
+            examples:
+              space_search:
+                summary: Search engineering space
+                value:
+                  query: "adaptive optimization implementation"
+                  space: "engineering"
+                  max_results: 15
+      responses:
+        '200':
+          description: Space-specific search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                  count:
+                    type: integer
+                  space:
+                    type: string
+
+  # Git Code Search API v1
+  /github_code_search:
+    post:
+      operationId: searchCode
+      summary: Search code with GitHub links
+      description: |
+        Search code across repositories with direct GitHub file links.
+        Returns matching files with GitHub URLs for easy navigation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                repository_name:
+                  type: string
+                language:
+                  type: string
+                max_results:
+                  type: integer
+                  default: 50
+              required: [query]
+            examples:
+              targeting_code:
+                summary: Search targeting algorithms
+                value:
+                  query: "targeting OR audience OR segment"
+                  language: "python"
+                  max_results: 20
+              optimization_code:
+                summary: Search AO implementation
+                value:
+                  query: "adaptive optimization"
+                  repository_name: "Ad Serving Platform"
+                  max_results: 15
+      responses:
+        '200':
+          description: Code search results with GitHub links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  matches:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                        file_path:
+                          type: string
+                        github_url:
+                          type: string
+                          description: "Direct GitHub file link"
+                        language:
+                          type: string
+                        content_preview:
+                          type: string
+                  total_results:
+                    type: integer
+
+  # Jira Tickets API v2
+  /tickets:
+    get:
+      operationId: searchTickets
+      summary: Search Jira tickets with links
+      description: |
+        Search tickets with sprint planning filters and direct Jira ticket links.
+        Essential for sprint planning and development tracking.
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+        - name: assigned
+          in: query
+          description: "Find tickets assigned to specific person"
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, "In Progress", Done, Closed]
+        - name: next_sprint
+          in: query
+          description: "Get September 2025 sprint tickets"
+          schema:
+            type: boolean
+        - name: has_points
+          in: query
+          description: "Filter tickets with story points"
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Jira ticket results with links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        summary:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        jira_url:
+                          type: string
+                          description: "Direct Jira ticket link"
+                        story_points:
+                          type: number
+                  total_results:
+                    type: integer
+
+  # Document360 Knowledge Base  
+  /document360_knowledge_base.json:
+    get:
+      operationId: getKnowledgeBase
+      summary: Get Document360 articles with links
+      description: |
+        Complete knowledge base with direct Document360 article links.
+        500+ articles with platform features, user guides, and documentation.
+      responses:
+        '200':
+          description: Knowledge base with article links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  articles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        url:
+                          type: string
+                          description: "https://pulse-point.document360.io/docs/[slug]"
+                        category:
+                          type: string

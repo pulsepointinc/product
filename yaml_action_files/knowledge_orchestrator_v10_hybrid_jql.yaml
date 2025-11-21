@@ -1,0 +1,150 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer v10 - Hybrid JQL Links (CURRENT VERSION)
+  description: Revolutionary hybrid architecture with proper JQL link generation using issue keys for aggregation queries. Combines vector intelligence with accurate JIRA linking. USE THIS ENDPOINT ONLY.
+  version: 10.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v10
+    description: Knowledge Layer v10 - Hybrid JQL Links
+
+paths:
+  /:
+    get:
+      operationId: healthCheckV10
+      summary: Health check for v10 hybrid JQL architecture
+      description: Get API health status and hybrid JQL capabilities
+      responses:
+        '200':
+          description: Health status showing v10 hybrid JQL features
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "10.0-HYBRID-JQL-LINKS"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v10 - Hybrid JQL Links"
+                  status:
+                    type: string
+                    example: "healthy"
+                  features:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Hybrid JQL links for aggregation queries (v10)", "Comprehensive vector indexing across all sources", "Semantic search with cosine similarity", "Intelligent query intent detection"]
+
+    post:
+      operationId: searchWithHybridJQLLinks
+      summary: Search with v10 hybrid JQL link generation
+      description: Enhanced search with proper JQL links using issue keys for both aggregation and listing queries. Returns comprehensive data with accurate JIRA linking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Natural language question for hybrid search with accurate JQL links
+                  example: "What studio tickets are in the current sprint?"
+                max_results:
+                  type: integer
+                  description: Maximum results from each data source
+                  default: 50
+              required:
+                - question
+      responses:
+        '200':
+          description: Comprehensive response with v10 hybrid JQL links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "10.0-HYBRID-JQL-LINKS"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v10 - Hybrid JQL Links"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Response generation timestamp
+                  question:
+                    type: string
+                    description: Original question
+                  jira_analysis:
+                    type: object
+                    description: JIRA analysis with v10 hybrid JQL links
+                    properties:
+                      query_type:
+                        type: string
+                        enum: ["aggregation", "tickets"]
+                        example: "aggregation"
+                      summary:
+                        type: object
+                        description: Total metrics for aggregation queries
+                        properties:
+                          total_tickets:
+                            type: integer
+                          total_story_points:
+                            type: number
+                      breakdowns:
+                        type: object
+                        description: Grouped breakdowns for aggregation queries
+                      jql_detail_link:
+                        type: string
+                        description: V10 ENHANCEMENT - Accurate JQL link using issue keys
+                        example: "https://ppinc.atlassian.net/issues/?jql=issue%20in%20%28ET-20967%2CET-21211%2CQA-153%29"
+                      total_tickets_in_link:
+                        type: integer
+                        description: Number of specific issue keys in JQL link
+                      tickets:
+                        type: array
+                        description: Individual tickets for listing queries
+                        items:
+                          type: object
+                          properties:
+                            issue_key:
+                              type: string
+                              example: "STUD-123"
+                            summary:
+                              type: string
+                            assignee:
+                              type: string
+                            product_manager:
+                              type: string
+                            story_points:
+                              type: number
+                      filters_applied:
+                        type: object
+                        description: Automatically extracted filters from natural language
+                      sql_optimized:
+                        type: boolean
+                        example: true
+                  confluence_analysis:
+                    type: object
+                    description: Confluence documentation analysis
+                  github_integration:
+                    type: object
+                    description: GitHub integration with authentic repository data
+                  documentation:
+                    type: array
+                    description: Document360 technical documentation
+                  semantic_search:
+                    type: object
+                    description: Vector-based semantic search results
+                  response_data:
+                    type: object
+                    description: Synthesized response with comprehensive data integration
+                  intelligent_routing:
+                    type: object
+                    description: Intelligence metadata
+                  api_status:
+                    type: object
+                    description: Status of all integrated APIs

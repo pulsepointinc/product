@@ -1,0 +1,106 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Confluence API
+  version: "1.0"
+  description: Search Confluence documentation. CRITICAL - Use min_similarity 0.01-0.05.
+
+servers:
+  - url: https://pulsepoint-rag-api-420423430685.us-east4.run.app
+
+paths:
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: Search Confluence docs
+      description: "Search PulsePoint docs. Always use min_similarity 0.01-0.05 for results."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  description: "Search terms - try 'Adaptive Optimization' not just 'AO factors'"
+                  examples: ["Adaptive Optimization", "Studio API", "AO roadmap"]
+                min_similarity:
+                  type: number
+                  default: 0.01
+                  description: "REQUIRED: Set to 0.01 for broad results or 0.05 for higher quality"
+                max_results:
+                  type: integer
+                  default: 10
+                  maximum: 50
+            examples:
+              adaptive_optimization:
+                summary: "Search for Adaptive Optimization content"
+                value:
+                  query: "Adaptive Optimization"
+                  min_similarity: 0.01
+                  max_results: 10
+              ao_summary:
+                summary: "Find AO summary documents"
+                value:
+                  query: "AO summary roadmap"
+                  min_similarity: 0.01
+                  max_results: 5
+              studio_api:
+                summary: "Search Studio API docs" 
+                value:
+                  query: "Studio API"
+                  min_similarity: 0.05
+                  max_results: 5
+      responses:
+        '200':
+          description: Search results with Confluence links
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                          example: "AO-CP-Summary"
+                        content:
+                          type: string
+                          description: "Content preview"
+                        confluence_url:
+                          type: string
+                          format: uri
+                          example: "https://ppinc.atlassian.net/wiki/spaces/pt/pages/3264708611"
+                        similarity_score:
+                          type: number
+                          example: 0.059
+                        confluence_space:
+                          type: string
+                          example: "pt"
+                  count:
+                    type: integer
+                  min_similarity:
+                    type: number
+
+  /:
+    get:
+      operationId: healthCheck
+      summary: API health check
+      responses:
+        '200':
+          description: API status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string

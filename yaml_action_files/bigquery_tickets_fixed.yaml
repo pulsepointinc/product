@@ -1,0 +1,184 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint BigQuery Jira API - Fixed
+  description: Working BigQuery Jira tickets API with proper column mappings
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-jira-tickets-fixed-420423430685.us-east4.run.app
+    description: Fixed BigQuery Jira API
+
+paths:
+  /:
+    get:
+      operationId: getApiInfo
+      summary: Get API information and health status
+      responses:
+        '200':
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                  version:
+                    type: string
+
+  /tickets:
+    get:
+      operationId: getTickets
+      summary: Get tickets with filters for sprint planning and team workload
+      parameters:
+        - name: assigned
+          in: query
+          description: Person assigned to tickets - use FULL NAME (e.g. "Roman Kuzmych" not "Roman")
+          schema:
+            type: string
+            example: "Roman Kuzmych"
+        - name: reporter
+          in: query
+          description: Person who reported/created tickets - use FULL NAME
+          schema:
+            type: string
+            example: "Roman Kuzmych"
+        - name: next_sprint
+          in: query
+          description: Filter for next sprint (September 2025) - NOTE this sprint may not exist in data
+          schema:
+            type: string
+            enum: ["true", "false"]
+            default: "false"
+        - name: sprint
+          in: query
+          description: Specific sprint name filter
+          schema:
+            type: string
+            example: "August 2025"
+        - name: project_key
+          in: query
+          description: Project filter
+          schema:
+            type: string
+            enum: ["ET", "DPD", "BI", "Stud", "RR", "DS"]
+        - name: status
+          in: query
+          description: Ticket status filter
+          schema:
+            type: string
+        - name: include_assignee_history
+          in: query
+          description: Include assignee history (set to false to avoid errors)
+          schema:
+            type: string
+            enum: ["true", "false"]
+            default: "false"
+        - name: limit
+          in: query
+          description: Maximum number of tickets to return
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        assignee:
+                          type: string
+                        reporter_name:
+                          type: string
+                        status:
+                          type: string
+                        sprint:
+                          type: string
+                        story_points:
+                          type: number
+                        project_key:
+                          type: string
+                        team_category:
+                          type: string
+                        created:
+                          type: string
+                        updated:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      count:
+                        type: integer
+                      limit:
+                        type: integer
+                  filters_applied:
+                    type: object
+                    additionalProperties: true
+        '400':
+          description: Bad request or BigQuery error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /sprints:
+    get:
+      operationId: getSprints
+      summary: Get sprint information and statistics
+      parameters:
+        - name: project_key
+          in: query
+          schema:
+            type: string
+            enum: ["ET", "DPD", "BI", "Stud", "RR", "DS"]
+      responses:
+        '200':
+          description: Sprint data retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sprints:
+                    type: array
+                    items:
+                      type: object
+
+  /teams:
+    get:
+      operationId: getTeams
+      summary: Get team information and workload distribution
+      responses:
+        '200':
+          description: Team data retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  teams:
+                    type: array
+                    items:
+                      type: object

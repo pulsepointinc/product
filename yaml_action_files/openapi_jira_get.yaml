@@ -1,0 +1,162 @@
+openapi: 3.1.0
+info:
+  title: Jira Agent (GET) 
+  description: Jira ticket data via GET requests - ChatGPT Actions workaround
+  version: 1.1.0
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+    description: Production Jira BigQuery API
+paths:
+  /sprint/get:
+    get:
+      operationId: sprint_get
+      summary: Get tickets by sprint (GET method)
+      description: Retrieve sprint tickets using GET request - ChatGPT Actions workaround
+      parameters:
+        - name: sprint
+          in: query
+          required: true
+          description: Sprint name to search for
+          schema:
+            type: string
+            example: "Portal/Cluster August 2025"
+        - name: project
+          in: query
+          required: false
+          description: Project key filter
+          schema:
+            type: string
+            example: "ET"
+        - name: max_results
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Sprint tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+  /release/get:
+    get:
+      operationId: release_get
+      summary: Get tickets by release (GET method)
+      description: Retrieve release tickets using GET request
+      parameters:
+        - name: fix_version
+          in: query
+          required: true
+          description: Release/fix version to search for
+          schema:
+            type: string
+            example: "August-2025-portal"
+        - name: project
+          in: query
+          required: false
+          description: Project key filter
+          schema:
+            type: string
+            example: "ET"
+        - name: max_results
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Release tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+  /status/get:
+    get:
+      operationId: status_get
+      summary: Get tickets by status (GET method)  
+      description: Retrieve tickets by status using GET request
+      parameters:
+        - name: project
+          in: query
+          required: true
+          description: Project key to search in
+          schema:
+            type: string
+            example: "ET"
+        - name: status
+          in: query
+          required: true
+          description: Status to filter by
+          schema:
+            type: string
+            example: "Open"
+        - name: max_results
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Status-filtered tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/JiraTicket'
+components:
+  schemas:
+    JiraTicket:
+      type: object
+      properties:
+        issue_key:
+          type: string
+          example: "ET-20392"
+        summary:
+          type: string
+        status:
+          type: string
+        assignee:
+          type: string
+        pm_priority:
+          type: integer
+        story_points:
+          type: integer
+        created_date:
+          type: string
+          format: date-time
+        updated_date:
+          type: string
+          format: date-time

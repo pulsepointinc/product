@@ -1,0 +1,220 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint JIRA API v4
+  description: Access PulsePoint JIRA data with BigQuery backend for tickets and aggregations
+  version: 4.0.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/jira-api-v4-dual-mode
+
+paths:
+  /:
+    get:
+      operationId: healthCheck
+      summary: Check API status
+      description: Get API health status
+      responses:
+        '200':
+          description: API health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  status:
+                    type: string
+                  message:
+                    type: string
+
+    post:
+      operationId: queryJiraTickets
+      summary: Query JIRA tickets
+      description: Search JIRA tickets and get aggregations by team/PM/stream
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_manager:
+                  type: string
+                  description: Filter by product manager name
+                  example: "Kenan Akin"
+                team:
+                  type: string
+                  description: Filter by team name
+                  example: "Front End Portal Development"
+                sprint_date:
+                  type: string
+                  description: Filter by sprint date (supports multiple dates with comma separation)
+                  example: "September 2025"
+                release_date:
+                  type: string
+                  description: Filter by release date (supports multiple dates with comma separation)
+                  example: "October 2025"
+                issue_type_name:
+                  type: string
+                  description: Filter by issue type (supports multiple types with comma separation)
+                  example: "Epic,Story"
+                development_queue:
+                  type: string
+                  description: Filter by development status
+                  example: "In Development"
+                team_driving_work:
+                  type: string
+                  description: Filter by team driving work
+                  example: "Product"
+                max_results:
+                  type: integer
+                  description: Maximum number of results
+                  default: 50
+                select:
+                  type: string
+                  description: Fields to select
+                  example: "issue_key,summary,assignee"
+                count_select:
+                  type: string
+                  description: Field to count for aggregation
+                  example: "issue_key"
+                sum_select:
+                  type: string
+                  description: Field to sum for aggregation
+                  example: "story_points"
+                group_by:
+                  type: string
+                  description: Fields to group by for aggregation
+                  example: "product_manager"
+                stream:
+                  type: string
+                  description: Filter by business stream
+                  example: "Campaign Management"
+                product:
+                  type: string
+                  description: Filter by product name
+                  example: "API"
+                feature:
+                  type: string
+                  description: Filter by feature name
+                  example: "Tactic Debugger"
+                project_key:
+                  type: string
+                  description: Filter by JIRA project
+                  example: "PROD"
+                fix_version:
+                  type: string
+                  description: Filter by fix version
+                  example: "2024.3"
+                status_notes:
+                  type: string
+                  description: Filter by status notes
+                  example: "Ready for QA"
+                sprint:
+                  type: string
+                  description: Filter by specific sprint name
+                  example: "Sprint 23.4"
+                reporter_name:
+                  type: string
+                  description: Filter by reporter name
+                  example: "John Smith"
+                project_manager_name:
+                  type: string
+                  description: Filter by project manager name
+                  example: "Sarah Johnson"
+                current_assignee_name:
+                  type: string
+                  description: Filter by current assignee name
+                  example: "Jane Doe"
+                epic_issue_id:
+                  type: integer
+                  description: Filter by epic issue ID
+                  example: 12345
+                epic_issue_key:
+                  type: string
+                  description: Filter by epic issue key
+                  example: "PROD-12426"
+                epic_project_key:
+                  type: string
+                  description: Filter by epic project key
+                  example: "PROD"
+                original_release_date:
+                  type: string
+                  description: Filter by original release date
+                  example: "October 2025"
+                summary:
+                  type: string
+                  description: Search in ticket summary (wildcard)
+                  example: "Debugger"
+                description:
+                  type: string
+                  description: Search in ticket description (wildcard)
+                  example: "API integration"
+                epic_snapshot:
+                  type: string
+                  description: Search in epic snapshot (wildcard)
+                  example: "optimization"
+                child_ticket_count:
+                  type: integer
+                  description: Filter by child ticket count
+                  example: 3
+                number_of_sprint_slips:
+                  type: integer
+                  description: Filter by number of sprint slips
+                  example: 2
+                sprint_slip_count:
+                  type: integer
+                  description: Filter by sprint slip count
+                  example: 1
+                days_sprint_start_to_in_progress:
+                  type: number
+                  description: Filter by days from sprint start to in progress
+                  example: 5.5
+                days_in_progress_to_closed:
+                  type: number
+                  description: Filter by days from in progress to closed
+                  example: 10.2
+                total_days_elapsed:
+                  type: number
+                  description: Filter by total days elapsed
+                  example: 15.7
+      responses:
+        '200':
+          description: JIRA data response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        product_manager:
+                          type: string
+                        story_points:
+                          type: number
+                  summary:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        product_manager:
+                          type: string
+                        total_tickets:
+                          type: integer
+                        total_points:
+                          type: number
+                  total_tickets:
+                    type: integer
+                  sql_executed:
+                    type: string
+                  data_source:
+                    type: string

@@ -1,0 +1,161 @@
+openapi: 3.1.0
+info:
+  title: Knowledge Layer v13-16 API
+  description: Comprehensive multi-source content synthesis combining JIRA, Confluence, GitHub, and Document360 with actual content extraction and intelligent natural language generation
+  version: 13.16.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v13-16
+paths:
+  /:
+    post:
+      operationId: queryComprehensiveKnowledge
+      summary: Query all knowledge sources with comprehensive content synthesis
+      description: Extract and synthesize actual content from JIRA tickets, Confluence pages, GitHub repositories, and Document360 articles using intelligent natural language generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  description: Natural language question - system intelligently determines person vs product vs technical focus
+                max_results:
+                  type: integer
+                  default: 50
+                  description: Maximum number of results to return
+            examples:
+              person_query:
+                summary: Person-specific queries (JIRA primary with multi-source context)
+                value:
+                  question: "What is Kenan working on this sprint?"
+                  max_results: 20
+              product_query:
+                summary: Product/technical queries (all sources comprehensive synthesis)
+                value:
+                  question: "What is the Campaign Management API and how does it work?"
+                  max_results: 10
+              architecture_query:
+                summary: Technical architecture queries (GitHub + Confluence + JIRA + Doc360)
+                value:
+                  question: "PulsePoint platform architecture and components"
+                  max_results: 15
+      responses:
+        '200':
+          description: Comprehensive multi-source synthesis with actual content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    example: "13.16-COMPREHENSIVE-SYNTHESIS"
+                  message:
+                    type: string
+                    example: "Knowledge Layer v13-16 - Comprehensive Multi-Source Content Synthesis"
+                  ai_analysis:
+                    type: object
+                    properties:
+                      query_intent:
+                        type: string
+                        example: "person_tickets"
+                      ai_model_used:
+                        type: string
+                        example: "comprehensive_multi_source_content_synthesis"
+                      date_extracted:
+                        type: string
+                        example: "September 2025"
+                  api_status:
+                    type: object
+                    properties:
+                      data_sources_queried:
+                        type: integer
+                        example: 4
+                      data_sources_successful:
+                        type: integer
+                        example: 4
+                      confluence_api_success:
+                        type: boolean
+                        example: true
+                      github_api_success:
+                        type: boolean
+                        example: true
+                      document360_api_success:
+                        type: boolean
+                        example: true
+                  curated_intelligence:
+                    type: object
+                    properties:
+                      executive_summary:
+                        type: string
+                        example: "Analysis of 7 tickets reveals active development across Pulsepoint Platform, Campaign Management Platform with comprehensive documentation support..."
+                      key_insights:
+                        type: array
+                        items:
+                          type: string
+                        example: [
+                          "Current development work includes 3 key tickets: ET-21492 (Export External User Permissions), ET-21491 (Export Account Fees)",
+                          "Confluence documentation shows 2 relevant pages including 'API Integration Guide' which explains authentication and endpoints",
+                          "GitHub repositories include 3 active projects: campaign-api (REST API for campaign management), platform-core (Core platform services)"
+                        ]
+                      comprehensive_synthesis:
+                        type: object
+                        properties:
+                          comprehensive_summary:
+                            type: string
+                            example: "Kenan is currently working on 3 tickets including: ET-21492 (Export External User Permissions) assigned to Krishna Kalluri; ET-21491 (Export Account Fees) assigned to Krishna Kalluri. Related documentation includes API Integration Guide in Engineering space. Technical implementation can be found in repositories like campaign-api (REST API for campaign management)."
+                          content_sources:
+                            type: object
+                            properties:
+                              jira_tickets_analyzed:
+                                type: integer
+                                example: 3
+                              confluence_pages_analyzed:
+                                type: integer
+                                example: 2
+                              github_repos_analyzed:
+                                type: integer
+                                example: 3
+                              doc360_articles_analyzed:
+                                type: integer
+                                example: 1
+                          source_links:
+                            type: array
+                            items:
+                              type: string
+                            example: [
+                              "https://ppinc.atlassian.net/browse/ET-21492",
+                              "https://confluence.pulsepoint.com/display/ENG/API-Integration-Guide",
+                              "https://github.com/pulsepointinc/campaign-api"
+                            ]
+                          synthesis_method:
+                            type: string
+                            example: "comprehensive_content_analysis"
+                      data_highlights:
+                        type: object
+                        properties:
+                          total_sources_with_content:
+                            type: integer
+                            example: 4
+                          content_analyzed:
+                            type: boolean
+                            example: true
+                          ai_synthesis:
+                            type: string
+                            example: "comprehensive_multi_source_content_synthesis"
+                      conversation_type:
+                        type: string
+                        example: "enhanced_multi_source_content_synthesis"
+                      sources:
+                        type: array
+                        items:
+                          type: string
+                        example: ["https://ppinc.atlassian.net/issues/?jql=issue%20in%28ET-21492,ET-21491%29"]
+        '400':
+          description: Bad request - missing or invalid parameters
+        '500':
+          description: Internal server error

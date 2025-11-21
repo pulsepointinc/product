@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint RAG Search API
+  description: Search Confluence and Jira content via unified RAG API - prevents making up URLs
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-rag-api-v3-kpwy2mbv7a-uk.a.run.app
+
+paths:
+  /:
+    get:
+      operationId: rag_health_check
+      summary: Health check and available sources
+      responses:
+        '200':
+          description: RAG API status and available sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  sources:
+                    type: array
+                    items:
+                      type: string
+
+  /search:
+    post:
+      operationId: rag_search_confluence
+      summary: Search Confluence and Jira content
+      description: |
+        Search across Confluence pages and Jira tickets for product information.
+        Returns actual content with source URLs - prevents making up confluence links.
+        
+        Use this instead of guessing confluence URLs or making up documentation links.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query (e.g., "Omnichannel Audiences", "AO factors", "product roadmap")
+                  example: "Omnichannel Audiences"
+                limit:
+                  type: integer
+                  description: Number of results to return (default 5)
+                  default: 5
+                  maximum: 20
+              required:
+                - query
+      responses:
+        '200':
+          description: Search results from Confluence and Jira
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        content:
+                          type: string
+                        source:
+                          type: string
+                        source_url:
+                          type: string
+                          description: Actual Confluence/Jira URL - use this instead of making up URLs
+                        source_type:
+                          type: string
+                          description: Type of source (confluence, jira)
+                        source_id:
+                          type: string
+                          description: Source document ID
+                        score:
+                          type: number
+                  query:
+                    type: string
+                  total_results:
+                    type: integer

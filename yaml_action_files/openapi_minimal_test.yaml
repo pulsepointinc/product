@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  title: Test API
+  description: Minimal test
+  version: 1.0.0
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: test_health
+      summary: Test endpoint
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+EOF < /dev/null

@@ -1,0 +1,133 @@
+openapi: 3.1.0
+info:
+  title: Confluence Agent
+  description: Semantic search across PulsePoint's Confluence documentation for strategic context, roadmaps, and requirements
+  version: 1.0.0
+servers:
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+    description: Production Confluence RAG API
+paths:
+  /search:
+    post:
+      operationId: search
+      summary: Search Confluence documentation
+      description: Perform semantic search across PulsePoint's Confluence documentation to find strategic context, roadmaps, requirements, and product information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Search query for Confluence documentation
+                  example: "adaptive optimization"
+                max_results:
+                  type: integer
+                  default: 10
+                  description: Maximum number of results to return
+              required:
+                - query
+              examples:
+                ao_factors:
+                  summary: Search AO Factors documentation
+                  description: Find comprehensive AO Factors information
+                  value:
+                    query: "AO Factors adaptive optimization"
+                    max_results: 15
+                studio_features:
+                  summary: Search Studio capabilities
+                  description: Find Studio platform features and functionality
+                  value:
+                    query: "Studio capabilities audience targeting HCP"
+                    max_results: 12
+                omnichannel_strategy:
+                  summary: Search omnichannel documentation
+                  description: Find omnichannel audience strategy information
+                  value:
+                    query: "omnichannel strategy cross-platform targeting"
+                    max_results: 18
+                product_roadmap:
+                  summary: Search product roadmap
+                  description: Find strategic planning and roadmap documentation
+                  value:
+                    query: "product roadmap 2025 strategic planning"
+                    max_results: 20
+                curated_markets:
+                  summary: Search Curated Markets
+                  description: Find Curated Markets implementation details
+                  value:
+                    query: "Curated Markets supply optimization"
+                    max_results: 14
+                platform_architecture:
+                  summary: Search architecture documentation
+                  description: Find platform architecture and technical design
+                  value:
+                    query: "platform architecture technical design"
+                    max_results: 16
+                compliance_docs:
+                  summary: Search compliance documentation
+                  description: Find HIPAA and compliance-related information
+                  value:
+                    query: "HIPAA compliance privacy regulations"
+                    max_results: 10
+                api_integration:
+                  summary: Search API documentation
+                  description: Find API specifications and integration guides
+                  value:
+                    query: "API integration REST endpoints documentation"
+                    max_results: 22
+                campaign_management:
+                  summary: Search campaign management
+                  description: Find campaign setup and management documentation
+                  value:
+                    query: "campaign management setup optimization"
+                    max_results: 25
+                targeting_options:
+                  summary: Search targeting capabilities
+                  description: Find targeting types and audience options
+                  value:
+                    query: "targeting options audience segments demographics"
+                    max_results: 30
+      responses:
+        '200':
+          description: Successful search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: Original search query
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        content:
+                          type: string
+                          description: Document content snippet
+                        metadata:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                            url:
+                              type: string
+                            space:
+                              type: string
+                        score:
+                          type: number
+                          description: Relevance score
+                  total_results:
+                    type: integer
+                    description: Total number of results found
+        '400':
+          description: Bad request
+        '500':
+          description: Internal server error
+components:
+  securitySchemes: {}
+  schemas: {}

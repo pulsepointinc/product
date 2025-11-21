@@ -1,0 +1,414 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint BigQuery Tickets API - Enhanced with AO Filtering
+  description: Enhanced BigQuery API for Jira ticket analysis with comprehensive AO (Adaptive Optimization) filtering capabilities. Includes sprint analysis, AO ticket filtering with OA exclusion, and proper team classification.
+  version: 3.0.0
+
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+
+paths:
+  /:
+    get:
+      operationId: bigquery_health_check
+      summary: Health check and service info
+      responses:
+        '200':
+          description: Service health and capabilities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  status:
+                    type: string
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+
+  /sprint:
+    post:
+      operationId: bigquery_get_sprint_tickets
+      summary: Get comprehensive sprint analysis with date-based filtering
+      description: Complete sprint analysis using sprint_date or release_date for accurate filtering. Use sprint_date for current sprint, release_date for current release.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint_date:
+                  type: string
+                  description: Sprint date filter (e.g., "August 2025") - recommended for current sprint
+                  example: "August 2025"
+                release_date:
+                  type: string
+                  description: Release date filter (e.g., "August 2025") - recommended for current release
+                  example: "August 2025"
+                sprint:
+                  type: string
+                  description: Sprint name (fallback only, use dates instead)
+                  example: "Portal/Cluster August 2025"
+                project_key:
+                  type: string
+                  description: Project key filter (ET, DPD, BI, Stud, RR, DS, PROD)
+                  default: "ET"
+                reporter:
+                  type: string
+                  description: Filter by ticket reporter (e.g., "Donovan")
+                  example: "Donovan"
+      responses:
+        '200':
+          description: Complete sprint analysis with ticket breakdowns
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                  sprint_date:
+                    type: string
+                  release_date:
+                    type: string
+                  sprint:
+                    type: string
+                  sprint_names_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique sprint names found in the results
+                  sprint_dates_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique sprint dates found in the results
+                  release_dates_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique release dates found in the results
+                  project_filter:
+                    type: string
+                  total_tickets:
+                    type: integer
+                  total_story_points:
+                    type: number
+                  status_summary:
+                    type: object
+                    description: Breakdown by ticket status with story points
+                  assignee_summary:
+                    type: object
+                    description: Breakdown by current assignee with story points
+                  team_summary:
+                    type: object
+                    description: Breakdown by team with story points
+                  tickets:
+                    type: array
+                    description: Complete list of all tickets with full details
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        reporter_name:
+                          type: string
+                          description: Ticket reporter name
+                        project_key:
+                          type: string
+                        release_date:
+                          type: string
+                        sprint_date:
+                          type: string
+                        sprint:
+                          type: string
+                        product:
+                          type: string
+                        stream:
+                          type: string
+                        story_points:
+                          type: number
+                        priority:
+                          type: string
+                        issue_type:
+                          type: string
+                        team:
+                          type: string
+                          description: Auto-classified team (Product Management, Business Intelligence Development, etc.)
+                        created:
+                          type: string
+                        updated:
+                          type: string
+                  query_time:
+                    type: string
+
+  /ao-tickets:
+    get:
+      operationId: bigquery_get_ao_tickets
+      summary: Get AO (Adaptive Optimization) tickets with proper filtering
+      description: Retrieves tickets related to bid optimization, factors, packages while excluding OA (Omnichannel Audiences) tickets. Uses comprehensive keyword filtering to distinguish between AO and OA functionality.
+      parameters:
+        - name: sprint_date
+          in: query
+          schema:
+            type: string
+          description: Sprint date filter (e.g., "August 2025")
+          example: "August 2025"
+        - name: release_date
+          in: query
+          schema:
+            type: string
+          description: Release date filter (e.g., "August 2025")
+          example: "August 2025"
+        - name: project_key
+          in: query
+          schema:
+            type: string
+            default: "ET"
+          description: Project key filter (ET, DPD, BI, Stud, RR, DS, PROD)
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Offset for pagination
+        - name: include_all_dates
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Include all date fields in response
+      responses:
+        '200':
+          description: AO tickets with filtering details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "ao_tickets"
+                  tickets:
+                    type: array
+                    description: Array of AO-related tickets
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        description:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        project_key:
+                          type: string
+                        sprint_date:
+                          type: string
+                        release_date:
+                          type: string
+                        story_points:
+                          type: number
+                        team:
+                          type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      count:
+                        type: integer
+                      has_next:
+                        type: boolean
+                      has_prev:
+                        type: boolean
+                  filters_applied:
+                    type: object
+                    properties:
+                      ao_keywords_searched:
+                        type: array
+                        items:
+                          type: string
+                        description: List of AO keywords used for filtering
+                      oa_keywords_excluded:
+                        type: array
+                        items:
+                          type: string
+                        description: List of OA keywords excluded from results
+                      sprint_date:
+                        type: string
+                      release_date:
+                        type: string
+                      project_key:
+                        type: string
+                  search_explanation:
+                    type: object
+                    properties:
+                      ao_definition:
+                        type: string
+                        example: "Adaptive Optimization: Bid optimization, factors, packages, bidding algorithms"
+                      oa_definition:
+                        type: string
+                        example: "Omnichannel Audiences: Audience targeting, platforms, management (excluded from results)"
+                      search_fields:
+                        type: string
+                        example: "summary, description, epic_summary"
+                      exclusion_logic:
+                        type: string
+                        example: "Tickets containing OA-related terms are filtered out"
+                  query_time:
+                    type: string
+
+  /ao-analysis:
+    post:
+      operationId: bigquery_get_ao_analysis
+      summary: Complete AO (Adaptive Optimization) analysis with summaries
+      description: Comprehensive analysis of AO-related tickets with status, assignee, and team breakdowns. Filters for bid optimization work while excluding audience targeting tickets.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint_date:
+                  type: string
+                  description: Sprint date filter (e.g., "August 2025")
+                  example: "August 2025"
+                release_date:
+                  type: string
+                  description: Release date filter (e.g., "August 2025")
+                  example: "August 2025"
+                project_key:
+                  type: string
+                  description: Project key filter (ET, DPD, BI, Stud, RR, DS, PROD)
+                  default: "ET"
+      responses:
+        '200':
+          description: Complete AO analysis with summaries and ticket details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "ao_analysis"
+                  sprint_date:
+                    type: string
+                  release_date:
+                    type: string
+                  sprint_names_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique sprint names found in AO tickets
+                  sprint_dates_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique sprint dates found in AO tickets
+                  release_dates_found:
+                    type: array
+                    items:
+                      type: string
+                    description: All unique release dates found in AO tickets
+                  project_filter:
+                    type: string
+                  total_ao_tickets:
+                    type: integer
+                    description: Total number of AO tickets found
+                  total_story_points:
+                    type: number
+                    description: Total story points for AO tickets
+                  status_summary:
+                    type: object
+                    description: Breakdown of AO tickets by status with counts and story points
+                  assignee_summary:
+                    type: object
+                    description: Breakdown of AO tickets by assignee with counts and story points
+                  team_summary:
+                    type: object
+                    description: Breakdown of AO tickets by team with counts and story points
+                  tickets:
+                    type: array
+                    description: Complete list of all AO tickets with full details
+                    items:
+                      type: object
+                      properties:
+                        issue_key:
+                          type: string
+                        summary:
+                          type: string
+                        description:
+                          type: string
+                        status:
+                          type: string
+                        assignee:
+                          type: string
+                        project_key:
+                          type: string
+                        sprint_date:
+                          type: string
+                        release_date:
+                          type: string
+                        story_points:
+                          type: number
+                        team:
+                          type: string
+                        epic_issue_key:
+                          type: string
+                        epic_issue_summary:
+                          type: string
+                        priority:
+                          type: string
+                        created:
+                          type: string
+                        updated:
+                          type: string
+                  ao_filtering:
+                    type: object
+                    properties:
+                      ao_keywords_searched:
+                        type: array
+                        items:
+                          type: string
+                        description: List of AO keywords used for search
+                      oa_keywords_excluded:
+                        type: array
+                        items:
+                          type: string
+                        description: List of OA keywords excluded from results
+                      search_explanation:
+                        type: string
+                        example: "Searches summary, description, and epic_summary for AO terms while excluding OA terms"
+                      exclusion_logic:
+                        type: string
+                        example: "Tickets containing Omnichannel Audience terms are filtered out"
+                  query_time:
+                    type: string

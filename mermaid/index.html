@@ -766,27 +766,27 @@ graph TD
                 // Clone the SVG to avoid modifying the original
                 const svgClone = diagramElement.cloneNode(true);
                 
-                // Get SVG dimensions
-                const svgRect = diagramElement.getBoundingClientRect();
-                const svgWidth = svgRect.width || diagramElement.viewBox.baseVal.width || 800;
-                const svgHeight = svgRect.height || diagramElement.viewBox.baseVal.height || 600;
-
-                // Set explicit dimensions on clone if not present
-                if (!svgClone.hasAttribute('width')) {
-                    svgClone.setAttribute('width', svgWidth);
-                }
-                if (!svgClone.hasAttribute('height')) {
-                    svgClone.setAttribute('height', svgHeight);
+                // Get SVG dimensions from viewBox or attributes
+                let svgWidth, svgHeight;
+                if (svgClone.viewBox && svgClone.viewBox.baseVal) {
+                    svgWidth = svgClone.viewBox.baseVal.width || 800;
+                    svgHeight = svgClone.viewBox.baseVal.height || 600;
+                } else {
+                    svgWidth = parseInt(svgClone.getAttribute('width')) || 800;
+                    svgHeight = parseInt(svgClone.getAttribute('height')) || 600;
                 }
 
-                // Convert SVG to data URL
+                // Set explicit dimensions on clone
+                svgClone.setAttribute('width', svgWidth);
+                svgClone.setAttribute('height', svgHeight);
+                svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+                // Convert SVG to data URL (inline, not blob URL to avoid CORS)
                 const svgData = new XMLSerializer().serializeToString(svgClone);
-                const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const svgUrl = URL.createObjectURL(svgBlob);
+                const svgDataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
 
                 // Create an image element to load the SVG
                 const img = new Image();
-                img.crossOrigin = 'anonymous';
                 
                 await new Promise((resolve, reject) => {
                     img.onload = () => {
@@ -824,23 +824,21 @@ graph TD
                                 
                                 // Clean up
                                 URL.revokeObjectURL(link.href);
-                                URL.revokeObjectURL(svgUrl);
                                 
                                 showSuccess('PNG exported successfully');
                                 resolve();
                             }, 'image/png');
                         } catch (err) {
-                            URL.revokeObjectURL(svgUrl);
                             reject(err);
                         }
                     };
                     
-                    img.onerror = () => {
-                        URL.revokeObjectURL(svgUrl);
-                        reject(new Error('Failed to load SVG image'));
+                    img.onerror = (e) => {
+                        reject(new Error('Failed to load SVG image: ' + (e.message || 'Unknown error')));
                     };
                     
-                    img.src = svgUrl;
+                    // Use data URL directly (no CORS issues)
+                    img.src = svgDataUrl;
                 });
             } catch (error) {
                 const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';

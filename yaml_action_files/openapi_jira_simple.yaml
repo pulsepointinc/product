@@ -1,0 +1,43 @@
+openapi: 3.1.0
+info:
+  title: Jira Agent Simple
+  description: Simplified Jira API with minimal schema - ChatGPT Actions fix
+  version: 1.0.1
+servers:
+  - url: https://pulsepoint-bigquery-tickets-420423430685.us-east4.run.app
+    description: Production Jira BigQuery API
+paths:
+  /sprint:
+    post:
+      operationId: sprintTickets
+      summary: Get sprint tickets
+      description: Get tickets from current sprint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sprint:
+                  type: string
+                  example: "Portal/Cluster August 2025"
+                project:
+                  type: string
+                  example: "ET"
+              required:
+                - sprint
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_tickets:
+                    type: integer
+                  tickets:
+                    type: array
+components:
+  schemas: {}

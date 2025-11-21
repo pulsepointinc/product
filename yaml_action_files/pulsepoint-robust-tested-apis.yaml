@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint APIs - Tested and Verified
+  version: "1.0"
+  description: |
+    PulsePoint API suite with verified endpoints and comprehensive test examples.
+    
+    **STATUS SUMMARY:**
+    - ❌ Confluence API: Currently offline (404 errors)
+    - ❌ JIRA API: Currently offline (404 errors)  
+    - ✅ Git API: WORKING with repository metadata
+    - ❌ Document360 API: Currently offline (404 errors)
+    
+    **Only the Git API is currently functional.**
+
+servers:
+  - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+    description: "✅ WORKING - Git Repository API"
+  - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+    description: "❌ OFFLINE - Confluence API (returns 404)"
+  - url: https://pulsepoint-jira-api-v2-420423430685.us-east4.run.app
+    description: "❌ OFFLINE - JIRA API (returns 404)"
+  - url: https://pulsepoint-document360-api-v1-420423430685.us-east4.run.app
+    description: "❌ OFFLINE - Document360 API (returns 404)"
+
+paths:
+  # GIT API - WORKING ENDPOINTS
+  /:
+    get:
+      operationId: getGitApiHealth
+      summary: "✅ Git API Health Check (WORKING)"
+      description: "Get Git API health status and statistics"
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      responses:
+        '200':
+          description: "API health status and statistics"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PulsePoint Git Repository API"
+                  status:
+                    type: string
+                    example: "healthy"
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Repository metadata search", "File content analysis"]
+                  data_source:
+                    type: string
+                    example: "pulsepoint-datahub.git_repositories"
+                  statistics:
+                    type: object
+                    properties:
+                      total_repositories:
+                        type: integer
+                        example: 26
+                      total_files:
+                        type: integer
+                        example: 50660
+                      total_functions:
+                        type: integer
+                        example: 64058
+              examples:
+                health_response:
+                  summary: "Typical health check response"
+                  value:
+                    message: "PulsePoint Git Repository API"
+                    status: "healthy"
+                    capabilities: [
+                      "Repository metadata search",
+                      "File content analysis", 
+                      "Function extraction"
+                    ]
+                    statistics:
+                      total_repositories: 26
+                      total_files: 50660
+                      total_functions: 64058
+
+  /repositories:
+    get:
+      operationId: listRepositories
+      summary: "✅ List Git Repositories (WORKING)"
+      description: "Get repository metadata with optional filtering"
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      parameters:
+        - name: repository_name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Filter by repository name (partial matching supported)"
+          examples:
+            ad_platform:
+              summary: "Search for Ad platform repos"
+              value: "Ad"
+            api_repos:
+              summary: "Search for API repos"  
+              value: "API"
+        - name: language
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Filter by programming language"
+          examples:
+            java_repos:
+              summary: "Java repositories"
+              value: "Java"
+            javascript_repos:
+              summary: "JavaScript repositories"
+              value: "JavaScript"
+      responses:
+        '200':
+          description: "Repository list with metadata"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query_type:
+                    type: string
+                    example: "repositories"
+                  filters:
+                    type: object
+                    properties:
+                      repository_name:
+                        type: string
+                        nullable: true
+                      language:
+                        type: string
+                        nullable: true
+                  total_results:
+                    type: integer
+                    example: 26
+                  repositories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        repository_name:
+                          type: string
+                          example: "Ad Serving Platform"
+                        is_private:
+                          type: boolean
+                          example: true
+                        is_archived:
+                          type: boolean
+                          example: false
+                        file_count:
+                          type: integer
+                          example: 11107
+                        total_lines_of_code:
+                          type: integer
+                          example: 1452043
+                        languages:
+                          type: object
+                          example: {
+                            "Java": 9356,
+                            "JavaScript": 8234,
+                            "HTML": 7891
+                          }
+                        processed_at:
+                          type: string
+                          format: date-time
+              examples:
+                all_repositories:
+                  summary: "Get all repositories"
+                  value:
+                    query_type: "repositories"
+                    total_results: 26
+                    repositories: [
+                      {
+                        "repository_name": "Ad Serving Platform",
+                        "is_private": true,
+                        "file_count": 11107,
+                        "total_lines_of_code": 1452043,
+                        "languages": {"Java": 9356, "JavaScript": 8234}
+                      }
+                    ]
+                filtered_repositories:
+                  summary: "Repositories filtered by name"
+                  value:
+                    query_type: "repositories" 
+                    filters: {"repository_name": "Ad", "language": null}
+                    total_results: 3
+                    repositories: [
+                      {
+                        "repository_name": "Ad Serving Platform",
+                        "is_private": true,
+                        "file_count": 11107
+                      }
+                    ]
+
+  /health:
+    get:
+      operationId: getGitApiDetailedHealth
+      summary: "✅ Git API Detailed Health (WORKING)"
+      description: "Get detailed health status with timestamp"
+      servers:
+        - url: https://pulsepoint-git-api-v1-420423430685.us-east4.run.app
+      responses:
+        '200':
+          description: "Detailed health status"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  database:
+                    type: string
+                    example: "ok"
+
+  # NON-WORKING APIs - FOR REFERENCE ONLY
+  /search:
+    post:
+      operationId: searchConfluence
+      summary: "❌ Search Confluence (OFFLINE)"
+      description: "⚠️ THIS ENDPOINT IS CURRENTLY OFFLINE - Returns 404"
+      servers:
+        - url: https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: ["query"]
+              properties:
+                query:
+                  type: string
+                  example: "Adaptive Optimization"
+                min_similarity:
+                  type: number
+                  default: 0.01
+                max_results:
+                  type: integer
+                  default: 10
+            examples:
+              ao_search:
+                summary: "AO search (will fail - 404)"
+                value:
+                  query: "Adaptive Optimization"
+                  min_similarity: 0.01
+                  max_results: 5
+      responses:
+        '404':
+          description: "Service currently offline"
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "<html><head><title>404 Page not found</title></head></html>"
+
+  /tickets:
+    get:
+      operationId: getTickets
+      summary: "❌ Get JIRA Tickets (OFFLINE)"
+      description: "⚠️ THIS ENDPOINT IS CURRENTLY OFFLINE - Returns 404"
+      servers:
+        - url: https://pulsepoint-jira-api-v2-420423430685.us-east4.run.app
+      parameters:
+        - name: project_key
+          in: query
+          schema:
+            type: string
+            example: "ET"
+        - name: sprint
+          in: query
+          schema:
+            type: string
+            example: "Active Product"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '404':
+          description: "Service currently offline"
+
+components:
+  schemas:
+    # Git API Schemas
+    GitRepository:
+      type: object
+      properties:
+        repository_name:
+          type: string
+        is_private:
+          type: boolean
+        is_archived:
+          type: boolean
+        file_count:
+          type: integer
+        total_lines_of_code:
+          type: integer
+        languages:
+          type: object
+          additionalProperties:
+            type: integer
+        processed_at:
+          type: string
+          format: date-time
+    
+    GitApiHealthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        status:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        data_source:
+          type: string
+        statistics:
+          type: object
+          properties:
+            total_repositories:
+              type: integer
+            total_files:
+              type: integer
+            total_functions:
+              type: integer
+
+# Working curl examples for testing
+x-curl-examples:
+  git_api_examples: |
+    # Test Git API health
+    curl "https://pulsepoint-git-api-v1-420423430685.us-east4.run.app/"
+    
+    # Get all repositories
+    curl "https://pulsepoint-git-api-v1-420423430685.us-east4.run.app/repositories"
+    
+    # Filter repositories by name
+    curl "https://pulsepoint-git-api-v1-420423430685.us-east4.run.app/repositories?repository_name=Ad"
+    
+    # Filter repositories by language
+    curl "https://pulsepoint-git-api-v1-420423430685.us-east4.run.app/repositories?language=Java"
+    
+    # Get detailed health
+    curl "https://pulsepoint-git-api-v1-420423430685.us-east4.run.app/health"
+
+  offline_api_tests: |
+    # These will return 404 - services are offline:
+    
+    # Test Confluence API (will fail)
+    curl -X POST "https://pulsepoint-confluence-api-v3-420423430685.us-east4.run.app/search" \
+      -H "Content-Type: application/json" \
+      -d '{"query": "Adaptive Optimization", "min_similarity": 0.01}'
+    
+    # Test JIRA API (will fail)  
+    curl "https://pulsepoint-jira-api-v2-420423430685.us-east4.run.app/tickets?limit=5"
+    
+    # Test Document360 API (will fail)
+    curl "https://pulsepoint-document360-api-v1-420423430685.us-east4.run.app/"

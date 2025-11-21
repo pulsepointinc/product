@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: PulsePoint Knowledge Layer API v13-3
+  description: Enhanced query support for JIRA tickets, Confluence docs, release tracking, issue status, and epic status with improved source linking
+  version: 13.3.0
+servers:
+  - url: https://us-east4-pulsepoint-datahub.cloudfunctions.net/knowledge-orchestrator-v13-3
+
+paths:
+  /ask:
+    post:
+      operationId: askQuestion
+      summary: Query JIRA tickets, Confluence docs with enhanced release and status tracking
+      description: Get JIRA tickets and Confluence docs with team filtering, capacity planning, release tracking, issue status, and epic status queries. Supports direct JIRA API integration for enhanced query types.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                question:
+                  type: string
+                  description: Question about JIRA tickets, roadmaps, capacity planning, releases, issue status, or epic status
+                max_results:
+                  type: integer
+                  description: Maximum number of tickets to return (1-150)
+                  default: 50
+                  minimum: 1
+                  maximum: 150
+              required:
+                - question
+      responses:
+        '200':
+          description: Successful response with JIRA tickets and Confluence docs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jira_analysis:
+                    type: object
+                    properties:
+                      tickets_found:
+                        type: integer
+                      tickets:
+                        type: array
+                        items:
+                          type: object
+                      summary:
+                        type: object
+                        description: Aggregated data for release, status, or capacity queries
+                  confluence_analysis:
+                    type: object
+                    properties:
+                      total_sources_found:
+                        type: integer
+                      sources:
+                        type: array
+                        items:
+                          type: object
+                  team_breakdown:
+                    type: object
+                  stream_breakdown:
+                    type: object
+                  version:
+                    type: string
+                  api_used:
+                    type: string
+                    description: Indicates which API was used (v11-3 for standard queries, v4 for enhanced queries)
+                  query_type:
+                    type: string
+                    description: Type of query detected (standard, release, issue_status, epic_status)

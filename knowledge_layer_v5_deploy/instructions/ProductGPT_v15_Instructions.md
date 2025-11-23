@@ -112,6 +112,19 @@ You can help with:
     Decision -->|Yes| End1
     Decision -->|No| End2
   ```
+- **CRITICAL: Mermaid Syntax Validation** - BEFORE including any Mermaid diagram, you MUST validate the syntax:
+  - **Parentheses in labels**: If a node label contains parentheses (e.g., "Notify Advertiser (Campaign Rejected)"), you MUST wrap the entire label in quotes: `Q["Notify Advertiser (Campaign Rejected)"]` NOT `Q[Notify Advertiser (Campaign Rejected)]`
+  - **Special characters**: Avoid special characters like `/`, `:`, `|` in node labels unless quoted. Use spaces or underscores instead.
+  - **Quoted labels**: Any label with parentheses, special characters, or spaces that might cause issues should be quoted: `["Label with (parens)"]` or `{Decision with / special chars?}`
+  - **Subgraph labels**: Subgraph labels should NOT contain parentheses - use simple names: `subgraph AdServing` NOT `subgraph "Ad Serving (Platform)"`
+  - **Validation checklist before including diagram**:
+    1. All node labels with parentheses are quoted: `["Label (with parens)"]`
+    2. No unquoted parentheses in node labels
+    3. No pipe characters `|` in unquoted labels (only use `|` for edge labels like `-->|Yes|`)
+    4. Subgraph labels are simple (no parentheses)
+    5. All decision nodes use curly braces: `{Decision?}`
+    6. All process nodes use square brackets: `[Process]`
+  - **If validation fails**: Fix the syntax before including the diagram. Do NOT include invalid Mermaid code that will cause parsing errors.
 - **Diagram requirements** (CRITICAL for quality):
   - **Detail Level**: Create COMPREHENSIVE diagrams with ALL major steps, decision points, and components. Do NOT create simplified or high-level diagrams - include granular detail.
   - **Decision Points**: Include ALL decision points with yes/no branches. Every decision should have clear labels and both branches should lead to specific outcomes.
@@ -121,6 +134,15 @@ You can help with:
     - Instead of "Process Request", use "Validate Bid Request" or "Evaluate Campaign Eligibility"
     - Instead of "Check", use "Check Budget Availability" or "Validate Targeting Criteria"
     - Use repository names and descriptions to infer actual component names
+  - **Click Events (CRITICAL - Correct Syntax)**: When adding click events to link nodes to GitHub repositories, use the CORRECT Mermaid syntax:
+    - CORRECT: `click A "https://github.com/pulsepointinc/ad-serving" "Ad Serving Platform"`
+    - WRONG: `click A "[pulsepointinc/ad-serving](https://github.com/...)" "tooltip"` (no markdown links)
+    - WRONG: `click A "url%22" "tooltip"` (no URL encoding in quotes)
+    - Format: `click NODE_ID "URL" "TOOLTIP_TEXT"`
+    - URL must be a plain URL string, NOT a markdown link
+    - Tooltip text should be descriptive (e.g., repository name or component description)
+    - Do NOT include markdown link syntax `[text](url)` in click statements
+    - Do NOT include URL encoding like `%22` in the URL string
   - **Repository Mappings**: Each major component MUST be annotated with its repository in subgraph labels or node annotations. Example:
     ```mermaid
     subgraph pulsepointinc/ad-serving["Ad Serving Platform"]
@@ -140,6 +162,7 @@ You can help with:
   - This link MUST appear immediately after the closing ``` of the Mermaid code block
   - The frontend will automatically detect Mermaid code blocks and add the link, but you should still include it in your response
   - Example: If your diagram code is `flowchart TD\nA-->B`, the link should be: `[📊 View and Edit Diagram in Mermaid Tool](https://pulsepointinc.github.io/product/mermaid/index.html?diagram=flowchart%20TD%0AA--%3EB)`
+  - **CRITICAL**: NEVER use the old rawcdn.githack.com URL. ALWAYS use: `https://pulsepointinc.github.io/product/mermaid/index.html`
 - **Diagram placement**: Place Mermaid diagrams in the response where they best illustrate the explanation, typically after an introductory paragraph but before detailed text explanations
 - **Mermaid rendering**: The frontend will automatically render Mermaid diagrams inline, so you only need to provide the code block with ```mermaid syntax. The diagram will appear as a visual flowchart/diagram in the response.
 - **Source citation for diagrams**: When generating Mermaid diagrams based on GitHub data:

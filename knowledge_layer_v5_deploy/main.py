@@ -1,12 +1,19 @@
 import json
 import os
+import re
 import requests
 from datetime import datetime, timedelta
 from flask import Request, jsonify, Flask
 from flask_cors import CORS, cross_origin
-import functions_framework
+try:
+    import functions_framework
+    FUNCTIONS_FRAMEWORK_AVAILABLE = True
+except ImportError:
+    FUNCTIONS_FRAMEWORK_AVAILABLE = False
+    print("⚠️ functions_framework not available - Cloud Run mode only")
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 # Import Secret Manager for explicit secret access
 try:
@@ -16,14 +23,52 @@ except ImportError:
     SECRET_MANAGER_AVAILABLE = False
     print("⚠️ Secret Manager not available - will rely on environment variables")
 
-# Import Vertex AI for Gemini 2.0 Flash support
+# Import Firestore for GPT instructions
 try:
-    import vertexai
-    from vertexai.generative_models import GenerativeModel
-    VERTEX_AI_AVAILABLE = True
+    from google.cloud import firestore
+    FIRESTORE_AVAILABLE = True
 except ImportError:
-    VERTEX_AI_AVAILABLE = False
-    print("⚠️ Vertex AI not available - Gemini 2.0 Flash will not be available")
+    FIRESTORE_AVAILABLE = False
+    print("⚠️ Firestore not available - custom instructions will not be loaded")
+
+# Import Vertex AI for Gemini 2.0 Flash support
+VERTEX_AI_AVAILABLE = False
+vertexai = None
+GenerativeModel = None
+
+def _check_vertex_ai_availability():
+    """Check if Vertex AI is available, try to import if needed"""
+    global VERTEX_AI_AVAILABLE, vertexai, GenerativeModel
+    if VERTEX_AI_AVAILABLE:
+        return True
+    
+    try:
+        import vertexai as vai
+        from vertexai.generative_models import GenerativeModel as GM
+        vertexai = vai
+        GenerativeModel = GM
+        VERTEX_AI_AVAILABLE = True
+        print("✅ Vertex AI imported successfully")
+        return True
+    except ImportError as e:
+        print(f"⚠️ Vertex AI import failed (ImportError): {e}")
+        return False
+    except Exception as e:
+        print(f"⚠️ Vertex AI import failed (Exception): {e}")
+        import traceback
+        print(f"⚠️ Traceback: {traceback.format_exc()}")
+        return False
+
+# Try initial import
+try:
+    import vertexai as vai
+    from vertexai.generative_models import GenerativeModel as GM
+    vertexai = vai
+    GenerativeModel = GM
+    VERTEX_AI_AVAILABLE = True
+    print("✅ Vertex AI available - Gemini 2.0 Flash is ready")
+except Exception as e:
+    print(f"⚠️ Vertex AI not available at startup - will try lazy import. Error: {e}")
 
 # Create Flask app for Cloud Run compatibility
 app = Flask(__name__)
@@ -39,6 +84,101 @@ location = "us-east4"
 # Initialize OpenAI with proper error handling
 OPENAI_AVAILABLE = False
 OPENAI_API_KEY_CACHE = None  # Cache for runtime access
+
+def _get_firestore_db():
+    """Get Firestore database client"""
+    if not FIRESTORE_AVAILABLE:
+        return None
+    try:
+        db = firestore.Client(project="pulsepoint-bitstrapped-ai")
+        return db
+    except Exception as e:
+        print(f"⚠️ Failed to initialize Firestore: {e}")
+        return None
+
+def _get_gpt_instructions() -> tuple:
+    """Fetch combined GPT instructions from Firestore (custom + core)
+    Returns: (combined_instructions, disclaimer_text)"""
+    db = _get_firestore_db()
+    if not db:
+        return ("", "")
+    
+    try:
+        # Get custom instructions
+        instructions_ref = db.collection('gpt_instructions').document('current')
+        instructions_doc = instructions_ref.get()
+        
+        custom_content = ""
+        disclaimer_text = ""
+        if instructions_doc.exists:
+            data = instructions_doc.to_dict()
+            custom_content = data.get("content", "")
+            
+            # Extract disclaimer from custom instructions
+            # Pattern 1: "Always provide the statement to all answers: "text"" (handles markdown headers)
+            match = re.search(r'Always provide the statement to all answers:\s*"([^"]+)"', custom_content, re.IGNORECASE | re.DOTALL)
+            if match:
+                disclaimer_text = match.group(1).strip()
+            
+            # Pattern 2: Look for any quoted text after "statement to all answers" (more flexible)
+            if not disclaimer_text:
+                match = re.search(r'statement to all answers[^"]*"([^"]+)"', custom_content, re.IGNORECASE | re.DOTALL)
+                if match:
+                    disclaimer_text = match.group(1).strip()
+            
+            # Pattern 3: Generic "statement" followed by quoted text
+            if not disclaimer_text:
+                match = re.search(r'statement.*?:\s*"([^"]+)"', custom_content, re.IGNORECASE | re.DOTALL)
+                if match:
+                    disclaimer_text = match.group(1).strip()
+            
+            # Pattern 4: Any quoted text after "disclaimer"
+            if not disclaimer_text:
+                match = re.search(r'disclaimer.*?:\s*"([^"]+)"', custom_content, re.IGNORECASE | re.DOTALL)
+                if match:
+                    disclaimer_text = match.group(1).strip()
+        
+        # Get core instructions (from file path in container or fallback)
+        core_content = ""
+        core_paths = [
+            "/app/instructions/ProductGPT_v15_Instructions.md",
+            "./instructions/ProductGPT_v15_Instructions.md",  # Relative path in container
+            "/Users/bweinstein/product-gpt/knowledge_layer_v5_deploy/instructions/ProductGPT_v15_Instructions.md",
+            "/Users/bweinstein/product-gpt/instructions/ProductGPT_v15_Instructions.md"
+        ]
+        for path in core_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        core_content = f.read()
+                        break
+                except:
+                    continue
+        
+        # Combine instructions (core first, then custom)
+        if custom_content.strip() and core_content.strip():
+            combined = f"{core_content}\n\n---\n\n## Custom Instructions (Admin-Added)\n\n{custom_content}"
+        elif custom_content.strip():
+            combined = custom_content
+        elif core_content.strip():
+            combined = core_content
+        else:
+            combined = ""
+        
+        if combined:
+            print(f"✅ Loaded GPT instructions ({len(combined)} chars: {len(core_content)} core + {len(custom_content)} custom)")
+            # Verify the new Mermaid URL is in the instructions
+            if "pulsepointinc.github.io/product/mermaid" in combined:
+                print("✅ Verified: New Mermaid URL is in instructions")
+            if "rawcdn.githack.com" in combined:
+                print("⚠️ WARNING: Old rawcdn.githack.com URL found in instructions!")
+        if disclaimer_text:
+            print(f"✅ Extracted disclaimer: {disclaimer_text[:100]}...")
+        
+        return (combined, disclaimer_text)
+    except Exception as e:
+        print(f"⚠️ Error fetching GPT instructions: {e}")
+        return ("", "")
 
 def _get_openai_api_key() -> str:
     """
@@ -128,7 +268,7 @@ GPT_CONTEXT = {
     "jira_field_definitions": {}  # field_name -> {description, possible_values}
 }
 
-def _http_get_json(url: str, params: dict = None, headers: dict = None, timeout: int = 15):
+def _http_get_json(url: str, params: dict = None, headers: dict = None, timeout: int = 30):  # Increased from 15 to 30 seconds
     try:
         # Convert params values to strings if they're not already
         if params:
@@ -140,7 +280,7 @@ def _http_get_json(url: str, params: dict = None, headers: dict = None, timeout:
         print(f"❌ HTTP GET failed for {url}: {e}")
         return None
 
-def _http_post_json(url: str, data: dict, headers: dict = None, timeout: int = 15):
+def _http_post_json(url: str, data: dict, headers: dict = None, timeout: int = 30):  # Increased from 15 to 30 seconds
     try:
         r = requests.post(url, json=data, headers=headers or {}, timeout=timeout)
         r.raise_for_status()
@@ -257,10 +397,16 @@ def intelligent_query_analysis(question: str, gpt_context: dict = None) -> dict:
     # Detect query intent
     intent = "general"
     
-    # Detect workflow questions (e.g., "tell me the workflow of PRTS", "how does X work", "explain the process")
-    workflow_keywords = ['workflow', 'work flow', 'process', 'how does', 'how do', 'explain', 'describe']
-    if any(keyword in question_lower for keyword in workflow_keywords):
-        intent = "workflow"
+    # Detect workflow/diagram/dataflow questions (e.g., "tell me the workflow of PRTS", "ad serving dataflow diagram", "mermaid diagram")
+    workflow_keywords = ['workflow', 'work flow', 'process', 'how does', 'how do', 'explain', 'describe', 'what is']
+    diagram_keywords = ['diagram', 'flowchart', 'mermaid', 'dataflow', 'data flow', 'architecture', 'flow']
+    # Check if question contains workflow or diagram keywords
+    if any(keyword in question_lower for keyword in workflow_keywords + diagram_keywords):
+        # Also check if it mentions "the process" or contains an acronym (likely a process name) or asks for a diagram
+        if 'the process' in question_lower or any(word.isupper() and len(word) >= 2 for word in question.split()) or any(keyword in question_lower for keyword in diagram_keywords):
+            intent = "workflow"
+        elif any(keyword in question_lower for keyword in ['workflow', 'work flow', 'how does', 'how do']):
+            intent = "workflow"
     elif any(word in question_lower for word in ['ticket', 'tickets', 'issue', 'issues', 'story', 'stories', 'epic', 'epics', 'bug', 'bugs', 'task', 'tasks']):
         intent = "jira_only"
     elif any(word in question_lower for word in ['count', 'sum', 'total', 'how many', 'aggregate']):
@@ -424,15 +570,18 @@ def get_intelligent_jira_filters(question: str, product_mappings: dict) -> dict:
     
     return filters
 
-def call_jira_v4_api(question: str, max_results: int = 50, query_analysis: dict = None, product_mappings: dict = None) -> dict:
+def call_jira_v4_api(question: str, max_results: int = 100, query_analysis: dict = None, product_mappings: dict = None) -> dict:  # Increased default from 50 to 100
     """
     Call JIRA v4 API with intelligent parameter extraction
     Bryan's requirement: Use actual search parameters, not hardcoded responses
     """
     try:
         # For roadmap/stream queries, increase max_results to capture all relevant tickets
+        # Increased limits for richer responses
         if any(word in question.lower() for word in ['roadmap', 'latest', 'omnichannel', 'stream', 'planned', 'rest of', 'remainder']):
-            max_results = max(max_results, 200)  # Ensure we get at least 200 results for comprehensive roadmaps
+            max_results = max(max_results, 300)  # Increased from 200 to 300 for more comprehensive results
+        elif 'workflow' in question.lower() or 'dataflow' in question.lower():
+            max_results = max(max_results, 100)  # Increased for workflow queries
         
         # Build intelligent parameters based on query analysis
         params = {
@@ -488,36 +637,42 @@ def call_jira_v4_api(question: str, max_results: int = 50, query_analysis: dict 
             params['development_queue'] = 'In Development'
         
         print(f"🔍 JIRA v4 API call with params: {params}")
+        jira_start_time = time.time()
         
         response = _http_post_json(JIRA_V4_API, params)
+        jira_duration = time.time() - jira_start_time
         
         if response:
-            print(f"✅ JIRA v4 API success: {len(response.get('tickets', []))} tickets")
+            print(f"✅ JIRA v4 API success: {len(response.get('tickets', []))} tickets (took {jira_duration:.2f}s)")
             return {
                 'tickets': response.get('tickets', []),
                 'summary': response.get('summary', []),
                 'query_success': True,
                 'total_tickets': len(response.get('tickets', [])),
-                'api_response': response
+                'api_response': response,
+                'duration_seconds': jira_duration
             }
         else:
-            print("❌ JIRA v4 API failed")
+            print(f"❌ JIRA v4 API failed (took {jira_duration:.2f}s)")
             return {
                 'tickets': [],
                 'summary': [],
                 'query_success': False,
                 'total_tickets': 0,
-                'api_response': None
+                'api_response': None,
+                'duration_seconds': jira_duration
             }
             
     except Exception as e:
-        print(f"❌ JIRA v4 API error: {e}")
+        jira_duration = time.time() - jira_start_time if 'jira_start_time' in locals() else 0
+        print(f"❌ JIRA v4 API error: {e} (took {jira_duration:.2f}s)")
         return {
             'tickets': [],
             'summary': [],
             'query_success': False,
             'total_tickets': 0,
-            'api_response': None
+            'api_response': None,
+            'duration_seconds': jira_duration
         }
 
 def call_confluence_api(question: str, query_analysis: dict = None, conversation_history: list = None) -> dict:
@@ -525,6 +680,7 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
     Call Confluence API with intelligent search
     Bryan's requirement: Use actual search, not hardcoded responses
     """
+    start_time = time.time()
     try:
         # Extract search terms from query analysis - use full query for better matching
         search_terms = question
@@ -541,31 +697,36 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
                 if 'omnichannel' in content or 'audience' in content:
                     has_omnichannel_context = True
         
-        # For workflow questions, extract the main subject (e.g., "PRTS" from "workflow of PRTS")
+        # For workflow questions, extract the main subject (e.g., "PRTS" from "workflow of PRTS" or "what is PRTS the process")
         if query_analysis and query_analysis.get('intent') == 'workflow':
-            # Extract the main subject - look for patterns like "workflow of X", "how does X work", etc.
+            # Extract the main subject - look for patterns like "workflow of X", "what is X the process", etc.
             import re
-            # Pattern: "workflow of X" or "workflow of the X"
-            match = re.search(r'workflow\s+of\s+(?:the\s+)?([A-Z]+)', question, re.IGNORECASE)
-            if match:
-                search_terms = match.group(1)  # Extract the acronym (e.g., "PRTS")
-            else:
-                # Pattern: "how does X work" or "explain X"
-                match = re.search(r'(?:how\s+does|explain|describe|tell\s+me\s+about)\s+([A-Z]+)', question, re.IGNORECASE)
+            patterns = [
+                r'workflow\s+of\s+(?:the\s+)?([A-Z]+)',  # "workflow of PRTS"
+                r'what\s+is\s+([A-Z]+)\s+the\s+process',  # "what is PRTS the process"
+                r'describe\s+([A-Z]+)\s+the\s+process',  # "describe PRTS the process"
+                r'explain\s+([A-Z]+)\s+the\s+process',  # "explain PRTS the process"
+                r'(?:how\s+does|explain|describe|tell\s+me\s+about)\s+([A-Z]+)',  # "how does PRTS work"
+            ]
+            search_terms = None
+            for pattern in patterns:
+                match = re.search(pattern, question, re.IGNORECASE)
                 if match:
-                    search_terms = match.group(1)
-                elif query_analysis.get('keywords'):
-                    # Use the first keyword that looks like an acronym/product name
-                    keywords = query_analysis['keywords']
-                    for kw in keywords:
-                        if len(kw) >= 2 and kw.isupper():
-                            search_terms = kw
-                            break
-                    else:
-                        # Fallback: use first keyword
-                        search_terms = keywords[0] if keywords else question
-                else:
-                    search_terms = question
+                    search_terms = match.group(1)  # Extract the acronym (e.g., "PRTS")
+                    break
+            
+            if not search_terms and query_analysis.get('keywords'):
+                # Use the first keyword that looks like an acronym/product name
+                keywords = query_analysis['keywords']
+                for kw in keywords:
+                    if len(kw) >= 2 and kw.isupper():
+                        search_terms = kw
+                        break
+                if not search_terms:
+                    # Fallback: use first keyword
+                    search_terms = keywords[0] if keywords else question
+            elif not search_terms:
+                search_terms = question
         elif query_analysis and query_analysis.get('keywords'):
             keywords = query_analysis['keywords']
             # For specific queries like "AO factors", use the full query
@@ -591,9 +752,10 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
         
         # Use POST with JSON body to /search endpoint
         # CRITICAL: Use max_results (not limit) and min_similarity for reliable results
+        # Increased max_results from 10 to 25 for richer responses
         payload = {
             "query": search_terms,
-            "max_results": 10,
+            "max_results": 25,  # Increased from 10 to 25 for more comprehensive results
             "min_similarity": 0.01  # Use low threshold for reliable results
         }
         
@@ -603,29 +765,35 @@ def call_confluence_api(question: str, query_analysis: dict = None, conversation
         
         if response:
             results = response.get('results', [])
-            print(f"✅ Confluence API success: {len(results)} pages")
+            duration = time.time() - start_time
+            print(f"✅ Confluence API success: {len(results)} pages (took {duration:.2f}s)")
             return {
                 'results': results,
                 'api_success': True,
                 'total_sources_found': len(results),
-                'search_terms': search_terms
+                'search_terms': search_terms,
+                'duration_seconds': duration
             }
         else:
-            print("❌ Confluence API failed")
+            duration = time.time() - start_time
+            print(f"❌ Confluence API failed (took {duration:.2f}s)")
             return {
                 'results': [],
                 'api_success': False,
                 'total_sources_found': 0,
-                'search_terms': search_terms
+                'search_terms': search_terms,
+                'duration_seconds': duration
             }
             
     except Exception as e:
-        print(f"❌ Confluence API error: {e}")
+        duration = time.time() - start_time
+        print(f"❌ Confluence API error: {e} (took {duration:.2f}s)")
         return {
             'results': [],
             'api_success': False,
             'total_sources_found': 0,
-            'search_terms': question
+            'search_terms': question,
+            'duration_seconds': duration
         }
 
 def get_product_mappings_from_github() -> dict:
@@ -973,8 +1141,9 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
         
         # Add Confluence context - ONLY if we have actual results
         # For workflow queries, prioritize Confluence content (include more)
-        confluence_limit = 10 if query_intent == 'workflow' else 5
-        confluence_content_limit = 2000 if query_intent == 'workflow' else 1000
+        # Increased limits for richer responses
+        confluence_limit = 20 if query_intent == 'workflow' else 15  # Increased from 10/5 to 20/15
+        confluence_content_limit = 4000 if query_intent == 'workflow' else 3000  # Increased from 2000/1000 to 4000/3000
         
         if confluence_data.get('results') and len(confluence_data['results']) > 0:
             confluence_context = "Confluence Pages with Full Content (PRIMARY SOURCE for workflow questions):\n"
@@ -989,28 +1158,63 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
             context_parts.append("Confluence Data: No Confluence pages found for this query.")
         
         # Add GitHub context - ONLY if we have actual repositories
-        # For workflow queries, prioritize GitHub content (include more)
-        github_limit = 10 if query_intent == 'workflow' else 5
+        # For workflow/diagram queries, prioritize GitHub content (include more)
+        # Increased limits for richer responses
+        is_diagram_query = 'diagram' in question.lower() or 'flowchart' in question.lower() or 'dataflow' in question.lower() or 'data flow' in question.lower() or 'mermaid' in question.lower()
+        github_limit = 20 if (query_intent == 'workflow' or is_diagram_query) else 15  # Increased from 10/5 to 20/15
         
         if github_data.get('repositories') and len(github_data['repositories']) > 0:
-            github_context = "GitHub Repositories with Details (PRIMARY SOURCE for workflow questions):\n"
+            # Emphasize GitHub for diagram/dataflow questions
+            if is_diagram_query:
+                github_context = "=== GITHUB REPOSITORIES (PRIMARY SOURCE - USE THIS DATA TO GENERATE COMPREHENSIVE, DETAILED DIAGRAM) ===\n"
+                github_context += "CRITICAL INSTRUCTIONS FOR DIAGRAM GENERATION:\n"
+                github_context += "1. Create COMPREHENSIVE diagrams with ALL major steps, decision points, and components\n"
+                github_context += "2. Include ALL decision points with yes/no branches - every decision must have both paths\n"
+                github_context += "3. Show COMPLETE flows from start to finish with every intermediate step\n"
+                github_context += "4. Use subgraphs to group components by repository (e.g., subgraph pulsepointinc/ad-serving)\n"
+                github_context += "5. Use descriptive, specific component names based on repository descriptions\n"
+                github_context += "6. Include error/rejection paths for all decision points\n"
+                github_context += "7. Map each component to its repository in subgraph labels\n"
+                github_context += "8. Do NOT create simplified diagrams - show granular detail with all steps\n\n"
+                github_context += "Repository Data (use descriptions to infer component names and flows):\n\n"
+            else:
+                github_context = "GitHub Repositories with Details (PRIMARY SOURCE for workflow questions):\n"
             for repo in github_data['repositories'][:github_limit]:
                 name = repo.get('repository_name', repo.get('name', 'No name'))
                 url = repo.get('github_url', repo.get('url', '#'))
                 description = repo.get('description', 'No description')
                 language = repo.get('main_language', 'Unknown')
-                github_context += f"- [{name}]({url})\n"
-                github_context += f"  Description: {description}\n"
-                github_context += f"  Language: {language}\n\n"
+                file_count = repo.get('file_count', 'Unknown')
+                total_lines = repo.get('total_lines', 'Unknown')
+                github_context += f"**Repository: {name}**\n"
+                github_context += f"- URL: {url}\n"
+                github_context += f"- Description: {description}\n"
+                github_context += f"- Language: {language}\n"
+                if file_count != 'Unknown':
+                    github_context += f"- File Count: {file_count}\n"
+                if total_lines != 'Unknown':
+                    github_context += f"- Total Lines: {total_lines}\n"
+                # Include additional repo details if available
+                if repo.get('topics'):
+                    github_context += f"- Topics: {', '.join(repo.get('topics', []))}\n"
+                github_context += f"\n**Use this repository's description to infer:**\n"
+                github_context += f"- Component names and processes (extract from description: '{description}')\n"
+                github_context += f"- Functional areas and responsibilities\n"
+                github_context += f"- How this repository fits into the overall flow\n"
+                github_context += f"- Decision points and validation steps this repository might handle\n\n"
             context_parts.append(github_context)
         else:
-            context_parts.append("GitHub Data: No GitHub repositories found for this query.")
+            if is_diagram_query:
+                context_parts.append("=== GITHUB DATA: WARNING - No GitHub repositories found for this diagram query. You should still attempt to generate a diagram based on the question, but note that it may not reflect actual implementation. ===")
+            else:
+                context_parts.append("GitHub Data: No GitHub repositories found for this query.")
         
         # Add Document360 context - ONLY if we have actual articles
         # Skip Document360 for workflow queries (internal processes)
+        # Increased limits for richer responses
         if query_intent != 'workflow' and document360_data.get('articles') and len(document360_data['articles']) > 0:
             doc360_context = "Document360 Articles with Content:\n"
-            for article in document360_data['articles'][:5]:  # Limit to 5 articles
+            for article in document360_data['articles'][:15]:  # Increased from 5 to 15 articles
                 title = article.get('title', 'No title')
                 url = article.get('url', '#')
                 content = article.get('content', article.get('summary', 'No content available'))
@@ -1025,34 +1229,72 @@ def synthesize_with_openai(question: str, jira_data: dict, confluence_data: dict
         # Combine all context
         full_context = "\n\n".join(context_parts)
         
+        # Fetch GPT instructions (custom + core) from Firestore
+        gpt_instructions, disclaimer_text = _get_gpt_instructions()
+        
         # Create synthesis prompt with workflow-specific instructions
         workflow_instructions = ""
-        if query_intent == 'workflow':
+        if query_intent == 'workflow' or 'diagram' in question.lower() or 'flowchart' in question.lower() or 'dataflow' in question.lower() or 'data flow' in question.lower():
             workflow_instructions = """
-29. FOR WORKFLOW QUESTIONS (CRITICAL):
-    - PRIORITIZE Confluence and GitHub content - these are the PRIMARY sources for workflow/process questions
-    - Use Confluence pages to explain the complete workflow, process steps, and system architecture
-    - Use GitHub repositories to explain technical implementation details, code structure, and integration points
+29. FOR WORKFLOW/DATAFLOW/DIAGRAM QUESTIONS (CRITICAL):
+    - GITHUB IS THE PRIMARY AND MOST IMPORTANT SOURCE for data flows, workflows, and architecture diagrams
+    - If the question asks for a Mermaid diagram or mentions specific repositories (e.g., "using repos pulsepointinc/ad-serving"), you MUST:
+      * Use the ACTUAL GitHub repository data provided in the Available Data section
+      * Extract real component names, file paths, and relationships from the GitHub repositories
+      * Map each component in the diagram to its actual repository
+      * Include repository annotations (e.g., "pulsepointinc/ad-serving: handles bid request processing")
+      * NEVER generate generic or hypothetical diagrams - ALWAYS base diagrams on actual repository data
+    - For dataflow questions (e.g., "ad serving dataflow from bid request to paid impression"):
+      * GitHub repositories are the PRIMARY source - use them to understand the actual implementation
+      * Extract decision points, components, and flows from the actual repository structure
+      * Include all yes/no decision branches based on actual code logic when available
+      * Use subgraphs to group components by repository or function
+    - Confluence can provide additional context about workflows and processes
     - JIRA tickets should be used ONLY for context about current work/improvements, NOT as the primary source for workflow explanation
-    - Provide a COMPREHENSIVE workflow explanation including:
-      * Core Purpose: What the system/process does
-      * High-Level Flow: Step-by-step process overview
-      * Key Components: Major parts and their roles
-      * Data Flow: How data moves through the system
-      * Integration Points: How it connects with other systems
-      * Current Status: Any known issues or improvements (from JIRA if available)
-    - Structure the response with clear sections and subsections
-    - Use the GPT context files (acronyms, products) to ensure accurate terminology
-    - DO NOT just list JIRA tickets - explain the actual workflow from Confluence and GitHub
-    - If Confluence/GitHub content is available, use it as the PRIMARY source and synthesize it comprehensively
+    - ALWAYS cite GitHub API as a source when generating Mermaid diagrams or explaining workflows
+    - If GitHub data is provided, you MUST use it - do not generate generic responses
+    - Structure Mermaid diagrams with COMPREHENSIVE detail:
+      * Use descriptive, specific component names based on repository descriptions (e.g., "Validate Bid Request" not just "Validate")
+      * Include ALL decision points with clear yes/no branches - every decision must have both paths
+      * Show COMPLETE flows with ALL intermediate steps, not just start and end
+      * Use subgraphs to group components by repository (e.g., `subgraph pulsepointinc/ad-serving`)
+      * Include error/rejection paths for all decision points that can fail
+      * Map each major component to its repository in subgraph labels
+      * Use detailed node labels: `[Specific Process Name]` for actions, `{Clear Decision Question?}` for decisions
+      * Include granular detail - do NOT create simplified diagrams, show the full journey with all steps
+    - CRITICAL: Mermaid Syntax Validation - BEFORE including any Mermaid diagram, you MUST validate and fix the syntax:
+      * Parentheses in labels: If a node label contains parentheses (e.g., "Notify Advertiser (Campaign Rejected)"), you MUST wrap the entire label in quotes: Q["Notify Advertiser (Campaign Rejected)"] NOT Q[Notify Advertiser (Campaign Rejected)]
+      * Special characters: Avoid special characters like /, :, | in node labels unless quoted. Use spaces or underscores instead.
+      * Quoted labels: Any label with parentheses, special characters, or spaces that might cause issues should be quoted: ["Label with (parens)"] or {Decision with / special chars?}
+      * Subgraph labels: Subgraph labels should NOT contain parentheses - use simple names: subgraph AdServing NOT subgraph "Ad Serving (Platform)"
+      * Validation checklist: (1) All node labels with parentheses are quoted, (2) No unquoted parentheses in node labels, (3) No pipe characters | in unquoted labels (only use | for edge labels), (4) Subgraph labels are simple (no parentheses), (5) All decision nodes use curly braces: {Decision?}, (6) All process nodes use square brackets: [Process]
+      * If validation fails: Fix the syntax before including the diagram. Do NOT include invalid Mermaid code that will cause parsing errors.
+    - CRITICAL: After EVERY Mermaid diagram code block, ALWAYS include a link to the Mermaid tool
+    - Mermaid tool link format: `[📊 View and Edit Diagram in Mermaid Tool](https://pulsepointinc.github.io/product/mermaid/index.html?diagram=ENCODED_CODE)`
+    - Replace ENCODED_CODE with the URL-encoded version of the Mermaid code
+    - NEVER use the old rawcdn.githack.com URL - ALWAYS use: https://pulsepointinc.github.io/product/mermaid/index.html
+    - Example: If your diagram code is `flowchart TD\nA-->B`, the link should be: `[📊 View and Edit Diagram in Mermaid Tool](https://pulsepointinc.github.io/product/mermaid/index.html?diagram=flowchart%20TD%0AA--%3EB)`
 """
         
-        # Create synthesis prompt
+        # Build conversation context if available
+        conversation_context = ""
+        if conversation_history and len(conversation_history) > 0:
+            conversation_context = "\n\n=== PREVIOUS CONVERSATION ===\n"
+            # Include last 5 messages for context (avoid token bloat)
+            for msg in conversation_history[-5:]:
+                role = msg.get('role', 'user')
+                content = msg.get('content', '')
+                if role == 'user':
+                    conversation_context += f"User: {content}\n"
+                elif role == 'assistant':
+                    conversation_context += f"Assistant: {content}\n"
+            conversation_context += "\n=== END OF PREVIOUS CONVERSATION ===\n"
+            conversation_context += "\nIMPORTANT: The current question may be a follow-up to the previous conversation. Please consider the context when answering.\n"
+        
+        # Create synthesis prompt (instructions are now in system message, not here)
         synthesis_prompt = f"""
-You are an AI assistant helping PulsePoint employees find information from internal systems.
-
 Question: {question}
-
+{conversation_context}
 Available Data:
 {full_context}
 
@@ -1094,9 +1336,19 @@ CRITICAL INSTRUCTIONS:
 28. IMPORTANT: Individual tickets should be referenced inline in the response body when relevant, not listed separately at the end
 {workflow_instructions}
 Respond professionally and helpfully, processing all available content to provide the most comprehensive and useful response possible.
+
+IMPORTANT FORMATTING NOTES:
+- Use proper text contrast: dark text on light backgrounds, light text on dark backgrounds
+- After providing comprehensive answers, especially for complex topics like workflows, dataflows, or architecture, consider asking a helpful follow-up question to engage the user
+- Follow-up questions should be relevant and provide additional value, such as:
+  * "Would you like me to also generate a diagram showing [related process]?"
+  * "Would you like more details about [specific aspect]?"
+  * "Should I also explain [complementary topic]?"
+- Keep the conversational tone friendly and helpful, similar to ChatGPT
 """
         
         # Call OpenAI API (v1.0+ compatible) with optimized parameters and timeout
+        synthesis_start_time = time.time()
         try:
             # Get API key using comprehensive method (should already be set above, but double-check)
             api_key = openai.api_key or _get_openai_api_key()
@@ -1112,20 +1364,29 @@ Respond professionally and helpfully, processing all available content to provid
                 print(f"✅ Set openai.api_key from retrieved key")
             
             # Determine which model to use (hybrid approach or user preference)
-            if model_preference:
+            print(f"🔍 Model preference received: {model_preference} (type: {type(model_preference)})")
+            if model_preference and model_preference != 'auto' and model_preference.strip():
                 # User has specified a model preference
                 print(f"🎯 Using user-specified model: {model_preference}")
-                if model_preference == 'gemini-2.0-flash-001':
-                    if VERTEX_AI_AVAILABLE:
+                model_pref_clean = model_preference.strip().lower()
+                if model_pref_clean == 'gemini-2.0-flash-001' or 'gemini' in model_pref_clean:
+                    # Check Vertex AI availability (will try lazy import if needed)
+                    if _check_vertex_ai_availability():
                         provider = "gemini"
-                        selected_model = model_preference
+                        selected_model = "gemini-2.0-flash-001"
+                        print(f"✅ Selected Gemini 2.0 Flash (provider={provider}, model={selected_model})")
                     else:
                         print("⚠️ Gemini not available, falling back to GPT-4o")
                         provider = "openai"
                         selected_model = "gpt-4o"
-                elif model_preference in ['gpt-4o-mini', 'gpt-4o']:
+                elif 'gpt-4o-mini' in model_pref_clean or 'mini' in model_pref_clean:
                     provider = "openai"
-                    selected_model = model_preference
+                    selected_model = "gpt-4o-mini"
+                    print(f"✅ Selected GPT-4o-mini")
+                elif 'gpt-4o' in model_pref_clean and 'mini' not in model_pref_clean:
+                    provider = "openai"
+                    selected_model = "gpt-4o"
+                    print(f"✅ Selected GPT-4o")
                 else:
                     # Invalid preference, fall back to auto
                     print(f"⚠️ Invalid model preference '{model_preference}', using auto-selection")
@@ -1134,9 +1395,11 @@ Respond professionally and helpfully, processing all available content to provid
                     selected_model = model_selection.get("model", "gpt-4o-mini")
             else:
                 # Auto-select based on query complexity
+                print(f"🔄 Auto-selecting model based on query complexity")
                 model_selection = _determine_model_for_query(question, query_intent, confluence_data, github_data, jira_data)
                 provider = model_selection.get("provider", "openai")
                 selected_model = model_selection.get("model", "gpt-4o-mini")
+                print(f"🤖 Auto-selected: {provider}/{selected_model}")
             
             print(f"🔍 Using {provider} with model: {selected_model}")
             print(f"🔍 Query intent: {query_intent}")
@@ -1152,15 +1415,20 @@ Respond professionally and helpfully, processing all available content to provid
             
             if provider == "gemini":
                 # Use Gemini 2.0 Flash via Vertex AI
-                if not VERTEX_AI_AVAILABLE:
+                # Check availability again (in case it wasn't available earlier)
+                if not _check_vertex_ai_availability():
                     print("⚠️ Vertex AI not available, falling back to OpenAI")
                     provider = "openai"
                     selected_model = "gpt-4o" if query_intent in ['workflow', 'comparison'] else "gpt-4o-mini"
                 else:
                     try:
+                        gemini_start = time.time()
+                        print(f"🚀 Initializing Vertex AI for Gemini...")
                         # Initialize Vertex AI
                         vertexai.init(project="pulsepoint-bitstrapped-ai", location="us-east4")
+                        print(f"✅ Vertex AI initialized")
                         model = GenerativeModel(selected_model)
+                        print(f"✅ GenerativeModel created: {selected_model}")
                         
                         # Call Gemini
                         response = model.generate_content(
@@ -1170,8 +1438,14 @@ Respond professionally and helpfully, processing all available content to provid
                                 "temperature": 0.5,
                             }
                         )
+                        gemini_duration = time.time() - gemini_start
+                        print(f"⏱️ Gemini synthesis took {gemini_duration:.2f}s")
                         
                         synthesized_response = response.text
+                        
+                        # Append disclaimer if present
+                        if disclaimer_text and disclaimer_text not in synthesized_response:
+                            synthesized_response = f"{synthesized_response}\n\n---\n\n{disclaimer_text}"
                         
                         # Track usage for cost monitoring (Gemini pricing)
                         # Gemini 2.0 Flash: $0.075 per 1M input tokens, $0.30 per 1M output tokens
@@ -1214,19 +1488,44 @@ Respond professionally and helpfully, processing all available content to provid
                         selected_model = "gpt-4o"
             
             # Use OpenAI (default or fallback)
+            openai_start = time.time()
             client = openai.OpenAI(api_key=api_key, timeout=60.0)  # Increased to 60 seconds for workflow questions
+            
+            # Use GPT instructions as system message for better adherence
+            system_message = "You are a helpful assistant for PulsePoint employees."
+            if gpt_instructions and gpt_instructions.strip():
+                system_message = gpt_instructions.strip()
+            
+            # Build messages array with conversation history
+            messages = [{"role": "system", "content": system_message}]
+            
+            # Add conversation history if available
+            if conversation_history and len(conversation_history) > 0:
+                # Include last 5 messages for context (avoid token bloat)
+                for msg in conversation_history[-5:]:
+                    role = msg.get('role', 'user')
+                    content = msg.get('content', '')
+                    # Map roles: 'assistant' -> 'assistant', 'user' -> 'user'
+                    if role in ['user', 'assistant']:
+                        messages.append({"role": role, "content": content})
+            
+            # Add current question
+            messages.append({"role": "user", "content": synthesis_prompt})
             
             response = client.chat.completions.create(
                 model=selected_model,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant for PulsePoint employees."},
-                    {"role": "user", "content": synthesis_prompt}
-                ],
+                messages=messages,
                 max_tokens=max_tokens,
                 temperature=0.5   # Reduced from 0.7 for more focused responses
             )
+            openai_duration = time.time() - openai_start
+            print(f"⏱️ OpenAI synthesis took {openai_duration:.2f}s")
             
             synthesized_response = response.choices[0].message.content
+            
+            # Append disclaimer if present
+            if disclaimer_text and disclaimer_text not in synthesized_response:
+                synthesized_response = f"{synthesized_response}\n\n---\n\n{disclaimer_text}"
             
             # Track usage for cost monitoring
             usage = response.usage
@@ -1234,7 +1533,8 @@ Respond professionally and helpfully, processing all available content to provid
             output_tokens = usage.completion_tokens if usage else 0
             total_tokens = usage.total_tokens if usage else 0
             
-            print(f"✅ OpenAI synthesis successful: {len(synthesized_response)} characters")
+            total_synthesis_duration = time.time() - synthesis_start_time
+            print(f"✅ {provider.upper()} synthesis successful: {len(synthesized_response)} characters (total: {total_synthesis_duration:.2f}s)")
             print(f"📊 Token usage: {input_tokens} input + {output_tokens} output = {total_tokens} total")
             
             # Calculate cost based on model
@@ -1247,7 +1547,7 @@ Respond professionally and helpfully, processing all available content to provid
             
             print(f"💰 Estimated cost: ${cost:.6f}")
             
-            synthesis_method = f"openai_{selected_model.replace('-', '_')}"
+            synthesis_method = f"{provider}_{selected_model.replace('-', '_')}"
             
             return {
                 "synthesis_response": {
@@ -1260,12 +1560,13 @@ Respond professionally and helpfully, processing all available content to provid
                     ],
                     "synthesis_method": synthesis_method,
                     "model_used": selected_model,
-                    "provider": "openai",
+                    "provider": provider,
                     "token_usage": {
                         "input_tokens": input_tokens,
                         "output_tokens": output_tokens,
                         "total_tokens": total_tokens
-                    }
+                    },
+                    "duration_seconds": total_synthesis_duration
                 }
             }
         except openai.APITimeoutError as e:
@@ -1456,14 +1757,16 @@ def knowledge_orchestrator_v5():
         # Enhanced session management
         session_id = request_data.get('session_id', generate_session_id(question))
         conversation_history = request_data.get('conversation_history', [])
-        max_results = request_data.get('max_results', 50)
+        max_results = request_data.get('max_results', 100)  # Increased default from 50 to 100
         model_preference = request_data.get('model_preference')  # User's model preference (optional)
 
         print(f"🤖 v5 Query: {question}")
         print(f"🔄 Session ID: {session_id}")
         print(f"📜 Conversation History: {len(conversation_history)} messages")
         if model_preference:
-            print(f"🎯 User model preference: {model_preference}")
+            print(f"🎯 User model preference: {model_preference} (type: {type(model_preference)})")
+        else:
+            print(f"🎯 No model preference - will use auto-selection")
 
         # Intelligent query analysis with enhanced keyword extraction
         query_analysis = intelligent_query_analysis(question)
@@ -1495,7 +1798,7 @@ def knowledge_orchestrator_v5():
         elif detected_intent == 'workflow':
             print("🔍 Workflow query - prioritizing Confluence + GitHub, skipping Document360 (internal process)")
             # For workflow questions: Prioritize Confluence + GitHub, skip Document360
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            with ThreadPoolExecutor(max_workers=6) as executor:  # Increased from 4 to 6 for better parallelism
                 confluence_future = executor.submit(call_confluence_api, question, query_analysis, conversation_history)
                 github_future = executor.submit(call_github_api, question, query_analysis)
                 product_mappings_future = executor.submit(get_product_mappings_from_github)
@@ -1514,10 +1817,19 @@ def knowledge_orchestrator_v5():
                 # Extract the main subject from the question to filter tickets
                 workflow_subject = None
                 import re
-                # Pattern: "workflow of X" or "workflow of the X"
-                match = re.search(r'workflow\s+of\s+(?:the\s+)?([A-Z]+)', question, re.IGNORECASE)
-                if match:
-                    workflow_subject = match.group(1)  # Extract the acronym (e.g., "PRTS")
+                # Pattern: "workflow of X" or "workflow of the X" or "what is X the process" or "describe X the process"
+                patterns = [
+                    r'workflow\s+of\s+(?:the\s+)?([A-Z]+)',  # "workflow of PRTS"
+                    r'what\s+is\s+([A-Z]+)\s+the\s+process',  # "what is PRTS the process"
+                    r'describe\s+([A-Z]+)\s+the\s+process',  # "describe PRTS the process"
+                    r'explain\s+([A-Z]+)\s+the\s+process',  # "explain PRTS the process"
+                    r'(?:what|how|explain|describe).*?([A-Z]{2,})',  # Fallback: extract any uppercase acronym
+                ]
+                for pattern in patterns:
+                    match = re.search(pattern, question, re.IGNORECASE)
+                    if match:
+                        workflow_subject = match.group(1)
+                        break  # Extract the acronym (e.g., "PRTS")
                 else:
                     # Pattern: "how does X work" or "explain X"
                     match = re.search(r'(?:how\s+does|explain|describe|tell\s+me\s+about)\s+([A-Z]+)', question, re.IGNORECASE)
@@ -1542,22 +1854,22 @@ def knowledge_orchestrator_v5():
                 
                 jira_future = executor.submit(call_jira_v4_api, question, max_results, query_analysis, product_mappings)
                 
-                # Wait for Confluence and GitHub (primary sources)
+                # Wait for Confluence and GitHub (primary sources) - increased timeouts
                 try:
-                    confluence_data = confluence_future.result(timeout=15)
+                    confluence_data = confluence_future.result(timeout=30)  # Increased from 15 to 30 seconds
                 except Exception as e:
                     print(f"⚠️ Confluence API timeout/error: {e}")
                     confluence_data = {'results': [], 'api_success': False, 'total_sources_found': 0}
                 
                 try:
-                    github_data = github_future.result(timeout=15)
+                    github_data = github_future.result(timeout=30)  # Increased from 15 to 30 seconds
                 except Exception as e:
                     print(f"⚠️ GitHub API timeout/error: {e}")
                     github_data = {'repositories': [], 'api_success': False, 'total_repos_found': 0}
                 
-                # Get JIRA data (for context, but not primary)
+                # Get JIRA data (for context, but not primary) - increased timeout
                 try:
-                    jira_data = jira_future.result(timeout=20)
+                    jira_data = jira_future.result(timeout=40)  # Increased from 20 to 40 seconds
                     print(f"✅ JIRA data retrieved: {len(jira_data.get('tickets', []))} tickets")
                 except Exception as e:
                     print(f"⚠️ JIRA API timeout/error: {e}")
@@ -1610,21 +1922,27 @@ def knowledge_orchestrator_v5():
                 
                 print(f"✅ Synthesis result method: {synthesis_result.get('synthesis_response', {}).get('synthesis_method', 'unknown')}")
                 
+                # Extract full synthesis_response to preserve model_used and provider
+                synthesis_response = synthesis_result.get("synthesis_response", {})
                 return jsonify({
-                    "response": synthesis_result.get("synthesis_response", {}).get("response", "No response generated"),
-                    "sources": synthesis_result.get("synthesis_response", {}).get("sources", []),
+                    "response": synthesis_response.get("response", "No response generated"),
+                    "sources": synthesis_response.get("sources", []),
                     "jql_link": jql_link,
                     "confluence_results": len(confluence_data.get('results', [])),
                     "github_repos": len(github_data.get('repositories', [])),
                     "jira_tickets": len(jira_data.get('tickets', [])),
                     "document360_articles": 0,  # Skipped for workflow queries
                     "query_intent": detected_intent,
-                    "synthesis_method": synthesis_result.get("synthesis_response", {}).get("synthesis_method", "unknown")
+                    "synthesis_method": synthesis_response.get("synthesis_method", "unknown"),
+                    "model_used": synthesis_response.get("model_used", "unknown"),  # Include model_used
+                    "provider": synthesis_response.get("provider", "unknown"),  # Include provider
+                    "token_usage": synthesis_response.get("token_usage", {}),  # Include token_usage
+                    "synthesis_response": synthesis_response  # Include full synthesis_response for backend
                 })
         else:
             print("🔍 General query - calling all data sources concurrently...")
             # Make API calls concurrently for faster response
-            with ThreadPoolExecutor(max_workers=5) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:  # Increased from 5 to 8 for better parallelism
                 # Submit all API calls concurrently
                 confluence_future = executor.submit(call_confluence_api, question, query_analysis, conversation_history)
                 github_future = executor.submit(call_github_api, question, query_analysis)
@@ -1641,28 +1959,28 @@ def knowledge_orchestrator_v5():
                 # Start JIRA call once we have product_mappings (or empty dict)
                 jira_future = executor.submit(call_jira_v4_api, question, max_results, query_analysis, product_mappings)
                 
-                # Wait for all to complete (with timeout)
+                # Wait for all to complete (with increased timeout for more data)
                 try:
-                    confluence_data = confluence_future.result(timeout=15)
+                    confluence_data = confluence_future.result(timeout=30)  # Increased from 15 to 30 seconds
                 except Exception as e:
                     print(f"⚠️ Confluence API timeout/error: {e}")
                     confluence_data = {'results': [], 'api_success': False, 'total_sources_found': 0}
                 
                 try:
-                    github_data = github_future.result(timeout=15)
+                    github_data = github_future.result(timeout=30)  # Increased from 15 to 30 seconds
                 except Exception as e:
                     print(f"⚠️ GitHub API timeout/error: {e}")
                     github_data = {'repositories': [], 'api_success': False, 'total_repos_found': 0}
                 
                 try:
-                    document360_data = document360_future.result(timeout=15)
+                    document360_data = document360_future.result(timeout=30)  # Increased from 15 to 30 seconds
                 except Exception as e:
                     print(f"⚠️ Document360 API timeout/error: {e}")
                     document360_data = {'articles': [], 'api_success': False, 'total_articles_found': 0}
                 
-                # Wait for JIRA (with timeout)
+                # Wait for JIRA (with increased timeout)
                 try:
-                    jira_data = jira_future.result(timeout=20)
+                    jira_data = jira_future.result(timeout=40)  # Increased from 20 to 40 seconds
                 except Exception as e:
                     print(f"⚠️ JIRA API timeout/error: {e}")
                     jira_data = {'tickets': [], 'summary': [], 'query_success': False, 'total_tickets': 0}
@@ -1736,35 +2054,42 @@ def knowledge_orchestrator_v5():
 
 # === CLOUD FUNCTION GEN2 ENTRY POINT ===
 # This allows deployment as Cloud Function gen2 (shows as "Cloud Run functions" deployer)
-@functions_framework.http
-def knowledge_layer_v5(request):
-    """
-    Cloud Function gen2 HTTP entry point for Flask app
-    Converts Cloud Functions request to Flask request context
-    """
-    with app.test_request_context(
-        path=request.path,
-        method=request.method,
-        headers=dict(request.headers),
-        data=request.get_data(),
-        query_string=request.query_string
-    ):
-        try:
-            response = app.full_dispatch_request()
-            return (
-                response.get_data(),
-                response.status_code,
-                dict(response.headers)
-            )
-        except Exception as e:
-            import traceback
-            error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
-            print(f"❌ Error in knowledge_layer_v5: {error_msg}")
-            return (
-                json.dumps({"error": str(e), "type": type(e).__name__}),
-                500,
-                {"Content-Type": "application/json"}
-            )
+# Only available if functions_framework is installed
+if FUNCTIONS_FRAMEWORK_AVAILABLE:
+    @functions_framework.http
+    def knowledge_layer_v5(request):
+        """
+        Cloud Function gen2 HTTP entry point for Flask app
+        Converts Cloud Functions request to Flask request context
+        """
+        with app.test_request_context(
+            path=request.path,
+            method=request.method,
+            headers=dict(request.headers),
+            data=request.get_data(),
+            query_string=request.query_string
+        ):
+            try:
+                response = app.full_dispatch_request()
+                return (
+                    response.get_data(),
+                    response.status_code,
+                    dict(response.headers)
+                )
+            except Exception as e:
+                import traceback
+                error_msg = f"Error: {str(e)}\n{traceback.format_exc()}"
+                print(f"❌ Error in knowledge_layer_v5: {error_msg}")
+                return (
+                    json.dumps({"error": str(e), "type": type(e).__name__}),
+                    500,
+                    {"Content-Type": "application/json"}
+                )
+else:
+    # Cloud Run only - no functions_framework wrapper needed
+    def knowledge_layer_v5(request):
+        """Placeholder for Cloud Run deployment (not used)"""
+        pass
 
 # For Cloud Run direct deployment (legacy - kept for compatibility)
 if __name__ == '__main__':

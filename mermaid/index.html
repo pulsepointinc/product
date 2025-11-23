@@ -630,15 +630,50 @@ graph TD
             
             // Fix flowchart syntax issues
             if (processed.includes('flowchart') || processed.includes('graph')) {
-                // Handle method calls in node labels (both simple method() and class.method() patterns)
-                // Only process if not already quoted
-                processed = processed.replace(/([A-Z0-9]+)\[([^\]"]*\([^)]*\)[^\]"]*)\]/g, (match, nodeId, label) => {
-                    // Use quotes to wrap labels containing parentheses
-                    return `${nodeId}["${label}"]`;
+                // Handle any parentheses in node labels - quote them to avoid parsing errors
+                // Match node definitions like: ID[label text (with parens)]
+                // Process line by line to avoid issues with complex patterns
+                const lines = processed.split('\n');
+                const fixedLines = lines.map(line => {
+                    // Skip lines that are comments or subgraph definitions
+                    if (line.trim().startsWith('%%') || line.trim().startsWith('subgraph') || line.trim().startsWith('end')) {
+                        return line;
+                    }
+                    
+                    // Match node definitions with square brackets: ID[label]
+                    // This regex matches: nodeId[label with (parentheses)]
+                    let fixed = line.replace(/([A-Z0-9_]+)\[([^\]]+)\]/g, (match, nodeId, label) => {
+                        // Check if label contains parentheses and is not already quoted
+                        if (label.includes('(') && label.includes(')') && !(label.startsWith('"') && label.endsWith('"'))) {
+                            // Escape any existing quotes and wrap in quotes
+                            const escapedLabel = label.replace(/\\"/g, '"').replace(/"/g, '\\"');
+                            return `${nodeId}["${escapedLabel}"]`;
+                        }
+                        return match; // No change needed
+                    });
+                    
+                    // Match node definitions with round brackets: ID(label)
+                    fixed = fixed.replace(/([A-Z0-9_]+)\(([^)]+)\)/g, (match, nodeId, label) => {
+                        // Check if label contains nested parentheses and is not already quoted
+                        if (label.includes('(') && label.includes(')') && !(label.startsWith('"') && label.endsWith('"'))) {
+                            // Escape any existing quotes and wrap in quotes
+                            const escapedLabel = label.replace(/\\"/g, '"').replace(/"/g, '\\"');
+                            return `${nodeId}("${escapedLabel}")`;
+                        }
+                        return match; // No change needed
+                    });
+                    
+                    return fixed;
                 });
                 
+                processed = fixedLines.join('\n');
+                
                 // Fix edge labels with parentheses
-                processed = processed.replace(/-->\s*\|([^|"]*\([^)]*\)[^|"]*)\|\s*/g, (match, label) => {
+                processed = processed.replace(/-->\s*\|([^|"]*\([^)]+\)[^|"]*)\|\s*/g, (match, label) => {
+                    // Check if already quoted
+                    if (label.startsWith('"') && label.endsWith('"')) {
+                        return match;
+                    }
                     return `-->|"${label}"| `;
                 });
             }

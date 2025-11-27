@@ -7,8 +7,12 @@
     "stream": "Analytics-Platform-and-Workspaces",
     "lead": "Kaustav Basu"
   },
-  "Audience Management": {
-    "stream": "Audience Management",
+  "APIs": {
+    "stream": "APIs",
+    "lead": "Rachel Gavazzi"
+  },
+  "Ingress": {
+    "stream": "Ingress",
     "lead": "Ash Cipriani"
   },
   "Campaign Management": {
@@ -18,6 +22,10 @@
   "Creatives": {
     "stream": "Creatives",
     "lead": "Kenan Akin"
+  },
+  "Cross Company Initiatives": {
+    "stream": "Cross Company Initiatives",
+    "lead": "Prem Kumar Mullai"
   },
   "Deal Platform": {
     "stream": "Deal Platform",
@@ -39,8 +47,8 @@
     "stream": "Media Effectiveness",
     "lead": "Divya Suri"
   },
-  "Omnichannel": {
-    "stream": "Omnichannel",
+  "Egress": {
+    "stream": "Egress",
     "lead": "Donovan Ly"
   },
   "Optimization": {
@@ -61,11 +69,11 @@
   },
   "Platform Compliance": {
     "stream": "Platform Compliance",
-    "lead": ""
+    "lead": "Rachel Gavazzi"
   },
   "Reporting": {
     "stream": "Reporting",
-    "lead": "Divya Suri"
+    "lead": "Naresh Lodha"
   },
   "Supply": {
     "stream": "Supply",

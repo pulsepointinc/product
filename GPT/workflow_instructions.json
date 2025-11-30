@@ -1,7 +1,7 @@
 {
   "meta": {
     "purpose": "GPT behavior instructions and search workflow definitions",
-    "last_updated": "2025-11-29T11:02:09.575609"
+    "last_updated": "2025-11-30T11:02:12.748881"
   },
   "mandatory_checks": {
     "step_0": {

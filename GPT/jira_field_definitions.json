@@ -183,5 +183,6 @@
     "field_name": "total_days_elapsed",
     "description": "Total days elapsed for the issue",
     "possible_values": []
-  }
+  },
+  "_last_updated": "2025-12-01T11:02:27.308742"
 }

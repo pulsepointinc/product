@@ -50,6 +50,9 @@ KNOWLEDGE_LAYER_URL = os.getenv(
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "pulsepoint-bitstrapped-ai")
 ALLOWED_DOMAINS = ["pulsepoint.com"]  # Only allow corporate emails
 ENABLE_SSO = os.getenv("ENABLE_SSO", "false").lower() == "true"  # SSO disabled by default
+FIREBASE_IMPERSONATION_SERVICE_ACCOUNT = os.getenv(
+    "FIREBASE_IMPERSONATION_SERVICE_ACCOUNT"
+)
 
 # Initialize Firestore for usage tracking
 db = None
@@ -64,18 +67,26 @@ def get_firestore_db():
             except ValueError:
                 # Use ApplicationDefault credentials (service account in Cloud Run)
                 # This ensures the Cloud Run service account has admin privileges
+                cred = credentials.ApplicationDefault()
                 try:
-                    cred = credentials.ApplicationDefault()
-                    # Create credentials that impersonate the Firebase Admin SDK service account
-                    from google.auth import impersonated_credentials
-                    target_scopes = ['https://www.googleapis.com/auth/cloud-platform']
-                    cred = impersonated_credentials.Credentials(
-                        source_credentials=cred,
-                        target_principal=target_sa,
-                        target_scopes=target_scopes,
-                    )
-                    firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
-                    logger.info(f"✅ Firebase Admin initialized with impersonated credentials: {target_sa}")
+                    if FIREBASE_IMPERSONATION_SERVICE_ACCOUNT:
+                        target_scopes = ['https://www.googleapis.com/auth/cloud-platform']
+                        cred = impersonated_credentials.Credentials(
+                            source_credentials=cred,
+                            target_principal=FIREBASE_IMPERSONATION_SERVICE_ACCOUNT,
+                            target_scopes=target_scopes,
+                        )
+                        firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
+                        logger.info(
+                            "✅ Firebase Admin initialized with impersonated credentials: "
+                            f"{FIREBASE_IMPERSONATION_SERVICE_ACCOUNT}"
+                        )
+                    else:
+                        firebase_admin.initialize_app(cred, options={'projectId': FIREBASE_PROJECT_ID})
+                        logger.info(
+                            "✅ Firebase Admin initialized with default credentials for project "
+                            f"(no impersonation): {FIREBASE_PROJECT_ID}"
+                        )
                 except Exception as impersonation_error:
                     logger.warning(f"Failed to use impersonated credentials: {impersonation_error}")
                     # Fallback to default credentials
@@ -284,8 +295,16 @@ async def ask_question(
     if not question or not question.strip():
         raise HTTPException(status_code=400, detail="Question is required")
 
-    # Get user info (or use anonymous if SSO disabled)
-    user_info = user if user else {"email": "anonymous@example.com", "name": "Anonymous"}
+    # Enforce authentication when SSO is enabled
+    if ENABLE_SSO:
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required. Please sign in with your PulsePoint account."
+            )
+        user_info = user
+    else:
+        user_info = {"email": "anonymous@example.com", "name": "Anonymous"}
     user_email = user_info.get('email', '')
     
     # Check user access (only if SSO is enabled)

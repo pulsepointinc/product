@@ -539,11 +539,6 @@
     "source": "jira_definitions",
     "field": "product_manager"
   },
-  "\"Victor Onazi\"": {
-    "name": "\"Victor Onazi\"",
-    "source": "jira_definitions",
-    "field": "product_manager"
-  },
   "\"Vitali Klinchik\"": {
     "name": "\"Vitali Klinchik\"",
     "source": "jira_definitions",
@@ -558,6 +553,5 @@
     "name": "\"Yulhee Kim\"]",
     "source": "jira_definitions",
     "field": "product_manager"
-  },
-  "_last_updated": "2025-12-02T11:01:46.205591"
+  }
 }

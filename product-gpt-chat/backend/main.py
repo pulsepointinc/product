@@ -65,7 +65,18 @@ def product_gpt_chat_api(request):
     elif isinstance(body, str):
         response_body = body.encode()
     else:
-        response_body = b''.join(body).encode() if body else b''
+        chunks = []
+        try:
+            for chunk in body or []:
+                if isinstance(chunk, bytes):
+                    chunks.append(chunk)
+                else:
+                    chunks.append(str(chunk).encode())
+        finally:
+            close_fn = getattr(body, 'close', None)
+            if callable(close_fn):
+                close_fn()
+        response_body = b''.join(chunks)
     
     response_data['body'] = response_body
     
